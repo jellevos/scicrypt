@@ -1,0 +1,7 @@
+[package]
+name = "scicrypt"
+version = "0.0.1"
+authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
+edition = "2018"
+
+[dependencies]
