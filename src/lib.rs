@@ -1,6 +1,7 @@
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
+use std::ops::Add;
 
 /// An asymmetric cryptosystem is a system of methods to encrypt plaintexts into ciphertexts, and
 /// decrypt those ciphertexts back into plaintexts. Anyone who has access to the public key can
@@ -72,14 +73,27 @@ impl AsymmetricCryptosystem for CurveElGamal {
     }
 }
 
+impl Add for &CurveElGamalCiphertext {
+    type Output = CurveElGamalCiphertext;
+
+    /// Homomorphic operation between two ElGamal ciphertexts.
+    fn add(self, rhs: Self) -> Self::Output {
+        CurveElGamalCiphertext {
+            c1: self.c1 + rhs.c1,
+            c2: self.c2 + rhs.c2,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{CurveElGamal, AsymmetricCryptosystem};
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
+    use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
 
     #[test]
-    fn encrypt_decrypt_generator() {
+    fn test_encrypt_decrypt_generator() {
         let curve_elgamal = CurveElGamal{};
         let (pk, sk) = curve_elgamal.generate_keys(&mut OsRng);
 
@@ -103,6 +117,20 @@ mod tests {
                                                &mut OsRng);
 
         assert_ne!(ciphertext1, ciphertext2);
+    }
+
+    #[test]
+    fn test_homomorphism() {
+        let curve_elgamal = CurveElGamal{};
+        let (pk, sk) = curve_elgamal.generate_keys(&mut OsRng);
+
+        let ciphertext = curve_elgamal.encrypt(&RISTRETTO_BASEPOINT_POINT,
+                                               &pk,
+                                               &mut OsRng);
+        let ciphertext_twice = &ciphertext + &ciphertext;
+
+        assert_eq!(&Scalar::from(2u64) * &RISTRETTO_BASEPOINT_POINT,
+                   curve_elgamal.decrypt(&ciphertext_twice, &sk));
     }
 
 }
