@@ -32,7 +32,13 @@ trait AsymmetricCryptosystem {
     fn decrypt(&self, ciphertext: &Self::Ciphertext, secret_key: &Self::SecretKey) -> Self::Plaintext;
 }
 
+/// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
+/// `curve25519-dalek` crate. ElGamal is a partially homomorphic cryptosystem.
 struct CurveElGamal;
+
+/// ElGamal ciphertext containing curve points. The addition operator on the ciphertext is
+/// reflected as the curve operation on the associated plaintext.
+#[derive(Debug, PartialEq)]
 struct CurveElGamalCiphertext {
     c1: RistrettoPoint,
     c2: RistrettoPoint,
@@ -82,6 +88,21 @@ mod tests {
                                                &mut OsRng);
 
         assert_eq!(RISTRETTO_BASEPOINT_POINT, curve_elgamal.decrypt(&ciphertext, &sk));
+    }
+
+    #[test]
+    fn test_probabilistic_encryption() {
+        let curve_elgamal = CurveElGamal{};
+        let (pk, _) = curve_elgamal.generate_keys(&mut OsRng);
+
+        let ciphertext1 = curve_elgamal.encrypt(&RISTRETTO_BASEPOINT_POINT,
+                                               &pk,
+                                               &mut OsRng);
+        let ciphertext2 = curve_elgamal.encrypt(&RISTRETTO_BASEPOINT_POINT,
+                                               &pk,
+                                               &mut OsRng);
+
+        assert_ne!(ciphertext1, ciphertext2);
     }
 
 }
