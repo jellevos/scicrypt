@@ -10,3 +10,5 @@ repository = "https://github.com/jellevos/scicrypt"
 readme = "README.md"
 
 [dependencies]
+rand_core = "0.5"
+curve25519-dalek = "3"
