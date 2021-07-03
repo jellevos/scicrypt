@@ -74,7 +74,7 @@ dependencies = [
 
 [[package]]
 name = "scicrypt"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "curve25519-dalek",
  "rand_core",
