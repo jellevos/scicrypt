@@ -1,5 +1,33 @@
-mod number_theory;
-mod randomness;
+//! Lightweight cryptographic building blocks for proof of concept implementations in applied
+//! cryptography.
+//!
+//! While many libraries implementing cryptographic building blocks exist, many fall in one of two
+//! categories:
+//! - Fast but rigid [like many written in C++]
+//! - Slow but flexible [like many written in python]
+//!
+//! This library attempts to find a balance between speed and flexibility, to ease the process of
+//! implementing proof of concepts of cryptographic protocols, such as those in the field of multi-
+//! party computation (MPC).
+//!
+//! # Upcoming features
+//! These are the upcoming minor versions and the functionality they will add.
+//!
+//! ## Version 0.1.0
+//! _Homomorphic cryptosystems update_
+//! <table>
+//!     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
+//!     <tr><td>ElGamal over elliptic curves</td><td>x</td></tr>
+//!     <tr><td>ElGamal over the integers</td><td> </td></tr>
+//!     <tr><td>Paillier</td><td></td> </tr>
+//!     <tr><td>RSA</td><td></td> </tr>
+//! </table>
+
+/// Functions for generating random prime numbers.
+pub mod number_theory;
+
+/// Random number generation that is consistent with the dependencies' requirements.
+pub mod randomness;
 
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
@@ -14,7 +42,7 @@ use crate::randomness::SecureRng;
 /// The struct that implements an AsymmetricCryptosystem will hold the general parameters of that
 /// cryptosystem. Depending on the cryptosystem, those parameters could play an important role in
 /// deciding the level of security. As such, each cryptosystem should clearly indicate these.
-trait AsymmetricCryptosystem {
+pub trait AsymmetricCryptosystem {
     /// The type of the plaintexts to be encrypted.
     type Plaintext;
     /// The type of the encrypted plaintexts.
@@ -41,12 +69,12 @@ trait AsymmetricCryptosystem {
 
 /// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
 /// `curve25519-dalek` crate. ElGamal is a partially homomorphic cryptosystem.
-struct CurveElGamal;
+pub struct CurveElGamal;
 
 /// ElGamal ciphertext containing curve points. The addition operator on the ciphertext is
 /// reflected as the curve operation on the associated plaintext.
 #[derive(Debug, PartialEq)]
-struct CurveElGamalCiphertext {
+pub struct CurveElGamalCiphertext {
     c1: RistrettoPoint,
     c2: RistrettoPoint,
 }
