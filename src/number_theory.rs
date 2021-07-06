@@ -1,13 +1,15 @@
 use rug::Integer;
 use rug::integer::IsPrime;
-use rug::rand::MutRandState;
+use crate::randomness::SecureRng;
 
 const REPS: u32 = 25;
 
-pub fn gen_prime<R: MutRandState>(bit_length: u32, rng: &mut R)
+pub fn gen_prime<R: rand_core::RngCore + rand_core::CryptoRng>(bit_length: u32,
+                                                               rng: &mut SecureRng<R>)
     -> Integer {
     loop {
-        let mut candidate = Integer::from(Integer::random_bits(bit_length, rng));
+        let mut candidate = Integer::from(Integer::random_bits(bit_length,
+                                                               &mut rng.rug_rng()));
 
         let set_bits = (Integer::from(1) << (bit_length - 1)) + Integer::from(1);
         candidate |= set_bits;
@@ -18,7 +20,8 @@ pub fn gen_prime<R: MutRandState>(bit_length: u32, rng: &mut R)
     }
 }
 
-pub fn gen_safe_prime<R: MutRandState>(bit_length: u32, rng: &mut R)
+pub fn gen_safe_prime<R: rand_core::RngCore + rand_core::CryptoRng>(bit_length: u32,
+                                                                    rng: &mut SecureRng<R>)
     -> Integer {
     loop {
         let mut candidate = gen_prime(bit_length - 1, rng);
@@ -39,8 +42,9 @@ pub fn gen_safe_prime<R: MutRandState>(bit_length: u32, rng: &mut R)
 #[cfg(test)]
 mod tests {
     use crate::number_theory::{gen_safe_prime, gen_prime};
-    use rug::rand::RandState;
     use rug::Integer;
+    use crate::randomness::{SecureRng};
+    use rand_core::OsRng;
 
     fn assert_primality_100_000_factors(integer: &Integer) {
         let (_, hi) = primal::estimate_nth_prime(100_000);
@@ -52,7 +56,7 @@ mod tests {
 
     #[test]
     fn test_gen_prime_for_factors() {
-        let mut rng = RandState::new();
+        let mut rng = SecureRng::new(OsRng);
         let generated_prime = gen_prime(256, &mut rng);
 
         assert_primality_100_000_factors(&generated_prime);
@@ -60,7 +64,7 @@ mod tests {
 
     #[test]
     fn test_gen_safe_prime_for_factors() {
-        let mut rng = RandState::new();
+        let mut rng = SecureRng::new(OsRng);
         let generated_prime = gen_safe_prime(256, &mut rng);
 
         assert_primality_100_000_factors(&generated_prime);
