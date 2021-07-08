@@ -31,6 +31,8 @@ pub mod randomness;
 
 /// Instances of the ElGamal cryptosystem.
 pub mod el_gamal;
+/// Implementation of the RSA cryptosystem.
+pub mod rsa;
 
 use crate::randomness::SecureRng;
 
@@ -61,7 +63,41 @@ pub trait AsymmetricCryptosystem {
     (&self, plaintext: &Self::Plaintext, public_key: &Self::PublicKey, rng: &mut SecureRng<R>)
         -> Self::Ciphertext;
 
-    /// Decrypt the ciphertext using the secret key.
-    fn decrypt(&self, ciphertext: &Self::Ciphertext, secret_key: &Self::SecretKey)
-        -> Self::Plaintext;
+    /// Decrypt the ciphertext and its related public key using the secret key.
+    fn decrypt(&self, rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
+               secret_key: &Self::SecretKey) -> Self::Plaintext;
+}
+
+/// Some cryptosystems do not require the public key to decrypt, as all the necessary information
+/// is stored within the ciphertext and the secret key. For example, ElGamal when its group is
+/// hard-coded.
+pub trait DecryptDirectly {
+    /// The type of the plaintexts to be encrypted.
+    type Plaintext;
+    /// The type of the encrypted plaintexts.
+    type Ciphertext;
+
+    /// The type of the decryption key.
+    type SecretKey;
+
+    /// Decrypt a ciphertext using the secret key directly, without requiring a rich ciphertext.
+    fn decrypt_direct(&self, ciphertext: &Self::Ciphertext, secret_key: &Self::SecretKey)
+                      -> Self::Plaintext;
+
+}
+
+pub struct RichCiphertext<'pk, C, PK> {
+    ciphertext: C,
+    public_key: &'pk PK
+}
+
+pub trait Enrichable<PK> {
+
+    fn enrich(self, public_key: &PK) -> RichCiphertext<Self, PK> where Self: Sized {
+        RichCiphertext {
+            ciphertext: self,
+            public_key,
+        }
+    }
+
 }

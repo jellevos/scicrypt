@@ -2,7 +2,7 @@ use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use std::ops::{Add, Mul};
-use crate::AsymmetricCryptosystem;
+use crate::{AsymmetricCryptosystem, DecryptDirectly, RichCiphertext, Enrichable};
 use crate::randomness::SecureRng;
 
 /// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
@@ -16,6 +16,20 @@ pub struct CurveElGamalCiphertext {
     c1: RistrettoPoint,
     c2: RistrettoPoint,
 }
+
+impl DecryptDirectly for CurveElGamal {
+    type Plaintext = RistrettoPoint;
+    type Ciphertext = CurveElGamalCiphertext;
+
+    type SecretKey = Scalar;
+
+    fn decrypt_direct(&self, ciphertext: &Self::Ciphertext, secret_key: &Self::SecretKey)
+        -> Self::Plaintext {
+        ciphertext.c2 - secret_key * &ciphertext.c1
+    }
+}
+
+impl Enrichable<RistrettoPoint> for CurveElGamalCiphertext { }
 
 impl AsymmetricCryptosystem for CurveElGamal {
     type Plaintext = RistrettoPoint;
@@ -40,8 +54,9 @@ impl AsymmetricCryptosystem for CurveElGamal {
         }
     }
 
-    fn decrypt(&self, ciphertext: &Self::Ciphertext, secret_key: &Self::SecretKey) -> Self::Plaintext {
-        ciphertext.c2 - secret_key * &ciphertext.c1
+    fn decrypt(&self, rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
+               secret_key: &Self::SecretKey) -> Self::Plaintext {
+        self.decrypt_direct(&rich_ciphertext.ciphertext, secret_key)
     }
 }
 
@@ -76,7 +91,7 @@ mod tests {
     use rand_core::OsRng;
     use crate::randomness::SecureRng;
     use crate::el_gamal::CurveElGamal;
-    use crate::AsymmetricCryptosystem;
+    use crate::{AsymmetricCryptosystem, Enrichable};
 
     #[test]
     fn test_encrypt_decrypt_generator() {
@@ -89,7 +104,9 @@ mod tests {
                                                &pk,
                                                &mut rng);
 
-        assert_eq!(RISTRETTO_BASEPOINT_POINT, curve_elgamal.decrypt(&ciphertext, &sk));
+        assert_eq!(RISTRETTO_BASEPOINT_POINT, curve_elgamal.decrypt(
+            &ciphertext.enrich(&pk),
+            &sk));
     }
 
     #[test]
@@ -122,7 +139,7 @@ mod tests {
         let ciphertext_twice = &ciphertext + &ciphertext;
 
         assert_eq!(&Scalar::from(2u64) * &RISTRETTO_BASEPOINT_POINT,
-                   curve_elgamal.decrypt(&ciphertext_twice, &sk));
+                   curve_elgamal.decrypt(&ciphertext_twice.enrich(&pk), &sk));
     }
 
     #[test]
@@ -138,7 +155,7 @@ mod tests {
         let ciphertext_thrice = &ciphertext * &Scalar::from(3u64);
 
         assert_eq!(&Scalar::from(3u64) * &RISTRETTO_BASEPOINT_POINT,
-                   curve_elgamal.decrypt(&ciphertext_thrice, &sk));
+                   curve_elgamal.decrypt(&ciphertext_thrice.enrich(&pk), &sk));
     }
 
 }
