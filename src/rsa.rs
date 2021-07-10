@@ -1,7 +1,7 @@
 use crate::{AsymmetricCryptosystem, RichCiphertext, Enrichable};
 use crate::randomness::SecureRng;
 use rug::Integer;
-use crate::number_theory::gen_safe_prime;
+use crate::number_theory::{gen_rsa_modulus};
 use std::ops::{Mul, Rem};
 
 pub struct RSA {
@@ -22,17 +22,13 @@ impl Enrichable<RSAPublicKey> for RSACiphertext { }
 impl AsymmetricCryptosystem for RSA {
     type Plaintext = Integer;
     type Ciphertext = RSACiphertext;
+
     type PublicKey = RSAPublicKey;
     type SecretKey = Integer;
 
     fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(&self, rng: &mut SecureRng<R>)
         -> (Self::PublicKey, Self::SecretKey) {
-        let p = gen_safe_prime(self.key_size / 2, rng);
-        let q = gen_safe_prime(self.key_size / 2, rng);
-
-        let n = Integer::from(&p * &q);
-
-        let lambda: Integer = (p - Integer::from(1)).lcm(&(q - Integer::from(1)));
+        let (n, lambda) = gen_rsa_modulus(self.key_size, rng);
 
         let e = Integer::from(65537);
         let d = Integer::from(e.invert_ref(&lambda).unwrap());

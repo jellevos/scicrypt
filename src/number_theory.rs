@@ -39,6 +39,31 @@ pub fn gen_safe_prime<R: rand_core::RngCore + rand_core::CryptoRng>(bit_length: 
     }
 }
 
+pub fn gen_rsa_modulus<R: rand_core::RngCore + rand_core::CryptoRng>(bit_length: u32,
+                                                                     rng: &mut SecureRng<R>)
+    -> (Integer, Integer) {
+    let p = gen_safe_prime(bit_length / 2, rng);
+    let q = gen_safe_prime(bit_length / 2, rng);
+
+    let n = Integer::from(&p * &q);
+
+    let lambda: Integer = (p - Integer::from(1)).lcm(&(q - Integer::from(1)));
+
+    return (n, lambda)
+}
+
+pub fn gen_coprime<R: rand_core::RngCore + rand_core::CryptoRng>(other: &Integer,
+                                                                 rng: &mut SecureRng<R>)
+-> Integer {
+    loop {
+        let candidate = Integer::from(other.random_below_ref(&mut rng.rug_rng()));
+
+        if Integer::from(candidate.gcd_ref(other)) == 1 {
+            return candidate;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::number_theory::{gen_safe_prime, gen_prime};

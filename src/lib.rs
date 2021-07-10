@@ -33,6 +33,8 @@ pub mod randomness;
 pub mod el_gamal;
 /// Implementation of the RSA cryptosystem.
 pub mod rsa;
+/// Implementation of the Paillier cryptosystem.
+mod paillier;
 
 use crate::randomness::SecureRng;
 
