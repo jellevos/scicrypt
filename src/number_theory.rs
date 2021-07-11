@@ -51,7 +51,7 @@ pub fn gen_rsa_modulus<R: rand_core::RngCore + rand_core::CryptoRng>(
 
     let lambda: Integer = (p - Integer::from(1)).lcm(&(q - Integer::from(1)));
 
-    return (n, lambda);
+    (n, lambda)
 }
 
 pub fn gen_coprime<R: rand_core::RngCore + rand_core::CryptoRng>(

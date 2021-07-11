@@ -35,7 +35,7 @@ impl AsymmetricCryptosystem for RSA {
         let e = Integer::from(65537);
         let d = Integer::from(e.invert_ref(&lambda).unwrap());
 
-        return (RSAPublicKey { n, e }, d);
+        (RSAPublicKey { n, e }, d)
     }
 
     fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
@@ -58,7 +58,7 @@ impl AsymmetricCryptosystem for RSA {
             rich_ciphertext
                 .ciphertext
                 .c
-                .secure_pow_mod_ref(&secret_key, &rich_ciphertext.public_key.n),
+                .secure_pow_mod_ref(secret_key, &rich_ciphertext.public_key.n),
         )
     }
 }

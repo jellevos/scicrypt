@@ -47,7 +47,7 @@ impl AsymmetricCryptosystem for Paillier {
         let n_squared = Integer::from(public_key.n.square_ref());
         let r = gen_coprime(&n_squared, rng);
 
-        let first = Integer::from(public_key.g.pow_mod_ref(&plaintext, &n_squared).unwrap());
+        let first = Integer::from(public_key.g.pow_mod_ref(plaintext, &n_squared).unwrap());
         let second = r.secure_pow_mod(&public_key.n, &n_squared);
 
         PaillierCiphertext {
@@ -73,10 +73,11 @@ impl AsymmetricCryptosystem for Paillier {
         inner /= &rich_ciphertext.public_key.n;
         inner *= mu;
 
-        return inner.rem(&rich_ciphertext.public_key.n);
+        inner.rem(&rich_ciphertext.public_key.n)
     }
 }
 
+#[allow(clippy::suspicious_arithmetic_impl)]
 impl<'pk> Add for &RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey> {
     type Output = RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey>;
 

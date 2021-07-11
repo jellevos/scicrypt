@@ -28,7 +28,7 @@ impl DecryptDirectly for CurveElGamal {
         ciphertext: &Self::Ciphertext,
         secret_key: &Self::SecretKey,
     ) -> Self::Plaintext {
-        ciphertext.c2 - secret_key * &ciphertext.c1
+        ciphertext.c2 - secret_key * ciphertext.c1
     }
 }
 
@@ -61,7 +61,7 @@ impl AsymmetricCryptosystem for CurveElGamal {
 
         CurveElGamalCiphertext {
             c1: &y * &RISTRETTO_BASEPOINT_TABLE,
-            c2: plaintext + &y * public_key,
+            c2: plaintext + y * public_key,
         }
     }
 
