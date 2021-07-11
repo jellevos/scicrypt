@@ -31,10 +31,10 @@ pub mod randomness;
 
 /// Instances of the ElGamal cryptosystem.
 pub mod el_gamal;
+/// Implementation of the Paillier cryptosystem.
+pub mod paillier;
 /// Implementation of the RSA cryptosystem.
 pub mod rsa;
-/// Implementation of the Paillier cryptosystem.
-mod paillier;
 
 use crate::randomness::SecureRng;
 
@@ -57,17 +57,25 @@ pub trait AsymmetricCryptosystem {
     type SecretKey;
 
     /// Generate a public and private key pair using a cryptographic RNG.
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>
-    (&self, rng: &mut SecureRng<R>) -> (Self::PublicKey, Self::SecretKey);
+    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+        &self,
+        rng: &mut SecureRng<R>,
+    ) -> (Self::PublicKey, Self::SecretKey);
 
     /// Encrypt the plaintext using the public key and a cryptographic RNG.
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>
-    (&self, plaintext: &Self::Plaintext, public_key: &Self::PublicKey, rng: &mut SecureRng<R>)
-        -> Self::Ciphertext;
+    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+        &self,
+        plaintext: &Self::Plaintext,
+        public_key: &Self::PublicKey,
+        rng: &mut SecureRng<R>,
+    ) -> Self::Ciphertext;
 
     /// Decrypt the ciphertext and its related public key using the secret key.
-    fn decrypt(&self, rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
-               secret_key: &Self::SecretKey) -> Self::Plaintext;
+    fn decrypt(
+        &self,
+        rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
+        secret_key: &Self::SecretKey,
+    ) -> Self::Plaintext;
 }
 
 /// Some cryptosystems do not require the public key to decrypt, as all the necessary information
@@ -83,23 +91,26 @@ pub trait DecryptDirectly {
     type SecretKey;
 
     /// Decrypt a ciphertext using the secret key directly, without requiring a rich ciphertext.
-    fn decrypt_direct(&self, ciphertext: &Self::Ciphertext, secret_key: &Self::SecretKey)
-                      -> Self::Plaintext;
-
+    fn decrypt_direct(
+        &self,
+        ciphertext: &Self::Ciphertext,
+        secret_key: &Self::SecretKey,
+    ) -> Self::Plaintext;
 }
 
 pub struct RichCiphertext<'pk, C, PK> {
     ciphertext: C,
-    public_key: &'pk PK
+    public_key: &'pk PK,
 }
 
 pub trait Enrichable<PK> {
-
-    fn enrich(self, public_key: &PK) -> RichCiphertext<Self, PK> where Self: Sized {
+    fn enrich(self, public_key: &PK) -> RichCiphertext<Self, PK>
+    where
+        Self: Sized,
+    {
         RichCiphertext {
             ciphertext: self,
             public_key,
         }
     }
-
 }
