@@ -2,7 +2,7 @@ use crate::{AsymmetricCryptosystem, RichCiphertext, Enrichable};
 use crate::randomness::SecureRng;
 use rug::Integer;
 use crate::number_theory::{gen_rsa_modulus, gen_coprime};
-use std::ops::{Rem, Add};
+use std::ops::{Rem, Add, Mul};
 
 struct Paillier {
     key_size: u32,
@@ -77,6 +77,21 @@ impl<'pk> Add for &RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey> {
     }
 }
 
+impl<'pk> Mul<&Integer> for &RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey> {
+    type Output = RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey>;
+
+    fn mul(self, rhs: &Integer) -> Self::Output {
+        let modulus = Integer::from(self.public_key.n.square_ref());
+
+        RichCiphertext {
+            ciphertext: PaillierCiphertext {
+                c: Integer::from(self.ciphertext.c.pow_mod_ref(rhs, &modulus).unwrap()),
+            },
+            public_key: self.public_key,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rand_core::OsRng;
@@ -112,6 +127,22 @@ mod tests {
         let ciphertext_twice = &ciphertext + &ciphertext;
 
         assert_eq!(Integer::from(14),
+                   paillier.decrypt(&ciphertext_twice, &sk));
+    }
+
+    #[test]
+    fn test_homomorphic_scalar_mul() {
+        let mut rng = SecureRng::new(OsRng);
+
+        let paillier = Paillier { key_size: 512 };
+        let (pk, sk) = paillier.generate_keys(&mut rng);
+
+        let ciphertext = paillier.encrypt(&Integer::from(9),
+                                          &pk,
+                                          &mut rng).enrich(&pk);
+        let ciphertext_twice = &ciphertext * &Integer::from(16);
+
+        assert_eq!(Integer::from(144),
                    paillier.decrypt(&ciphertext_twice, &sk));
     }
 

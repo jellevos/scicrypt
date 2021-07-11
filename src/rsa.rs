@@ -67,6 +67,17 @@ impl<'pk> Mul for &RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
     }
 }
 
+impl<'pk> RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
+    fn pow(&self, rhs: &Integer) -> RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
+        RichCiphertext {
+            ciphertext: RSACiphertext {
+                c: Integer::from(self.ciphertext.c.pow_mod_ref(rhs, &self.public_key.n).unwrap()),
+            },
+            public_key: self.public_key,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rand_core::OsRng;
@@ -102,6 +113,22 @@ mod tests {
         let ciphertext_twice = &ciphertext * &ciphertext;
 
         assert_eq!(Integer::from(49),
+                   rsa.decrypt(&ciphertext_twice, &sk));
+    }
+
+    #[test]
+    fn test_homomorphic_scalar_pow() {
+        let mut rng = SecureRng::new(OsRng);
+
+        let rsa = RSA { key_size: 512 };
+        let (pk, sk) = rsa.generate_keys(&mut rng);
+
+        let ciphertext = rsa.encrypt(&Integer::from(9),
+                                     &pk,
+                                     &mut rng).enrich(&pk);
+        let ciphertext_twice = ciphertext.pow(&Integer::from(4));
+
+        assert_eq!(Integer::from(6561),
                    rsa.decrypt(&ciphertext_twice, &sk));
     }
 
