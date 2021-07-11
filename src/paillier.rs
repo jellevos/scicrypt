@@ -2,7 +2,7 @@ use crate::{AsymmetricCryptosystem, RichCiphertext, Enrichable};
 use crate::randomness::SecureRng;
 use rug::Integer;
 use crate::number_theory::{gen_rsa_modulus, gen_coprime};
-use std::ops::Rem;
+use std::ops::{Rem, Add};
 
 struct Paillier {
     key_size: u32,
@@ -63,6 +63,20 @@ impl AsymmetricCryptosystem for Paillier {
     }
 }
 
+impl<'pk> Add for &RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey> {
+    type Output = RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        RichCiphertext {
+            ciphertext: PaillierCiphertext {
+                c: Integer::from(&self.ciphertext.c * &rhs.ciphertext.c)
+                    .rem(Integer::from(self.public_key.n.square_ref())),
+            },
+            public_key: self.public_key,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rand_core::OsRng;
@@ -83,6 +97,22 @@ mod tests {
                                           &mut rng);
 
         assert_eq!(Integer::from(15), paillier.decrypt(&ciphertext.enrich(&pk), &sk));
+    }
+
+    #[test]
+    fn test_homomorphic_add() {
+        let mut rng = SecureRng::new(OsRng);
+
+        let paillier = Paillier { key_size: 512 };
+        let (pk, sk) = paillier.generate_keys(&mut rng);
+
+        let ciphertext = paillier.encrypt(&Integer::from(7),
+                                          &pk,
+                                          &mut rng).enrich(&pk);
+        let ciphertext_twice = &ciphertext + &ciphertext;
+
+        assert_eq!(Integer::from(14),
+                   paillier.decrypt(&ciphertext_twice, &sk));
     }
 
 }
