@@ -4,6 +4,8 @@ use rug::Integer;
 
 const REPS: u32 = 25;
 
+/// Generates a uniformly random prime number of a given bit length. So, the number contains
+/// `bit_length` bits, of which the first and the last bit are always 1.
 pub fn gen_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
     bit_length: u32,
     rng: &mut SecureRng<R>,
@@ -20,6 +22,8 @@ pub fn gen_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
     }
 }
 
+/// Generates a uniformly random *safe* prime number of a given bit length. This is a prime $p$ of
+/// the form $p = 2q + 1$, where $q$ is a smaller prime.
 pub fn gen_safe_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
     bit_length: u32,
     rng: &mut SecureRng<R>,
@@ -40,6 +44,9 @@ pub fn gen_safe_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
     }
 }
 
+/// Generates a uniformly random RSA modulus, which is the product of two safe primes $p$ and $q$.
+/// This method returns both the modulus and $\lambda$, which is the least common multiple of
+/// $p - 1$ and $q - 1$.
 pub fn gen_rsa_modulus<R: rand_core::RngCore + rand_core::CryptoRng>(
     bit_length: u32,
     rng: &mut SecureRng<R>,
@@ -54,6 +61,8 @@ pub fn gen_rsa_modulus<R: rand_core::RngCore + rand_core::CryptoRng>(
     (n, lambda)
 }
 
+/// Generates a uniformly random coprime $x$ to the `other` integer $y$. This means that
+/// $\gcd(x, y) = 1$.
 pub fn gen_coprime<R: rand_core::RngCore + rand_core::CryptoRng>(
     other: &Integer,
     rng: &mut SecureRng<R>,

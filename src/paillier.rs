@@ -4,16 +4,20 @@ use crate::{AsymmetricCryptosystem, Enrichable, RichCiphertext};
 use rug::Integer;
 use std::ops::{Add, Mul, Rem};
 
-struct Paillier {
+/// The Paillier cryptosystem.
+pub struct Paillier {
+    /// Size of the RSA modulus and thereby the key.
     key_size: u32,
 }
 
-struct PaillierPublicKey {
+/// Public key for the Paillier cryptosystem.
+pub struct PaillierPublicKey {
     n: Integer,
     g: Integer,
 }
 
-struct PaillierCiphertext {
+/// Ciphertext of the Paillier cryptosystem, which is additively homomorphic.
+pub struct PaillierCiphertext {
     c: Integer,
 }
 

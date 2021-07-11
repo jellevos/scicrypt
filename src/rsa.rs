@@ -4,15 +4,19 @@ use crate::{AsymmetricCryptosystem, Enrichable, RichCiphertext};
 use rug::Integer;
 use std::ops::{Mul, Rem};
 
+/// The RSA cryptosystem.
 pub struct RSA {
+    /// Size of the RSA modulus and thereby the key.
     key_size: u32,
 }
 
+/// Public key for the RSA cryptosystem.
 pub struct RSAPublicKey {
     n: Integer,
     e: Integer,
 }
 
+/// Ciphertext of the Paillier cryptosystem, which is multiplicatively homomorphic.
 pub struct RSACiphertext {
     c: Integer,
 }
@@ -77,6 +81,7 @@ impl<'pk> Mul for &RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
 }
 
 impl<'pk> RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
+    /// Computes the ciphertext corresponding to the plaintext raised to a scalar power.
     pub fn pow(&self, rhs: &Integer) -> RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
         RichCiphertext {
             ciphertext: RSACiphertext {

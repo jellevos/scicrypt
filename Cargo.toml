@@ -16,3 +16,6 @@ rug = "1.12"
 
 [dev-dependencies]
 primal = "0.3"
+
+[package.metadata.docs.rs]
+rustdoc-args = [ "--html-in-header", "katex-header.html" ]
