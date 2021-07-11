@@ -13,14 +13,22 @@
 //! # Upcoming features
 //! These are the upcoming minor versions and the functionality they will add.
 //!
+//! ## Version 0.2.0
+//! _Threshold homomorphic cryptosystems update_
+//! <table>
+//!     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
+//!     <tr><td>Threshold Paillier</td><td> </td></tr>
+//!     <tr><td>Threshold ElGamal</td><td> </td></tr>
+//! </table>
+//!
 //! ## Version 0.1.0
 //! _Homomorphic cryptosystems update_
 //! <table>
 //!     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
 //!     <tr><td>ElGamal over elliptic curves</td><td>x</td></tr>
-//!     <tr><td>ElGamal over the integers</td><td> </td></tr>
-//!     <tr><td>Paillier</td><td></td> </tr>
-//!     <tr><td>RSA</td><td></td> </tr>
+//!     <tr><td>ElGamal over the integers</td><td>x</td></tr>
+//!     <tr><td>Paillier</td><td>x</td></tr>
+//!     <tr><td>RSA</td><td>x</td></tr>
 //! </table>
 
 #![warn(missing_docs, unused_imports)]
