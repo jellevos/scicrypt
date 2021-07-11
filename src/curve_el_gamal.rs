@@ -99,7 +99,7 @@ impl Mul<&Scalar> for &CurveElGamalCiphertext {
 
 #[cfg(test)]
 mod tests {
-    use crate::el_gamal::CurveElGamal;
+    use crate::curve_el_gamal::CurveElGamal;
     use crate::randomness::SecureRng;
     use crate::{AsymmetricCryptosystem, Enrichable};
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;

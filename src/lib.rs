@@ -31,8 +31,10 @@ pub mod number_theory;
 /// Random number generation that is consistent with the dependencies' requirements.
 pub mod randomness;
 
-/// Instances of the ElGamal cryptosystem.
-pub mod el_gamal;
+/// Implementation of the ElGamal cryptosystem over an elliptic curve.
+pub mod curve_el_gamal;
+/// Implementation of the ElGamal cryptosystem over a safe prime group.
+pub mod integer_el_gamal;
 /// Implementation of the Paillier cryptosystem.
 pub mod paillier;
 /// Implementation of the RSA cryptosystem.
