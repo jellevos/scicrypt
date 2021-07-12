@@ -99,8 +99,8 @@ impl<'pk> RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
 
 #[cfg(test)]
 mod tests {
+    use crate::cryptosystems::rsa::RSA;
     use crate::randomness::SecureRng;
-    use crate::rsa::RSA;
     use crate::{AsymmetricCryptosystem, Enrichable};
     use rand_core::OsRng;
     use rug::Integer;

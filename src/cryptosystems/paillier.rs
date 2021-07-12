@@ -113,7 +113,7 @@ impl<'pk> Mul<&Integer> for &RichCiphertext<'pk, PaillierCiphertext, PaillierPub
 
 #[cfg(test)]
 mod tests {
-    use crate::paillier::Paillier;
+    use crate::cryptosystems::paillier::Paillier;
     use crate::randomness::SecureRng;
     use crate::{AsymmetricCryptosystem, Enrichable};
     use rand_core::OsRng;

@@ -146,7 +146,7 @@ impl<'pk> RichCiphertext<'pk, IntegerElGamalCiphertext, IntegerElGamalPublicKey>
 
 #[cfg(test)]
 mod tests {
-    use crate::integer_el_gamal::IntegerElGamal;
+    use crate::cryptosystems::integer_el_gamal::IntegerElGamal;
     use crate::randomness::SecureRng;
     use crate::AsymmetricCryptosystem;
     use crate::Enrichable;
