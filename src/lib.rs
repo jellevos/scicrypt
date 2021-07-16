@@ -128,6 +128,10 @@ pub trait Enrichable<PK> {
     }
 }
 
+/// General error that arises when decryption fails, for example because there were not enough
+/// distinct decryption shares to decrypt a threshold ciphertext.
+pub struct DecryptionError;
+
 /// An asymmetric threshold cryptosystem is a system of methods to encrypt plaintexts into
 /// ciphertexts, but instead of having a single secret key to decrypt them back into plaintexts, we
 /// require a given number of parties to decrypt with their own partial key. If enough parties
@@ -180,7 +184,7 @@ pub trait AsymmetricThresholdCryptosystem {
     /// Combine t decryption shares belonging to distinct partial keys to finish decryption.
     fn combine(
         &self,
-        decryption_shares: &Vec<Self::DecryptionShare>,
+        decryption_shares: &[Self::DecryptionShare],
         public_key: &Self::PublicKey,
-    ) -> Result<Self::Plaintext, ()>;
+    ) -> Result<Self::Plaintext, DecryptionError>;
 }

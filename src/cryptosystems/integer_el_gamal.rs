@@ -77,8 +77,8 @@ impl AsymmetricCryptosystem for IntegerElGamal {
 
         IntegerElGamalCiphertext {
             c1: Integer::from(self.generator.secure_pow_mod_ref(&y, &public_key.modulus)),
-            c2: (plaintext *
-                Integer::from(public_key.h.secure_pow_mod_ref(&y, &public_key.modulus)))
+            c2: (plaintext
+                * Integer::from(public_key.h.secure_pow_mod_ref(&y, &public_key.modulus)))
             .rem(&public_key.modulus),
         }
     }
@@ -88,8 +88,8 @@ impl AsymmetricCryptosystem for IntegerElGamal {
         rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
         secret_key: &Self::SecretKey,
     ) -> Self::Plaintext {
-        (&rich_ciphertext.ciphertext.c2 *
-            Integer::from(
+        (&rich_ciphertext.ciphertext.c2
+            * Integer::from(
                 rich_ciphertext
                     .ciphertext
                     .c1
