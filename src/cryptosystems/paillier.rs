@@ -120,7 +120,7 @@ mod tests {
     use rug::Integer;
 
     #[test]
-    fn test_encrypt_decrypt_generator() {
+    fn test_encrypt_decrypt() {
         let mut rng = SecureRng::new(OsRng);
 
         let paillier = Paillier { key_size: 512 };
