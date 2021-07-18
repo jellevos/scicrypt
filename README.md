@@ -1,4 +1,3 @@
-# Scicrypt: Cryptographic building blocks
 **_WARNING: WHILE THIS LIBRARY MAKES SOME EFFORT FOR SECURE IMPLEMENTATIONS, IT SHOULD NOT BE USED FOR ANY PRACTICAL APPLICATIONS. THE CODE IS NOT AUDITED. WE MAKE NO GUARANTEES ABOUT THE CODE'S CORRECTNESS NOR SECURITY._**
 
 Lightweight cryptographic building blocks for proof of concept implementations in applied
@@ -13,7 +12,7 @@ This library attempts to find a balance between speed and flexibility, to ease t
 implementing proof of concepts of cryptographic protocols, such as those in the field of multi-
 party computation (MPC).
 
-## Current features
+# Current features
 Currently, the library implements the following partially homomorphic cryptosystems and the associated homomorphic
 operations:
 - ElGamal over Curve25519 (Ristretto-encoded)
@@ -21,19 +20,19 @@ operations:
 - Paillier
 - RSA
 
-## Upcoming features
+# Upcoming features
 These are the upcoming minor versions and the functionality they will add.
 
-### Version 0.2.0
+## Version 0.2.0
 _Threshold homomorphic cryptosystems update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
-    <tr><td>Threshold Paillier</td><td> </td></tr>
+    <tr><td>Threshold Paillier</td><td>x</td></tr>
     <tr><td>Threshold ElGamal</td><td> </td></tr>
     <tr><td>Transparent ciphertexts for debugging</td><td></td></tr>
 </table>
 
-### Version 0.1.0
+## Version 0.1.0
 _Homomorphic cryptosystems update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>

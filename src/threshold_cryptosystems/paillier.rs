@@ -4,29 +4,35 @@ use crate::{AsymmetricThresholdCryptosystem, DecryptionError, Enrichable, RichCi
 use rug::Integer;
 use std::ops::Rem;
 
-struct ThresholdPaillier {
+/// Threshold Paillier cryptosystem: Extension of Paillier that requires t out of n parties to
+/// successfully decrypt.
+pub struct ThresholdPaillier {
     key_size: u32,
     threshold: u32,
     key_count: u32,
 }
 
-struct ThresholdPaillierPublicKey {
+/// The public key for encryption.
+pub struct ThresholdPaillierPublicKey {
     generator: Integer,
     modulus: Integer,
     theta: Integer,
     delta: Integer,
 }
 
-struct ThresholdPaillierPartialKey {
+/// One of the partial keys, of which t must be used to decrypt successfully.
+pub struct ThresholdPaillierPartialKey {
     id: i32,
     key: Integer,
 }
 
-struct ThresholdPaillierCiphertext {
+/// A randomized ciphertext created using the public key.
+pub struct ThresholdPaillierCiphertext {
     c: Integer,
 }
 
-struct ThresholdPaillierDecryptionShare {
+/// A partially decrypted ciphertext, of which t must be combined to decrypt successfully.
+pub struct ThresholdPaillierDecryptionShare {
     id: i32,
     share: Integer,
 }

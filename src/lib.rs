@@ -1,36 +1,4 @@
-//! Lightweight cryptographic building blocks for proof of concept implementations in applied
-//! cryptography.
-//!
-//! While many libraries implementing cryptographic building blocks exist, many fall in one of two
-//! categories:
-//! - Fast but rigid [like many written in C++]
-//! - Slow but flexible [like many written in python]
-//!
-//! This library attempts to find a balance between speed and flexibility, to ease the process of
-//! implementing proof of concepts of cryptographic protocols, such as those in the field of multi-
-//! party computation (MPC).
-//!
-//! # Upcoming features
-//! These are the upcoming minor versions and the functionality they will add.
-//!
-//! ## Version 0.2.0
-//! _Threshold homomorphic cryptosystems update_
-//! <table>
-//!     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
-//!     <tr><td>Threshold Paillier</td><td> </td></tr>
-//!     <tr><td>Threshold ElGamal</td><td> </td></tr>
-//! </table>
-//!
-//! ## Version 0.1.0
-//! _Homomorphic cryptosystems update_
-//! <table>
-//!     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
-//!     <tr><td>ElGamal over elliptic curves</td><td>x</td></tr>
-//!     <tr><td>ElGamal over the integers</td><td>x</td></tr>
-//!     <tr><td>Paillier</td><td>x</td></tr>
-//!     <tr><td>RSA</td><td>x</td></tr>
-//! </table>
-
+#![doc = include_str!("../README.md")]
 #![warn(missing_docs, unused_imports)]
 
 /// Functions for generating random prime numbers.
@@ -43,7 +11,7 @@ pub mod randomness;
 pub mod cryptosystems;
 
 /// Partially homomorphic threshold cryptosystems that require multiple parties to decrypt.
-mod threshold_cryptosystems;
+pub mod threshold_cryptosystems;
 
 use crate::randomness::SecureRng;
 
