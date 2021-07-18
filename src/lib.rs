@@ -98,6 +98,7 @@ pub trait Enrichable<PK> {
 
 /// General error that arises when decryption fails, for example because there were not enough
 /// distinct decryption shares to decrypt a threshold ciphertext.
+#[derive(Debug)]
 pub struct DecryptionError;
 
 /// An asymmetric threshold cryptosystem is a system of methods to encrypt plaintexts into
