@@ -13,8 +13,8 @@ pub struct CurveElGamal;
 /// reflected as the curve operation on the associated plaintext.
 #[derive(Debug, PartialEq)]
 pub struct CurveElGamalCiphertext {
-    c1: RistrettoPoint,
-    c2: RistrettoPoint,
+    pub(crate) c1: RistrettoPoint,
+    pub(crate) c2: RistrettoPoint,
 }
 
 impl DecryptDirectly for CurveElGamal {
