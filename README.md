@@ -23,16 +23,34 @@ operations:
 # Upcoming features
 These are the upcoming minor versions and the functionality they will add.
 
-## Version 0.2.0
+## Version 0.4.0 [Week 32]
+_Ease of use update_
+<table>
+    <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
+    <tr><td>Encoding signed ints</td> <td></td></tr>
+    <tr><td>Discrete log lookup tables</td><td> </td></tr>
+    <tr><td>Debugging tools</td><td> </td></tr>
+</table>
+
+## Version 0.3.0 [Week 31]
+_Oblivious transfer update_
+<table>
+    <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
+    <tr><td>OT & extensions</td> <td></td></tr>
+    <tr><td>OPRF</td><td> </td></tr>
+    <tr><td>OPPRF</td><td> </td></tr>
+</table>
+
+## Version 0.2.0 [1st of august]
 _Threshold homomorphic cryptosystems update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
     <tr><td>Threshold Paillier</td><td>x</td></tr>
-    <tr><td>Threshold ElGamal</td><td> </td></tr>
-    <tr><td>Transparent ciphertexts for debugging</td><td></td></tr>
+    <tr><td>Threshold ElGamal</td><td>x</td></tr>
+    <tr><td>Transparent ciphertexts for debugging</td><td>-</td></tr>
 </table>
 
-## Version 0.1.0
+## Version 0.1.0 [released]
 _Homomorphic cryptosystems update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
