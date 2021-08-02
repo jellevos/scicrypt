@@ -41,7 +41,7 @@ _Oblivious transfer update_
     <tr><td>OPPRF</td><td> </td></tr>
 </table>
 
-## Version 0.2.0 [1st of august]
+## Version 0.2.0 [released]
 _Threshold homomorphic cryptosystems update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>

@@ -12,14 +12,14 @@ pub struct IntegerElGamal {
 
 /// Public key containing the ElGamal encryption key and the modulus of the group.
 pub struct IntegerElGamalPublicKey {
-    h: Integer,
-    modulus: Integer,
+    pub(crate) h: Integer,
+    pub(crate) modulus: Integer,
 }
 
 /// ElGamal ciphertext of integers.
 pub struct IntegerElGamalCiphertext {
-    c1: Integer,
-    c2: Integer,
+    pub(crate) c1: Integer,
+    pub(crate) c2: Integer,
 }
 
 impl IntegerElGamal {
