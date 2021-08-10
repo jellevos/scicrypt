@@ -1,7 +1,7 @@
 [package]
 name = "scicrypt"
 description = "Lightweight cryptographic building blocks for proof of concept implementations in applied cryptography"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
 edition = "2018"
 license = "MIT"
