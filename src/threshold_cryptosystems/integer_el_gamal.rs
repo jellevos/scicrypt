@@ -177,10 +177,8 @@ impl AsymmetricThresholdCryptosystem for TOfNIntegerElGamal {
                 let mut key = Integer::from(&master_key);
 
                 for j in 0..(self.threshold - 1) {
-                    key = (key
-                        + (&coefficients[j as usize] * Integer::from(i.pow(j + 1)))
-                            .rem(&self.modulus))
-                    .rem(&self.modulus);
+                    key = (key + (&coefficients[j as usize] * Integer::from(i.pow(j + 1))).rem(&q))
+                        .rem(&q);
                 }
 
                 TOfNIntegerElGamalPartialKey { id: i as i32, key }
@@ -320,23 +318,11 @@ mod tests {
         let t_of_n_integer_elgamal = TOfNIntegerElGamal::new(512, 2, 3, &mut rng);
         let (pk, sks) = t_of_n_integer_elgamal.generate_keys(&mut rng);
 
-        let plaintext = Integer::from(21u64);
+        let plaintext = Integer::from(2100u64);
 
         let ciphertext = t_of_n_integer_elgamal
             .encrypt(&plaintext, &pk, &mut rng)
             .enrich(&pk);
-
-        let c1 = Integer::from(
-            ciphertext
-                .ciphertext
-                .c1
-                .secure_pow_mod_ref(&Integer::from(5), &ciphertext.public_key.modulus),
-        );
-        println!(
-            "{}",
-            (&ciphertext.ciphertext.c2 * c1.invert(&ciphertext.public_key.modulus).unwrap())
-                .rem(&ciphertext.public_key.modulus)
-        );
 
         let share_1 = t_of_n_integer_elgamal.partially_decrypt(&ciphertext, &sks[0]);
         let share_3 = t_of_n_integer_elgamal.partially_decrypt(&ciphertext, &sks[2]);
