@@ -88,7 +88,7 @@ impl AsymmetricThresholdCryptosystem for NOfNIntegerElGamal {
                 rich_ciphertext
                     .ciphertext
                     .c1
-                    .secure_pow_mod_ref(&partial_key, &self.modulus),
+                    .secure_pow_mod_ref(partial_key, &self.modulus),
             ),
             Integer::from(&rich_ciphertext.ciphertext.c2),
         )

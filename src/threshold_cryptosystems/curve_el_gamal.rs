@@ -107,10 +107,10 @@ impl AsymmetricThresholdCryptosystem for TOfNCurveElGamal {
 
         let partial_keys: Vec<TOfNCurveElGamalPartialKey> = (1..=self.key_count)
             .map(|i| {
-                let mut key = Scalar::from(master_key);
+                let mut key = master_key;
 
                 for j in 0..(self.threshold - 1) {
-                    key += &coefficients[j as usize] * Scalar::from(i.pow(j + 1));
+                    key += coefficients[j as usize] * Scalar::from(i.pow(j + 1));
                 }
 
                 TOfNCurveElGamalPartialKey { id: i as i32, key }
@@ -141,7 +141,7 @@ impl AsymmetricThresholdCryptosystem for TOfNCurveElGamal {
     ) -> Self::DecryptionShare {
         TOfNCurveElGamalDecryptionShare {
             id: partial_key.id,
-            c1: &partial_key.key * rich_ciphertext.ciphertext.c1,
+            c1: partial_key.key * rich_ciphertext.ciphertext.c1,
             c2: rich_ciphertext.ciphertext.c2,
         }
     }
@@ -171,7 +171,7 @@ impl AsymmetricThresholdCryptosystem for TOfNCurveElGamal {
                     .invert();
                 }
 
-                &b * &share.c1
+                b * share.c1
             })
             .sum::<RistrettoPoint>();
 

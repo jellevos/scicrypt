@@ -23,7 +23,7 @@ operations:
 # Upcoming features
 These are the upcoming minor versions and the functionality they will add.
 
-## Version 0.4.0 [Week 32]
+## Version 0.4.0 [~Week 36]
 _Ease of use update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
@@ -32,7 +32,7 @@ _Ease of use update_
     <tr><td>Debugging tools</td><td> </td></tr>
 </table>
 
-## Version 0.3.0 [Week 31]
+## Version 0.3.0 [~Week 34]
 _Oblivious transfer update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
