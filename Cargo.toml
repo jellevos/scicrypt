@@ -12,7 +12,7 @@ readme = "README.md"
 [dependencies]
 rand_core = "0.5"
 curve25519-dalek = "3"
-rug = "1.12"
+rug = "1.13"
 
 [dev-dependencies]
 primal = "0.3"
