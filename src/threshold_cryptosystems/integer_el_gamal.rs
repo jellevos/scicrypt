@@ -284,7 +284,6 @@ mod tests {
     use crate::{AsymmetricThresholdCryptosystem, Enrichable};
     use rand_core::OsRng;
     use rug::Integer;
-    use std::ops::Rem;
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {

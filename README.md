@@ -13,12 +13,25 @@ implementing proof of concepts of cryptographic protocols, such as those in the 
 party computation (MPC).
 
 # Current features
-Currently, the library implements the following partially homomorphic cryptosystems and the associated homomorphic
+Currently, the library implements the following homomorphic cryptosystems and the associated homomorphic
 operations:
-- ElGamal over Curve25519 (Ristretto-encoded)
-- ElGamal over safe prime groups
-- Paillier
+- ElGamal over Curve25519 (Ristretto-encoded) and two threshold versions
+- ElGamal over safe prime groups and two threshold versions
+- Paillier and threshold Paillier
 - RSA
+
+In addition, the library implements safe prime generation, which is faster than the same functionality implemented in
+other crates. The code is benchmarked between every version to ensure we do not increase run time and to compare against
+other implementations.
+
+Check the table below for a run time comparison (in milliseconds) for safe prime generation:
+<table>
+    <tr><td><b>Crate | Number of bits</b></td><td><b>128</b></td><td><b>192</b></td><td><b>256</b></td><td><b>320</b></td><td><b>384</b></td></tr>
+    <tr><td>glass_pumpkin</td> <td>52.160</td><td>157.70</td><td>319.03</td><td>772.41</td><td>1328.3</td></tr>
+    <tr><td>scicrypt</td><td>12.609</td><td>53.627</td><td>150.05</td><td>321.11</td><td>468.07</td></tr>
+</table>
+
+**Updated: 10 Aug 2021 by GitHub Actions**
 
 # Upcoming features
 These are the upcoming minor versions and the functionality they will add.
