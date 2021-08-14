@@ -10,6 +10,19 @@ pub struct Paillier {
     key_size: u32,
 }
 
+impl Paillier {
+    /// Constructs a new instance of the Paillier cryptosystem.
+    /// ```
+    /// # use scicrypt::cryptosystems::paillier::Paillier;
+    /// let paillier = Paillier::new(1024);
+    /// ```
+    pub fn new(key_size: u32) -> Self {
+        Paillier {
+            key_size
+        }
+    }
+}
+
 /// Public key for the Paillier cryptosystem.
 pub struct PaillierPublicKey {
     n: Integer,
@@ -30,6 +43,17 @@ impl AsymmetricCryptosystem for Paillier {
     type PublicKey = PaillierPublicKey;
     type SecretKey = (Integer, Integer);
 
+    /// Generates a fresh Paillier keypair.
+    /// ```
+    /// # use scicrypt::cryptosystems::paillier::Paillier;
+    /// # use scicrypt::AsymmetricCryptosystem;
+    /// # use scicrypt::randomness::SecureRng;
+    /// # use rand_core::OsRng;
+    /// #
+    /// # let paillier = Paillier::new(128);
+    /// let mut rng = SecureRng::new(OsRng);
+    /// let (public_key, secret_key) = paillier.generate_keys(&mut rng);
+    /// ```
     fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
         &self,
         rng: &mut SecureRng<R>,
@@ -42,6 +66,19 @@ impl AsymmetricCryptosystem for Paillier {
         (PaillierPublicKey { n, g }, (lambda, mu))
     }
 
+    /// Encrypts a plaintext integer using the Paillier public key.
+    /// ```
+    /// # use scicrypt::cryptosystems::paillier::Paillier;
+    /// # use scicrypt::AsymmetricCryptosystem;
+    /// # use scicrypt::randomness::SecureRng;
+    /// # use rand_core::OsRng;
+    /// # use rug::Integer;
+    /// #
+    /// # let paillier = Paillier::new(128);
+    /// # let mut rng = SecureRng::new(OsRng);
+    /// # let (public_key, secret_key) = paillier.generate_keys(&mut rng);
+    /// let ciphertext = paillier.encrypt(&Integer::from(5), &public_key, &mut rng);
+    /// ```
     fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
         &self,
         plaintext: &Self::Plaintext,
@@ -59,6 +96,22 @@ impl AsymmetricCryptosystem for Paillier {
         }
     }
 
+    /// Decrypts a rich Paillier ciphertext using the secret key.
+    /// ```
+    /// # use scicrypt::cryptosystems::paillier::Paillier;
+    /// # use scicrypt::{AsymmetricCryptosystem, Enrichable};
+    /// # use scicrypt::randomness::SecureRng;
+    /// # use rand_core::OsRng;
+    /// # use rug::Integer;
+    /// #
+    /// # let paillier = Paillier::new(128);
+    /// # let mut rng = SecureRng::new(OsRng);
+    /// # let (public_key, secret_key) = paillier.generate_keys(&mut rng);
+    /// # let ciphertext = paillier.encrypt(&Integer::from(5), &public_key, &mut rng);
+    /// let rich_ciphertext = ciphertext.enrich(&public_key);
+    /// println!("The decrypted message is {}", paillier.decrypt(&rich_ciphertext, &secret_key));
+    /// // Prints: "The decrypted message is 5"
+    /// ```
     fn decrypt(
         &self,
         rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
