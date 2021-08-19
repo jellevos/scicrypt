@@ -12,6 +12,13 @@ pub struct NOfNCurveElGamal {
     pub key_count: u32,
 }
 
+impl NOfNCurveElGamal {
+    /// Creates a new instance of `NOfNCurveElGamal` with the specified number of keys.
+    pub fn new(key_count: u32) -> Self {
+        NOfNCurveElGamal { key_count }
+    }
+}
+
 impl AsymmetricThresholdCryptosystem for NOfNCurveElGamal {
     type Plaintext = RistrettoPoint;
     type Ciphertext = CurveElGamalCiphertext;
@@ -73,6 +80,17 @@ impl AsymmetricThresholdCryptosystem for NOfNCurveElGamal {
 pub struct TOfNCurveElGamal {
     threshold: u32,
     key_count: u32,
+}
+
+impl TOfNCurveElGamal {
+    /// Creates a new instance of `TOfNCurveElGamal` with `key_count` keys of which `threshold` are
+    /// needed to decrypt.
+    pub fn new(threshold: u32, key_count: u32) -> Self {
+        TOfNCurveElGamal {
+            threshold,
+            key_count,
+        }
+    }
 }
 
 /// One of the partial keys, of which t must be used to decrypt successfully.

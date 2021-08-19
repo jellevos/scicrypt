@@ -12,6 +12,18 @@ pub struct ThresholdPaillier {
     key_count: u32,
 }
 
+impl ThresholdPaillier {
+    /// Creates a new instance of the threshold Paillier cryptosystem with `key_count` keys, of
+    /// which `threshold` are needed to decrypt. The size of the key in bits is given by `key_size`.
+    pub fn new(key_size: u32, threshold: u32, key_count: u32) -> Self {
+        ThresholdPaillier {
+            key_size,
+            threshold,
+            key_count,
+        }
+    }
+}
+
 /// The public key for encryption.
 pub struct ThresholdPaillierPublicKey {
     generator: Integer,
