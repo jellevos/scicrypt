@@ -17,9 +17,7 @@ impl Paillier {
     /// let paillier = Paillier::new(1024);
     /// ```
     pub fn new(key_size: u32) -> Self {
-        Paillier {
-            key_size
-        }
+        Paillier { key_size }
     }
 }
 
@@ -110,7 +108,7 @@ impl AsymmetricCryptosystem for Paillier {
     /// # let ciphertext = paillier.encrypt(&Integer::from(5), &public_key, &mut rng);
     /// let rich_ciphertext = ciphertext.enrich(&public_key);
     /// println!("The decrypted message is {}", paillier.decrypt(&rich_ciphertext, &secret_key));
-    /// // Prints: "The decrypted message is 5"
+    /// // Prints: "The decrypted message is 5".
     /// ```
     fn decrypt(
         &self,

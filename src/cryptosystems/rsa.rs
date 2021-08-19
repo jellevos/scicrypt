@@ -10,6 +10,13 @@ pub struct RSA {
     key_size: u32,
 }
 
+impl RSA {
+    /// Creates a new RSA instance with the specified key size in bits (size of the modulus).
+    pub fn new(key_size: u32) -> Self {
+        RSA { key_size }
+    }
+}
+
 /// Public key for the RSA cryptosystem.
 pub struct RSAPublicKey {
     n: Integer,

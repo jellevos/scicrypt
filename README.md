@@ -5,8 +5,8 @@ cryptography.
 
 While many libraries implementing cryptographic building blocks exist, many fall in one of two
 categories:
-- Fast but rigid [like many written in C++]
-- Slow but flexible [like many written in python]
+- Fast but rigid, like many written in C++
+- Slow but flexible, like many written in python
 
 This library attempts to find a balance between speed and flexibility, to ease the process of
 implementing proof of concepts of cryptographic protocols, such as those in the field of multi-
@@ -36,7 +36,7 @@ Check the table below for a run time comparison (in milliseconds) for safe prime
 # Upcoming features
 These are the upcoming minor versions and the functionality they will add.
 
-## Version 0.4.0 [~Week 36]
+## Version 0.4.0 (~Week 36)
 _Ease of use update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
@@ -45,7 +45,7 @@ _Ease of use update_
     <tr><td>Debugging tools</td><td> </td></tr>
 </table>
 
-## Version 0.3.0 [~Week 34]
+## Version 0.3.0 (~Week 34)
 _Oblivious transfer update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
@@ -54,7 +54,7 @@ _Oblivious transfer update_
     <tr><td>OPPRF</td><td> </td></tr>
 </table>
 
-## Version 0.2.0 [released]
+## Version 0.2.0 (released)
 _Threshold homomorphic cryptosystems update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
@@ -63,7 +63,7 @@ _Threshold homomorphic cryptosystems update_
     <tr><td>Transparent ciphertexts for debugging</td><td>-</td></tr>
 </table>
 
-## Version 0.1.0 [released]
+## Version 0.1.0 (released)
 _Homomorphic cryptosystems update_
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>

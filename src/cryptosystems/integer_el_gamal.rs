@@ -5,6 +5,24 @@ use rug::Integer;
 use std::ops::{Mul, Rem};
 
 /// Multiplicatively homomorphic ElGamal over a safe prime group.
+///
+/// As an example we compute the product between 4 and 6 using ElGamal's homomorphic property.
+/// ```
+/// # use scicrypt::cryptosystems::integer_el_gamal::IntegerElGamal;
+/// # use rand_core::OsRng;
+/// # use scicrypt::randomness::SecureRng;
+/// # use scicrypt::{AsymmetricCryptosystem, Enrichable};
+/// # use rug::Integer;
+/// let mut rng = SecureRng::new(OsRng);
+/// let el_gamal = IntegerElGamal::new(128, &mut rng);
+/// let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
+///
+/// let rich_ciphertext_1 = el_gamal.encrypt(&Integer::from(4), &public_key, &mut rng).enrich(&public_key);
+/// let rich_ciphertext_2 = el_gamal.encrypt(&Integer::from(6), &public_key, &mut rng).enrich(&public_key);
+///
+/// println!("[4] * [6] = [{}]", el_gamal.decrypt(&(&rich_ciphertext_1 * &rich_ciphertext_2), &secret_key));
+/// // Prints: "[4] * [6] = [24]".
+/// ```
 pub struct IntegerElGamal {
     modulus: Integer,
     generator: Integer,
@@ -25,6 +43,13 @@ pub struct IntegerElGamalCiphertext {
 impl IntegerElGamal {
     /// Creates a fresh `IntegerElGamal` instance over a randomly chosen safe prime group of size
     /// `group_size`.
+    /// ```
+    /// # use scicrypt::cryptosystems::integer_el_gamal::IntegerElGamal;
+    /// # use rand_core::OsRng;
+    /// # use scicrypt::randomness::SecureRng;
+    /// let mut rng = SecureRng::new(OsRng);
+    /// let el_gamal = IntegerElGamal::new(512, &mut rng);
+    /// ```
     pub fn new<R: rand_core::RngCore + rand_core::CryptoRng>(
         group_size: u32,
         rng: &mut SecureRng<R>,
@@ -46,6 +71,16 @@ impl AsymmetricCryptosystem for IntegerElGamal {
     type PublicKey = IntegerElGamalPublicKey;
     type SecretKey = Integer;
 
+    /// Generates a fresh ElGamal keypair.
+    /// ```
+    /// # use scicrypt::cryptosystems::integer_el_gamal::IntegerElGamal;
+    /// # use rand_core::OsRng;
+    /// # use scicrypt::randomness::SecureRng;
+    /// # use scicrypt::AsymmetricCryptosystem;
+    /// # let mut rng = SecureRng::new(OsRng);
+    /// # let el_gamal = IntegerElGamal::new(128, &mut rng);
+    /// let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
+    /// ```
     fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
         &self,
         rng: &mut SecureRng<R>,
@@ -66,6 +101,18 @@ impl AsymmetricCryptosystem for IntegerElGamal {
         )
     }
 
+    /// Encrypts an integer using the public key.
+    /// ```
+    /// # use scicrypt::cryptosystems::integer_el_gamal::IntegerElGamal;
+    /// # use rand_core::OsRng;
+    /// # use scicrypt::randomness::SecureRng;
+    /// # use scicrypt::AsymmetricCryptosystem;
+    /// # use rug::Integer;
+    /// # let mut rng = SecureRng::new(OsRng);
+    /// # let el_gamal = IntegerElGamal::new(128, &mut rng);
+    /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
+    /// let ciphertext = el_gamal.encrypt(&Integer::from(5), &public_key, &mut rng);
+    /// ```
     fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
         &self,
         plaintext: &Self::Plaintext,
@@ -83,6 +130,21 @@ impl AsymmetricCryptosystem for IntegerElGamal {
         }
     }
 
+    /// Decrypts an ElGamal ciphertext using the secret key.
+    /// ```
+    /// # use scicrypt::cryptosystems::integer_el_gamal::IntegerElGamal;
+    /// # use rand_core::OsRng;
+    /// # use scicrypt::randomness::SecureRng;
+    /// # use scicrypt::{AsymmetricCryptosystem, Enrichable};
+    /// # use rug::Integer;
+    /// # let mut rng = SecureRng::new(OsRng);
+    /// # let el_gamal = IntegerElGamal::new(128, &mut rng);
+    /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
+    /// # let ciphertext = el_gamal.encrypt(&Integer::from(5), &public_key, &mut rng);
+    /// let rich_ciphertext = ciphertext.enrich(&public_key);
+    /// println!("The decrypted message is {}", el_gamal.decrypt(&rich_ciphertext, &secret_key));
+    /// // Prints: "The decrypted message is 5".
+    /// ```
     fn decrypt(
         &self,
         rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
@@ -104,7 +166,6 @@ impl AsymmetricCryptosystem for IntegerElGamal {
 impl<'pk> Mul for &RichCiphertext<'pk, IntegerElGamalCiphertext, IntegerElGamalPublicKey> {
     type Output = RichCiphertext<'pk, IntegerElGamalCiphertext, IntegerElGamalPublicKey>;
 
-    /// Homomorphic operation between two ElGamal ciphertexts.
     fn mul(self, rhs: Self) -> Self::Output {
         RichCiphertext {
             ciphertext: IntegerElGamalCiphertext {
