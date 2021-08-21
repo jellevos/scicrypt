@@ -1,6 +1,7 @@
+use crate::cryptosystems::AsymmetricCryptosystem;
 use crate::number_theory::{gen_coprime, gen_rsa_modulus};
 use crate::randomness::SecureRng;
-use crate::{AsymmetricCryptosystem, Enrichable, RichCiphertext};
+use crate::{Enrichable, RichCiphertext};
 use rug::Integer;
 use std::ops::{Add, Mul, Rem};
 
@@ -44,9 +45,9 @@ impl AsymmetricCryptosystem for Paillier {
     /// Generates a fresh Paillier keypair.
     /// ```
     /// # use scicrypt::cryptosystems::paillier::Paillier;
-    /// # use scicrypt::AsymmetricCryptosystem;
     /// # use scicrypt::randomness::SecureRng;
     /// # use rand_core::OsRng;
+    /// # use scicrypt::cryptosystems::AsymmetricCryptosystem;
     /// #
     /// # let paillier = Paillier::new(128);
     /// let mut rng = SecureRng::new(OsRng);
@@ -67,10 +68,10 @@ impl AsymmetricCryptosystem for Paillier {
     /// Encrypts a plaintext integer using the Paillier public key.
     /// ```
     /// # use scicrypt::cryptosystems::paillier::Paillier;
-    /// # use scicrypt::AsymmetricCryptosystem;
     /// # use scicrypt::randomness::SecureRng;
     /// # use rand_core::OsRng;
     /// # use rug::Integer;
+    /// # use scicrypt::cryptosystems::AsymmetricCryptosystem;
     /// #
     /// # let paillier = Paillier::new(128);
     /// # let mut rng = SecureRng::new(OsRng);
@@ -97,10 +98,11 @@ impl AsymmetricCryptosystem for Paillier {
     /// Decrypts a rich Paillier ciphertext using the secret key.
     /// ```
     /// # use scicrypt::cryptosystems::paillier::Paillier;
-    /// # use scicrypt::{AsymmetricCryptosystem, Enrichable};
     /// # use scicrypt::randomness::SecureRng;
     /// # use rand_core::OsRng;
     /// # use rug::Integer;
+    /// # use scicrypt::cryptosystems::AsymmetricCryptosystem;
+    /// # use scicrypt::Enrichable;
     /// #
     /// # let paillier = Paillier::new(128);
     /// # let mut rng = SecureRng::new(OsRng);
@@ -165,8 +167,9 @@ impl<'pk> Mul<&Integer> for &RichCiphertext<'pk, PaillierCiphertext, PaillierPub
 #[cfg(test)]
 mod tests {
     use crate::cryptosystems::paillier::Paillier;
+    use crate::cryptosystems::AsymmetricCryptosystem;
     use crate::randomness::SecureRng;
-    use crate::{AsymmetricCryptosystem, Enrichable};
+    use crate::Enrichable;
     use rand_core::OsRng;
     use rug::Integer;
 

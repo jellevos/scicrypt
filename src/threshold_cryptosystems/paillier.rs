@@ -1,6 +1,7 @@
 use crate::number_theory::{gen_coprime, gen_safe_prime};
 use crate::randomness::SecureRng;
-use crate::{AsymmetricThresholdCryptosystem, DecryptionError, Enrichable, RichCiphertext};
+use crate::threshold_cryptosystems::AsymmetricThresholdCryptosystem;
+use crate::{DecryptionError, Enrichable, RichCiphertext};
 use rug::Integer;
 use std::ops::Rem;
 
@@ -202,7 +203,8 @@ impl AsymmetricThresholdCryptosystem for ThresholdPaillier {
 mod tests {
     use crate::randomness::SecureRng;
     use crate::threshold_cryptosystems::paillier::ThresholdPaillier;
-    use crate::{AsymmetricThresholdCryptosystem, Enrichable};
+    use crate::threshold_cryptosystems::AsymmetricThresholdCryptosystem;
+    use crate::Enrichable;
     use rand_core::OsRng;
     use rug::Integer;
 

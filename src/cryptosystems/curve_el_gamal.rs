@@ -1,5 +1,6 @@
+use crate::cryptosystems::{AsymmetricCryptosystem, DecryptDirectly};
 use crate::randomness::SecureRng;
-use crate::{AsymmetricCryptosystem, DecryptDirectly, Enrichable, RichCiphertext};
+use crate::{Enrichable, RichCiphertext};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
@@ -100,8 +101,9 @@ impl Mul<&Scalar> for &CurveElGamalCiphertext {
 #[cfg(test)]
 mod tests {
     use crate::cryptosystems::curve_el_gamal::CurveElGamal;
+    use crate::cryptosystems::AsymmetricCryptosystem;
     use crate::randomness::SecureRng;
-    use crate::{AsymmetricCryptosystem, Enrichable};
+    use crate::Enrichable;
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;

@@ -1,6 +1,7 @@
+use crate::cryptosystems::AsymmetricCryptosystem;
 use crate::number_theory::gen_safe_prime;
 use crate::randomness::SecureRng;
-use crate::{AsymmetricCryptosystem, Enrichable, RichCiphertext};
+use crate::{Enrichable, RichCiphertext};
 use rug::Integer;
 use std::ops::{Mul, Rem};
 
@@ -11,8 +12,9 @@ use std::ops::{Mul, Rem};
 /// # use scicrypt::cryptosystems::integer_el_gamal::IntegerElGamal;
 /// # use rand_core::OsRng;
 /// # use scicrypt::randomness::SecureRng;
-/// # use scicrypt::{AsymmetricCryptosystem, Enrichable};
 /// # use rug::Integer;
+/// # use scicrypt::cryptosystems::AsymmetricCryptosystem;
+/// # use scicrypt::Enrichable;
 /// let mut rng = SecureRng::new(OsRng);
 /// let el_gamal = IntegerElGamal::new(128, &mut rng);
 /// let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
@@ -76,7 +78,7 @@ impl AsymmetricCryptosystem for IntegerElGamal {
     /// # use scicrypt::cryptosystems::integer_el_gamal::IntegerElGamal;
     /// # use rand_core::OsRng;
     /// # use scicrypt::randomness::SecureRng;
-    /// # use scicrypt::AsymmetricCryptosystem;
+    /// # use scicrypt::cryptosystems::AsymmetricCryptosystem;
     /// # let mut rng = SecureRng::new(OsRng);
     /// # let el_gamal = IntegerElGamal::new(128, &mut rng);
     /// let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
@@ -106,8 +108,8 @@ impl AsymmetricCryptosystem for IntegerElGamal {
     /// # use scicrypt::cryptosystems::integer_el_gamal::IntegerElGamal;
     /// # use rand_core::OsRng;
     /// # use scicrypt::randomness::SecureRng;
-    /// # use scicrypt::AsymmetricCryptosystem;
     /// # use rug::Integer;
+    /// # use scicrypt::cryptosystems::AsymmetricCryptosystem;
     /// # let mut rng = SecureRng::new(OsRng);
     /// # let el_gamal = IntegerElGamal::new(128, &mut rng);
     /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
@@ -135,8 +137,9 @@ impl AsymmetricCryptosystem for IntegerElGamal {
     /// # use scicrypt::cryptosystems::integer_el_gamal::IntegerElGamal;
     /// # use rand_core::OsRng;
     /// # use scicrypt::randomness::SecureRng;
-    /// # use scicrypt::{AsymmetricCryptosystem, Enrichable};
     /// # use rug::Integer;
+    /// # use scicrypt::cryptosystems::AsymmetricCryptosystem;
+    /// # use scicrypt::Enrichable;
     /// # let mut rng = SecureRng::new(OsRng);
     /// # let el_gamal = IntegerElGamal::new(128, &mut rng);
     /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
@@ -208,8 +211,8 @@ impl<'pk> RichCiphertext<'pk, IntegerElGamalCiphertext, IntegerElGamalPublicKey>
 #[cfg(test)]
 mod tests {
     use crate::cryptosystems::integer_el_gamal::IntegerElGamal;
+    use crate::cryptosystems::AsymmetricCryptosystem;
     use crate::randomness::SecureRng;
-    use crate::AsymmetricCryptosystem;
     use crate::Enrichable;
     use rand_core::OsRng;
     use rug::Integer;

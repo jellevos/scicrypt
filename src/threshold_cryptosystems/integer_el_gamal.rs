@@ -1,7 +1,8 @@
 use crate::cryptosystems::integer_el_gamal::{IntegerElGamalCiphertext, IntegerElGamalPublicKey};
 use crate::number_theory::gen_safe_prime;
 use crate::randomness::SecureRng;
-use crate::{AsymmetricThresholdCryptosystem, DecryptionError, RichCiphertext};
+use crate::threshold_cryptosystems::AsymmetricThresholdCryptosystem;
+use crate::{DecryptionError, RichCiphertext};
 use rug::Integer;
 use std::ops::Rem;
 
@@ -281,7 +282,8 @@ mod tests {
     use crate::threshold_cryptosystems::integer_el_gamal::{
         NOfNIntegerElGamal, TOfNIntegerElGamal,
     };
-    use crate::{AsymmetricThresholdCryptosystem, Enrichable};
+    use crate::threshold_cryptosystems::AsymmetricThresholdCryptosystem;
+    use crate::Enrichable;
     use rand_core::OsRng;
     use rug::Integer;
 

@@ -1,6 +1,66 @@
+use crate::randomness::SecureRng;
+use crate::{DecryptionError, RichCiphertext};
+
 /// Threshold ElGamal cryptosystem over an elliptic curve
 pub mod curve_el_gamal;
 /// Threshold ElGamal cryptosystem over the integers modulo a prime
 pub mod integer_el_gamal;
 /// Threshold Paillier cryptosystem.
 pub mod paillier;
+
+/// An asymmetric threshold cryptosystem is a system of methods to encrypt plaintexts into
+/// ciphertexts, but instead of having a single secret key to decrypt them back into plaintexts, we
+/// require a given number of parties to decrypt with their own partial key. If enough parties
+/// partially decrypt, the resulting shares can be combined into the original plaintext. Still,
+/// anyone who has access to the public key can perform encryptions.
+///
+/// We denote a threshold cryptosystem using a tuple like (t, n). This means that t parties can
+/// collectively decrypt, and that there are in total n partial keys.
+///
+/// The struct that implements an `AsymmetricThresholdCryptosystem` will hold the general parameters
+/// of that cryptosystem. Depending on the cryptosystem, those parameters could play an important
+/// role in deciding the level of security. As such, each cryptosystem should clearly indicate
+/// these.
+pub trait AsymmetricThresholdCryptosystem {
+    /// The type of the plaintexts to be encrypted.
+    type Plaintext;
+    /// The type of the encrypted plaintexts.
+    type Ciphertext;
+
+    /// The type of the encryption key.
+    type PublicKey;
+    /// The type of the partial key.
+    type PartialKey;
+
+    /// The type of a decryption share, which can be combined with $t - 1$ other shares to finish
+    /// decryption.
+    type DecryptionShare;
+
+    /// Generate a public and private key pair using a cryptographic RNG.
+    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+        &self,
+        rng: &mut SecureRng<R>,
+    ) -> (Self::PublicKey, Vec<Self::PartialKey>);
+
+    /// Encrypt the plaintext using the public key and a cryptographic RNG.
+    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+        &self,
+        plaintext: &Self::Plaintext,
+        public_key: &Self::PublicKey,
+        rng: &mut SecureRng<R>,
+    ) -> Self::Ciphertext;
+
+    /// Partially decrypt the ciphertext using a partial key and its related public key.
+    fn partially_decrypt(
+        &self,
+        rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
+        partial_key: &Self::PartialKey,
+    ) -> Self::DecryptionShare;
+
+    /// Combine t decryption shares belonging to distinct partial keys to finish decryption.
+    fn combine(
+        &self,
+        decryption_shares: &[Self::DecryptionShare],
+        public_key: &Self::PublicKey,
+    ) -> Result<Self::Plaintext, DecryptionError>;
+}

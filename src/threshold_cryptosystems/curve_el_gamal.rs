@@ -1,6 +1,7 @@
 use crate::cryptosystems::curve_el_gamal::CurveElGamalCiphertext;
 use crate::randomness::SecureRng;
-use crate::{AsymmetricThresholdCryptosystem, DecryptionError, RichCiphertext};
+use crate::threshold_cryptosystems::AsymmetricThresholdCryptosystem;
+use crate::{DecryptionError, RichCiphertext};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
@@ -201,7 +202,8 @@ impl AsymmetricThresholdCryptosystem for TOfNCurveElGamal {
 mod tests {
     use crate::randomness::SecureRng;
     use crate::threshold_cryptosystems::curve_el_gamal::{NOfNCurveElGamal, TOfNCurveElGamal};
-    use crate::{AsymmetricThresholdCryptosystem, Enrichable};
+    use crate::threshold_cryptosystems::AsymmetricThresholdCryptosystem;
+    use crate::Enrichable;
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;

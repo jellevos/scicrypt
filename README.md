@@ -36,8 +36,7 @@ Check the table below for a run time comparison (in milliseconds) for safe prime
 # Upcoming features
 These are the upcoming minor versions and the functionality they will add.
 
-## Version 0.4.0 (~Week 36)
-_Ease of use update_
+## Ease of use update (~Week 36)
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
     <tr><td>Encoding signed ints</td> <td></td></tr>
@@ -45,30 +44,10 @@ _Ease of use update_
     <tr><td>Debugging tools</td><td> </td></tr>
 </table>
 
-## Version 0.3.0 (~Week 34)
-_Oblivious transfer update_
+## Oblivious transfer update (~Week 34)
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
     <tr><td>OT & extensions</td> <td></td></tr>
     <tr><td>OPRF</td><td> </td></tr>
     <tr><td>OPPRF</td><td> </td></tr>
-</table>
-
-## Version 0.2.0 (released)
-_Threshold homomorphic cryptosystems update_
-<table>
-    <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
-    <tr><td>Threshold Paillier</td><td>x</td></tr>
-    <tr><td>Threshold ElGamal</td><td>x</td></tr>
-    <tr><td>Transparent ciphertexts for debugging</td><td>-</td></tr>
-</table>
-
-## Version 0.1.0 (released)
-_Homomorphic cryptosystems update_
-<table>
-    <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
-    <tr><td>ElGamal over elliptic curves</td><td>x</td></tr>
-    <tr><td>ElGamal over the integers</td><td>x</td></tr>
-    <tr><td>Paillier</td><td>x</td></tr>
-    <tr><td>RSA</td><td>x</td></tr>
 </table>

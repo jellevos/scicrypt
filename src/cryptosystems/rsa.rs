@@ -1,6 +1,7 @@
+use crate::cryptosystems::AsymmetricCryptosystem;
 use crate::number_theory::gen_rsa_modulus;
 use crate::randomness::SecureRng;
-use crate::{AsymmetricCryptosystem, Enrichable, RichCiphertext};
+use crate::{Enrichable, RichCiphertext};
 use rug::Integer;
 use std::ops::{Mul, Rem};
 
@@ -107,8 +108,9 @@ impl<'pk> RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
 #[cfg(test)]
 mod tests {
     use crate::cryptosystems::rsa::RSA;
+    use crate::cryptosystems::AsymmetricCryptosystem;
     use crate::randomness::SecureRng;
-    use crate::{AsymmetricCryptosystem, Enrichable};
+    use crate::Enrichable;
     use rand_core::OsRng;
     use rug::Integer;
 
