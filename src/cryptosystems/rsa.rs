@@ -1,22 +1,12 @@
 use crate::cryptosystems::AsymmetricCryptosystem;
 use crate::number_theory::gen_rsa_modulus;
 use crate::randomness::SecureRng;
-use crate::{Enrichable, RichCiphertext};
+use crate::{BitsOfSecurity, Enrichable, RichCiphertext};
 use rug::Integer;
 use std::ops::{Mul, Rem};
 
 /// The RSA cryptosystem.
-pub struct RSA {
-    /// Size of the RSA modulus and thereby the key.
-    key_size: u32,
-}
-
-impl RSA {
-    /// Creates a new RSA instance with the specified key size in bits (size of the modulus).
-    pub fn new(key_size: u32) -> Self {
-        RSA { key_size }
-    }
-}
+pub struct RSA;
 
 /// Public key for the RSA cryptosystem.
 pub struct RSAPublicKey {
@@ -39,10 +29,10 @@ impl AsymmetricCryptosystem for RSA {
     type SecretKey = Integer;
 
     fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
-        &self,
+        security_param: &BitsOfSecurity,
         rng: &mut SecureRng<R>,
     ) -> (Self::PublicKey, Self::SecretKey) {
-        let (n, lambda) = gen_rsa_modulus(self.key_size, rng);
+        let (n, lambda) = gen_rsa_modulus(security_param.to_public_key_bit_length(), rng);
 
         let e = Integer::from(65537);
         let d = Integer::from(e.invert_ref(&lambda).unwrap());
@@ -51,7 +41,6 @@ impl AsymmetricCryptosystem for RSA {
     }
 
     fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
-        &self,
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
         _rng: &mut SecureRng<R>,
@@ -62,7 +51,6 @@ impl AsymmetricCryptosystem for RSA {
     }
 
     fn decrypt(
-        &self,
         rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
         secret_key: &Self::SecretKey,
     ) -> Self::Plaintext {
@@ -110,7 +98,7 @@ mod tests {
     use crate::cryptosystems::rsa::RSA;
     use crate::cryptosystems::AsymmetricCryptosystem;
     use crate::randomness::SecureRng;
-    use crate::Enrichable;
+    use crate::{BitsOfSecurity, Enrichable};
     use rand_core::OsRng;
     use rug::Integer;
 
@@ -118,37 +106,37 @@ mod tests {
     fn test_encrypt_decrypt_generator() {
         let mut rng = SecureRng::new(OsRng);
 
-        let rsa = RSA { key_size: 512 };
-        let (pk, sk) = rsa.generate_keys(&mut rng);
+        let (pk, sk) = RSA::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
 
-        let ciphertext = rsa.encrypt(&Integer::from(15), &pk, &mut rng);
+        let ciphertext = RSA::encrypt(&Integer::from(15), &pk, &mut rng);
 
-        assert_eq!(Integer::from(15), rsa.decrypt(&ciphertext.enrich(&pk), &sk));
+        assert_eq!(
+            Integer::from(15),
+            RSA::decrypt(&ciphertext.enrich(&pk), &sk)
+        );
     }
 
     #[test]
     fn test_homomorphic_mul() {
         let mut rng = SecureRng::new(OsRng);
 
-        let rsa = RSA { key_size: 512 };
-        let (pk, sk) = rsa.generate_keys(&mut rng);
+        let (pk, sk) = RSA::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
 
-        let ciphertext = rsa.encrypt(&Integer::from(7), &pk, &mut rng).enrich(&pk);
+        let ciphertext = RSA::encrypt(&Integer::from(7), &pk, &mut rng).enrich(&pk);
         let ciphertext_twice = &ciphertext * &ciphertext;
 
-        assert_eq!(Integer::from(49), rsa.decrypt(&ciphertext_twice, &sk));
+        assert_eq!(Integer::from(49), RSA::decrypt(&ciphertext_twice, &sk));
     }
 
     #[test]
     fn test_homomorphic_scalar_pow() {
         let mut rng = SecureRng::new(OsRng);
 
-        let rsa = RSA { key_size: 512 };
-        let (pk, sk) = rsa.generate_keys(&mut rng);
+        let (pk, sk) = RSA::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
 
-        let ciphertext = rsa.encrypt(&Integer::from(9), &pk, &mut rng).enrich(&pk);
+        let ciphertext = RSA::encrypt(&Integer::from(9), &pk, &mut rng).enrich(&pk);
         let ciphertext_twice = ciphertext.pow(&Integer::from(4));
 
-        assert_eq!(Integer::from(6561), rsa.decrypt(&ciphertext_twice, &sk));
+        assert_eq!(Integer::from(6561), RSA::decrypt(&ciphertext_twice, &sk));
     }
 }

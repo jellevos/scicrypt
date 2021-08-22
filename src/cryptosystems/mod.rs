@@ -1,5 +1,5 @@
 use crate::randomness::SecureRng;
-use crate::RichCiphertext;
+use crate::{BitsOfSecurity, RichCiphertext};
 
 /// Implementation of the ElGamal cryptosystem over an elliptic curve.
 pub mod curve_el_gamal;
@@ -28,15 +28,15 @@ pub trait AsymmetricCryptosystem {
     /// The type of the decryption key.
     type SecretKey;
 
-    /// Generate a public and private key pair using a cryptographic RNG.
+    /// Generate a public and private key pair using a cryptographic RNG. The level of security is
+    /// determined by the computational `security_param`.
     fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
-        &self,
+        security_param: &BitsOfSecurity,
         rng: &mut SecureRng<R>,
     ) -> (Self::PublicKey, Self::SecretKey);
 
     /// Encrypt the plaintext using the public key and a cryptographic RNG.
     fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
-        &self,
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
         rng: &mut SecureRng<R>,
@@ -44,7 +44,6 @@ pub trait AsymmetricCryptosystem {
 
     /// Decrypt the ciphertext using the secret key and its related public key.
     fn decrypt(
-        &self,
         rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
         secret_key: &Self::SecretKey,
     ) -> Self::Plaintext;
@@ -64,7 +63,6 @@ pub trait DecryptDirectly {
 
     /// Decrypt a ciphertext using the secret key directly, without requiring a rich ciphertext.
     fn decrypt_direct(
-        &self,
         ciphertext: &Self::Ciphertext,
         secret_key: &Self::SecretKey,
     ) -> Self::Plaintext;
