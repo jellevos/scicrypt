@@ -1,26 +1,16 @@
 use crate::cryptosystems::curve_el_gamal::CurveElGamalCiphertext;
 use crate::randomness::SecureRng;
-use crate::threshold_cryptosystems::AsymmetricThresholdCryptosystem;
-use crate::{DecryptionError, RichCiphertext};
+use crate::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
+use crate::{BitsOfSecurity, DecryptionError, RichCiphertext};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 
 /// N-out-of-N Threshold ElGamal cryptosystem over elliptic curves: Extension of ElGamal that requires n out of n parties to
 /// successfully decrypt. For this scheme there exists an efficient distributed key generation protocol.
-pub struct NOfNCurveElGamal {
-    /// The number of keys N
-    pub key_count: u32,
-}
+pub struct NOfNCurveElGamal;
 
-impl NOfNCurveElGamal {
-    /// Creates a new instance of `NOfNCurveElGamal` with the specified number of keys.
-    pub fn new(key_count: u32) -> Self {
-        NOfNCurveElGamal { key_count }
-    }
-}
-
-impl AsymmetricThresholdCryptosystem for NOfNCurveElGamal {
+impl AsymmetricNOfNCryptosystem for NOfNCurveElGamal {
     type Plaintext = RistrettoPoint;
     type Ciphertext = CurveElGamalCiphertext;
     type PublicKey = RistrettoPoint;
@@ -28,10 +18,18 @@ impl AsymmetricThresholdCryptosystem for NOfNCurveElGamal {
     type DecryptionShare = (RistrettoPoint, RistrettoPoint);
 
     fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
-        &self,
+        security_param: &BitsOfSecurity,
+        key_count_n: usize,
         rng: &mut SecureRng<R>,
     ) -> (Self::PublicKey, Vec<Self::PartialKey>) {
-        let partial_keys: Vec<Scalar> = (0..self.key_count)
+        match security_param {
+            BitsOfSecurity::AES128 => (),
+            _ => panic!(
+                "Currently only the Ristretto group is supported with security level AES128."
+            ),
+        }
+
+        let partial_keys: Vec<Scalar> = (0..key_count_n)
             .map(|_| Scalar::random(rng.rng()))
             .collect();
 
@@ -42,7 +40,6 @@ impl AsymmetricThresholdCryptosystem for NOfNCurveElGamal {
     }
 
     fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
-        &self,
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
         rng: &mut SecureRng<R>,
@@ -56,7 +53,6 @@ impl AsymmetricThresholdCryptosystem for NOfNCurveElGamal {
     }
 
     fn partially_decrypt<'pk>(
-        &self,
         rich_ciphertext: &RichCiphertext<'pk, Self::Ciphertext, Self::PublicKey>,
         partial_key: &Self::PartialKey,
     ) -> Self::DecryptionShare {
@@ -68,7 +64,6 @@ impl AsymmetricThresholdCryptosystem for NOfNCurveElGamal {
 
     #[allow(clippy::op_ref)]
     fn combine(
-        &self,
         decryption_shares: &[Self::DecryptionShare],
         _public_key: &Self::PublicKey,
     ) -> Result<Self::Plaintext, DecryptionError> {
@@ -78,21 +73,7 @@ impl AsymmetricThresholdCryptosystem for NOfNCurveElGamal {
 
 /// Threshold ElGamal cryptosystem over elliptic curves: Extension of ElGamal that requires t out of n parties to
 /// successfully decrypt.
-pub struct TOfNCurveElGamal {
-    threshold: u32,
-    key_count: u32,
-}
-
-impl TOfNCurveElGamal {
-    /// Creates a new instance of `TOfNCurveElGamal` with `key_count` keys of which `threshold` are
-    /// needed to decrypt.
-    pub fn new(threshold: u32, key_count: u32) -> Self {
-        TOfNCurveElGamal {
-            threshold,
-            key_count,
-        }
-    }
-}
+pub struct TOfNCurveElGamal;
 
 /// One of the partial keys, of which t must be used to decrypt successfully.
 pub struct TOfNCurveElGamalPartialKey {
@@ -107,7 +88,7 @@ pub struct TOfNCurveElGamalDecryptionShare {
     c2: RistrettoPoint,
 }
 
-impl AsymmetricThresholdCryptosystem for TOfNCurveElGamal {
+impl AsymmetricTOfNCryptosystem for TOfNCurveElGamal {
     type Plaintext = RistrettoPoint;
     type Ciphertext = CurveElGamalCiphertext;
     type PublicKey = RistrettoPoint;
@@ -115,21 +96,30 @@ impl AsymmetricThresholdCryptosystem for TOfNCurveElGamal {
     type DecryptionShare = TOfNCurveElGamalDecryptionShare;
 
     fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
-        &self,
+        security_param: &BitsOfSecurity,
+        threshold_t: usize,
+        key_count_n: usize,
         rng: &mut SecureRng<R>,
     ) -> (Self::PublicKey, Vec<Self::PartialKey>) {
+        match security_param {
+            BitsOfSecurity::AES128 => (),
+            _ => panic!(
+                "Currently only the Ristretto group is supported with security level AES128."
+            ),
+        }
+
         let master_key = Scalar::random(rng.rng());
 
-        let coefficients: Vec<Scalar> = (0..(self.threshold - 1))
+        let coefficients: Vec<Scalar> = (0..(threshold_t - 1))
             .map(|_| Scalar::random(rng.rng()))
             .collect();
 
-        let partial_keys: Vec<TOfNCurveElGamalPartialKey> = (1..=self.key_count)
+        let partial_keys: Vec<TOfNCurveElGamalPartialKey> = (1..=key_count_n)
             .map(|i| {
                 let mut key = master_key;
 
-                for j in 0..(self.threshold - 1) {
-                    key += coefficients[j as usize] * Scalar::from(i.pow(j + 1));
+                for j in 0..(threshold_t - 1) {
+                    key += coefficients[j as usize] * Scalar::from(i.pow((j + 1) as u32) as u64);
                 }
 
                 TOfNCurveElGamalPartialKey { id: i as i32, key }
@@ -140,7 +130,6 @@ impl AsymmetricThresholdCryptosystem for TOfNCurveElGamal {
     }
 
     fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
-        &self,
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
         rng: &mut SecureRng<R>,
@@ -154,7 +143,6 @@ impl AsymmetricThresholdCryptosystem for TOfNCurveElGamal {
     }
 
     fn partially_decrypt<'pk>(
-        &self,
         rich_ciphertext: &RichCiphertext<'pk, Self::Ciphertext, Self::PublicKey>,
         partial_key: &Self::PartialKey,
     ) -> Self::DecryptionShare {
@@ -166,16 +154,16 @@ impl AsymmetricThresholdCryptosystem for TOfNCurveElGamal {
     }
 
     fn combine(
-        &self,
         decryption_shares: &[Self::DecryptionShare],
         _public_key: &Self::PublicKey,
     ) -> Result<Self::Plaintext, DecryptionError> {
-        let summed: RistrettoPoint = (0usize..(self.threshold as usize))
-            .zip(decryption_shares)
+        let summed: RistrettoPoint = decryption_shares
+            .iter()
+            .enumerate()
             .map(|(i, share)| {
                 let mut b = Scalar::one();
 
-                for i_prime in 0usize..(self.threshold as usize) {
+                for i_prime in 0..decryption_shares.len() {
                     if i == i_prime {
                         continue;
                     }
@@ -202,8 +190,8 @@ impl AsymmetricThresholdCryptosystem for TOfNCurveElGamal {
 mod tests {
     use crate::randomness::SecureRng;
     use crate::threshold_cryptosystems::curve_el_gamal::{NOfNCurveElGamal, TOfNCurveElGamal};
-    use crate::threshold_cryptosystems::AsymmetricThresholdCryptosystem;
-    use crate::Enrichable;
+    use crate::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
+    use crate::{BitsOfSecurity, Enrichable};
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
@@ -212,24 +200,19 @@ mod tests {
     fn test_encrypt_decrypt_3_of_3() {
         let mut rng = SecureRng::new(OsRng);
 
-        let n_of_n_curve_elgamal = NOfNCurveElGamal { key_count: 3 };
-        let (pk, sks) = n_of_n_curve_elgamal.generate_keys(&mut rng);
+        let (pk, sks) = NOfNCurveElGamal::generate_keys(&BitsOfSecurity::default(), 3, &mut rng);
 
         let plaintext = &Scalar::from(19u64) * &RISTRETTO_BASEPOINT_TABLE;
 
-        let ciphertext = n_of_n_curve_elgamal
-            .encrypt(&plaintext, &pk, &mut rng)
-            .enrich(&pk);
+        let ciphertext = NOfNCurveElGamal::encrypt(&plaintext, &pk, &mut rng).enrich(&pk);
 
-        let share_1 = n_of_n_curve_elgamal.partially_decrypt(&ciphertext, &sks[0]);
-        let share_2 = n_of_n_curve_elgamal.partially_decrypt(&ciphertext, &sks[1]);
-        let share_3 = n_of_n_curve_elgamal.partially_decrypt(&ciphertext, &sks[2]);
+        let share_1 = NOfNCurveElGamal::partially_decrypt(&ciphertext, &sks[0]);
+        let share_2 = NOfNCurveElGamal::partially_decrypt(&ciphertext, &sks[1]);
+        let share_3 = NOfNCurveElGamal::partially_decrypt(&ciphertext, &sks[2]);
 
         assert_eq!(
             plaintext,
-            n_of_n_curve_elgamal
-                .combine(&vec![share_1, share_2, share_3], &pk)
-                .unwrap()
+            NOfNCurveElGamal::combine(&vec![share_1, share_2, share_3], &pk).unwrap()
         );
     }
 
@@ -237,26 +220,18 @@ mod tests {
     fn test_encrypt_decrypt_2_of_3() {
         let mut rng = SecureRng::new(OsRng);
 
-        let t_of_n_curve_elgamal = TOfNCurveElGamal {
-            threshold: 2,
-            key_count: 3,
-        };
-        let (pk, sks) = t_of_n_curve_elgamal.generate_keys(&mut rng);
+        let (pk, sks) = TOfNCurveElGamal::generate_keys(&BitsOfSecurity::default(), 2, 3, &mut rng);
 
         let plaintext = &Scalar::from(21u64) * &RISTRETTO_BASEPOINT_TABLE;
 
-        let ciphertext = t_of_n_curve_elgamal
-            .encrypt(&plaintext, &pk, &mut rng)
-            .enrich(&pk);
+        let ciphertext = TOfNCurveElGamal::encrypt(&plaintext, &pk, &mut rng).enrich(&pk);
 
-        let share_1 = t_of_n_curve_elgamal.partially_decrypt(&ciphertext, &sks[0]);
-        let share_3 = t_of_n_curve_elgamal.partially_decrypt(&ciphertext, &sks[2]);
+        let share_1 = TOfNCurveElGamal::partially_decrypt(&ciphertext, &sks[0]);
+        let share_3 = TOfNCurveElGamal::partially_decrypt(&ciphertext, &sks[2]);
 
         assert_eq!(
             plaintext,
-            t_of_n_curve_elgamal
-                .combine(&vec![share_1, share_3], &pk)
-                .unwrap()
+            TOfNCurveElGamal::combine(&vec![share_1, share_3], &pk).unwrap()
         );
     }
 }

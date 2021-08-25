@@ -56,7 +56,8 @@ pub enum BitsOfSecurity {
     /// Security that is equivalent to that of 256 bits in the AES cryptosystem. This level of
     /// security is expected to be safe until 2030 & beyond.
     AES256,
-    /// Security that is equivalent to another number of `bits`.
+    /// Security that is equivalent to a number of bits `pk_bits` in accordance to the size of a
+    /// public key modulus. Note that any number lower than 1024 is considered extremely insecure.
     Other {
         /// The number of bits in a public key (factoring) modulus.
         pk_bits: u32,
