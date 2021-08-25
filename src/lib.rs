@@ -13,6 +13,9 @@ pub mod cryptosystems;
 /// Partially homomorphic threshold cryptosystems that require multiple parties to decrypt.
 pub mod threshold_cryptosystems;
 
+/// Oblivious transfer-based primitives (OT, OT extensions, OPRFs, OPPRFs)
+pub mod oblivious_transfer;
+
 /// Rich representation of a ciphertext that associates it with the corresponding public key.
 /// This allows for performing homomorphic operations using operator overloading, among others.
 pub struct RichCiphertext<'pk, C, PK> {
