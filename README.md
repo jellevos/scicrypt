@@ -9,8 +9,7 @@ categories:
 - Slow but flexible, like many written in python
 
 This library attempts to find a balance between speed and flexibility, to ease the process of
-implementing proof of concepts of cryptographic protocols, such as those in the field of multi-
-party computation (MPC).
+implementing proof of concepts of cryptographic protocols, such as those in the field of multi-party computation (MPC).
 
 # Current features
 Currently, the library implements the following homomorphic cryptosystems and the associated homomorphic
@@ -19,6 +18,10 @@ operations:
 - ElGamal over safe prime groups and two threshold versions
 - Paillier and threshold Paillier
 - RSA
+- Oblivious transfers and extensions
+
+The oblivious transfer functionality is enabled by Galois' [`swanky` crate](https://github.com/GaloisInc/swanky).
+Specifically, the sub-crate named `ocelot`.
 
 In addition, the library implements safe prime generation, which is faster than the same functionality implemented in
 other crates. The code is benchmarked between every version to ensure we do not increase run time and to compare against
@@ -36,12 +39,20 @@ Check the table below for a run time comparison (in milliseconds) for safe prime
 # Upcoming features
 These are the upcoming minor versions and the functionality they will add.
 
-## Ease of use update (~Week 36)
+## Ease of use update (~Week 38)
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
     <tr><td>Encoding signed ints</td> <td></td></tr>
     <tr><td>Discrete log lookup tables</td><td> </td></tr>
     <tr><td>Debugging tools</td><td> </td></tr>
+</table>
+
+## Secret sharing update (~Week 36)
+<table>
+    <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
+    <tr><td>Additive secret sharing</td> <td></td></tr>
+    <tr><td>Multiplicative secret sharing</td><td> </td></tr>
+    <tr><td>Shamir's secret sharing</td><td> </td></tr>
 </table>
 
 ## Oblivious transfer update (~Week 34)
