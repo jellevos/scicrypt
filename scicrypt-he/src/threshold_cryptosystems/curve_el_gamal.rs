@@ -1,10 +1,12 @@
+use crate::cryptosystems::curve_el_gamal::{CurveElGamalCiphertext, RichCurveElGamalCiphertext};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use scicrypt_traits::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
-use crate::cryptosystems::curve_el_gamal::{CurveElGamalCiphertext, RichCurveElGamalCiphertext};
-use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::randomness::SecureRng;
+use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::threshold_cryptosystems::{
+    AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem,
+};
 use scicrypt_traits::DecryptionError;
 
 /// N-out-of-N Threshold ElGamal cryptosystem over elliptic curves: Extension of ElGamal that requires n out of n parties to
@@ -191,13 +193,15 @@ impl AsymmetricTOfNCryptosystem for TOfNCurveElGamal {
 
 #[cfg(test)]
 mod tests {
+    use crate::threshold_cryptosystems::curve_el_gamal::{NOfNCurveElGamal, TOfNCurveElGamal};
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
     use scicrypt_traits::randomness::SecureRng;
-    use crate::threshold_cryptosystems::curve_el_gamal::{NOfNCurveElGamal, TOfNCurveElGamal};
     use scicrypt_traits::security::BitsOfSecurity;
-    use scicrypt_traits::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
+    use scicrypt_traits::threshold_cryptosystems::{
+        AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem,
+    };
     use scicrypt_traits::Enrichable;
 
     #[test]

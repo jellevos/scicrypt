@@ -1,10 +1,10 @@
 use rug::Integer;
-use scicrypt_traits::Enrichable;
-use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
-use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::randomness::SecureRng;
-use std::ops::{Mul, Rem};
 use scicrypt_numbertheory::gen_rsa_modulus;
+use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::randomness::SecureRng;
+use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::Enrichable;
+use std::ops::{Mul, Rem};
 
 /// The RSA cryptosystem.
 pub struct RSA;
@@ -30,10 +30,13 @@ pub struct RichRSACiphertext<'pk> {
 }
 
 impl<'pk> Enrichable<'pk, RSAPublicKey, RichRSACiphertext<'pk>> for RSACiphertext {
-    fn enrich(self, public_key: &RSAPublicKey) -> RichRSACiphertext where Self: Sized {
+    fn enrich(self, public_key: &RSAPublicKey) -> RichRSACiphertext
+    where
+        Self: Sized,
+    {
         RichRSACiphertext {
             ciphertext: self,
-            public_key
+            public_key,
         }
     }
 }
@@ -113,13 +116,13 @@ impl<'pk> RichRSACiphertext<'pk> {
 
 #[cfg(test)]
 mod tests {
+    use crate::cryptosystems::rsa::RSA;
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::randomness::SecureRng;
     use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+    use scicrypt_traits::randomness::SecureRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::Enrichable;
-    use crate::cryptosystems::rsa::RSA;
 
     #[test]
     fn test_encrypt_decrypt_generator() {

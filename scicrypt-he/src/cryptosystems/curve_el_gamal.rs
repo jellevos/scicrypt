@@ -1,12 +1,12 @@
+use crate::cryptosystems::DecryptDirectly;
+use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
-use std::ops::{Add, Mul};
-use crate::cryptosystems::DecryptDirectly;
 use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
-use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::randomness::SecureRng;
+use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::Enrichable;
+use std::ops::{Add, Mul};
 
 /// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
 /// `curve25519-dalek` crate. ElGamal is a partially homomorphic cryptosystem.
@@ -29,8 +29,13 @@ pub struct RichCurveElGamalCiphertext<'pk> {
     pub public_key: &'pk RistrettoPoint,
 }
 
-impl<'pk> Enrichable<'pk, RistrettoPoint, RichCurveElGamalCiphertext<'pk>> for CurveElGamalCiphertext {
-    fn enrich(self, public_key: &RistrettoPoint) -> RichCurveElGamalCiphertext where Self: Sized {
+impl<'pk> Enrichable<'pk, RistrettoPoint, RichCurveElGamalCiphertext<'pk>>
+    for CurveElGamalCiphertext
+{
+    fn enrich(self, public_key: &RistrettoPoint) -> RichCurveElGamalCiphertext
+    where
+        Self: Sized,
+    {
         RichCurveElGamalCiphertext {
             ciphertext: self,
             public_key,
@@ -123,13 +128,13 @@ impl Mul<&Scalar> for &CurveElGamalCiphertext {
 
 #[cfg(test)]
 mod tests {
+    use crate::cryptosystems::curve_el_gamal::CurveElGamal;
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    use scicrypt_traits::randomness::SecureRng;
     use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+    use scicrypt_traits::randomness::SecureRng;
     use scicrypt_traits::Enrichable;
-    use crate::cryptosystems::curve_el_gamal::CurveElGamal;
 
     #[test]
     fn test_encrypt_decrypt_generator() {

@@ -1,11 +1,15 @@
-use scicrypt_traits::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
+use crate::cryptosystems::integer_el_gamal::{
+    IntegerElGamalCiphertext, IntegerElGamalPublicKey, RichIntegerElGamalCiphertext,
+};
 use rug::Integer;
-use crate::cryptosystems::integer_el_gamal::{IntegerElGamalCiphertext, IntegerElGamalPublicKey, RichIntegerElGamalCiphertext};
-use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::randomness::SecureRng;
-use std::ops::Rem;
-use scicrypt_traits::DecryptionError;
 use scicrypt_numbertheory::gen_safe_prime;
+use scicrypt_traits::randomness::SecureRng;
+use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::threshold_cryptosystems::{
+    AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem,
+};
+use scicrypt_traits::DecryptionError;
+use std::ops::Rem;
 
 /// N-out-of-N Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires n out of n parties to
 /// successfully decrypt. For this scheme there exists an efficient distributed key generation protocol.
@@ -232,12 +236,16 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
 
 #[cfg(test)]
 mod tests {
+    use crate::threshold_cryptosystems::integer_el_gamal::{
+        NOfNIntegerElGamal, TOfNIntegerElGamal,
+    };
     use rand_core::OsRng;
     use rug::Integer;
     use scicrypt_traits::randomness::SecureRng;
-    use crate::threshold_cryptosystems::integer_el_gamal::{NOfNIntegerElGamal, TOfNIntegerElGamal};
-    use scicrypt_traits::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
     use scicrypt_traits::security::BitsOfSecurity;
+    use scicrypt_traits::threshold_cryptosystems::{
+        AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem,
+    };
     use scicrypt_traits::Enrichable;
 
     #[test]

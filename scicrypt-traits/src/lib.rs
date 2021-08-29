@@ -23,7 +23,9 @@ pub mod threshold_cryptosystems;
 /// Functionality to easily turn a ciphertext into a rich ciphertext
 pub trait Enrichable<'pk, PK, RC> {
     /// Enriches a ciphertext by associating it with a corresponding public key.
-    fn enrich(self, public_key: &'pk PK) -> RC where Self: Sized;
+    fn enrich(self, public_key: &'pk PK) -> RC
+    where
+        Self: Sized;
 }
 
 /// General error that arises when decryption fails, for example because there were not enough

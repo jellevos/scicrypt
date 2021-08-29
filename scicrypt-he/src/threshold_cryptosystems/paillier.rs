@@ -1,10 +1,10 @@
 use rug::Integer;
-use scicrypt_traits::{Enrichable, DecryptionError};
-use scicrypt_traits::threshold_cryptosystems::AsymmetricTOfNCryptosystem;
-use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::randomness::SecureRng;
-use std::ops::Rem;
 use scicrypt_numbertheory::{gen_coprime, gen_safe_prime};
+use scicrypt_traits::randomness::SecureRng;
+use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::threshold_cryptosystems::AsymmetricTOfNCryptosystem;
+use scicrypt_traits::{DecryptionError, Enrichable};
+use std::ops::Rem;
 
 /// Threshold Paillier cryptosystem: Extension of Paillier that requires t out of n parties to
 /// successfully decrypt.
@@ -44,11 +44,16 @@ pub struct ThresholdPaillierDecryptionShare {
     share: Integer,
 }
 
-impl<'pk> Enrichable<'pk, ThresholdPaillierPublicKey, RichThresholdPaillierCiphertext<'pk>> for ThresholdPaillierCiphertext {
-    fn enrich(self, public_key: &ThresholdPaillierPublicKey) -> RichThresholdPaillierCiphertext where Self: Sized {
+impl<'pk> Enrichable<'pk, ThresholdPaillierPublicKey, RichThresholdPaillierCiphertext<'pk>>
+    for ThresholdPaillierCiphertext
+{
+    fn enrich(self, public_key: &ThresholdPaillierPublicKey) -> RichThresholdPaillierCiphertext
+    where
+        Self: Sized,
+    {
         RichThresholdPaillierCiphertext {
             ciphertext: self,
-            public_key
+            public_key,
         }
     }
 }
@@ -202,12 +207,12 @@ impl AsymmetricTOfNCryptosystem for ThresholdPaillier {
 
 #[cfg(test)]
 mod tests {
+    use crate::threshold_cryptosystems::paillier::ThresholdPaillier;
     use rand_core::OsRng;
     use rug::Integer;
     use scicrypt_traits::randomness::SecureRng;
-    use crate::threshold_cryptosystems::paillier::ThresholdPaillier;
-    use scicrypt_traits::threshold_cryptosystems::AsymmetricTOfNCryptosystem;
     use scicrypt_traits::security::BitsOfSecurity;
+    use scicrypt_traits::threshold_cryptosystems::AsymmetricTOfNCryptosystem;
     use scicrypt_traits::Enrichable;
 
     #[test]

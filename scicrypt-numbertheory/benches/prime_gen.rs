@@ -4,8 +4,8 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use glass_pumpkin::safe_prime::from_rng;
 use rand::rngs;
 use rand_core::OsRng;
-use scicrypt_traits::randomness::SecureRng;
 use scicrypt_numbertheory::gen_safe_prime;
+use scicrypt_traits::randomness::SecureRng;
 
 pub fn safe_prime_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("safe_prime_benchmark");

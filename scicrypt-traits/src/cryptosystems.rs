@@ -1,6 +1,6 @@
-use crate::security::BitsOfSecurity;
 use crate::randomness::SecureRng;
-use crate::{Enrichable};
+use crate::security::BitsOfSecurity;
+use crate::Enrichable;
 
 /// An asymmetric cryptosystem is a system of methods to encrypt plaintexts into ciphertexts, and
 /// decrypt those ciphertexts back into plaintexts. Anyone who has access to the public key can

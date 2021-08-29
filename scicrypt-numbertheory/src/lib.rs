@@ -86,10 +86,10 @@ pub fn gen_coprime<R: rand_core::RngCore + rand_core::CryptoRng>(
 
 #[cfg(test)]
 mod tests {
+    use crate::{gen_prime, gen_safe_prime};
     use rand_core::OsRng;
     use rug::Integer;
     use scicrypt_traits::randomness::SecureRng;
-    use crate::{gen_prime, gen_safe_prime};
 
     fn assert_primality_100_000_factors(integer: &Integer) {
         let (_, hi) = primal::estimate_nth_prime(100_000);

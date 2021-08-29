@@ -1,10 +1,10 @@
 use rug::Integer;
-use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
-use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::randomness::SecureRng;
-use std::ops::{Rem, Mul};
 use scicrypt_numbertheory::gen_safe_prime;
+use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::randomness::SecureRng;
+use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::Enrichable;
+use std::ops::{Mul, Rem};
 
 /// Multiplicatively homomorphic ElGamal over a safe prime group where the generator is 4.
 ///
@@ -49,11 +49,16 @@ pub struct RichIntegerElGamalCiphertext<'pk> {
     pub public_key: &'pk IntegerElGamalPublicKey,
 }
 
-impl<'pk> Enrichable<'pk, IntegerElGamalPublicKey, RichIntegerElGamalCiphertext<'pk>> for IntegerElGamalCiphertext {
-    fn enrich(self, public_key: &IntegerElGamalPublicKey) -> RichIntegerElGamalCiphertext where Self: Sized {
+impl<'pk> Enrichable<'pk, IntegerElGamalPublicKey, RichIntegerElGamalCiphertext<'pk>>
+    for IntegerElGamalCiphertext
+{
+    fn enrich(self, public_key: &IntegerElGamalPublicKey) -> RichIntegerElGamalCiphertext
+    where
+        Self: Sized,
+    {
         RichIntegerElGamalCiphertext {
             ciphertext: self,
-            public_key
+            public_key,
         }
     }
 }
@@ -173,10 +178,7 @@ impl<'pk> Mul for &RichIntegerElGamalCiphertext<'pk> {
 
 impl<'pk> RichIntegerElGamalCiphertext<'pk> {
     /// Computes the ciphertext corresponding to the plaintext raised to a scalar power.
-    pub fn pow(
-        &self,
-        rhs: &Integer,
-    ) -> RichIntegerElGamalCiphertext {
+    pub fn pow(&self, rhs: &Integer) -> RichIntegerElGamalCiphertext {
         RichIntegerElGamalCiphertext {
             ciphertext: IntegerElGamalCiphertext {
                 c1: Integer::from(
@@ -199,11 +201,11 @@ impl<'pk> RichIntegerElGamalCiphertext<'pk> {
 
 #[cfg(test)]
 mod tests {
+    use crate::cryptosystems::integer_el_gamal::IntegerElGamal;
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::randomness::SecureRng;
-    use crate::cryptosystems::integer_el_gamal::IntegerElGamal;
     use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+    use scicrypt_traits::randomness::SecureRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::Enrichable;
 

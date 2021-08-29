@@ -1,10 +1,10 @@
 use rug::Integer;
-use scicrypt_traits::Enrichable;
+use scicrypt_numbertheory::{gen_coprime, gen_rsa_modulus};
 use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
-use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::randomness::SecureRng;
-use std::ops::{Rem, Add, Mul};
-use scicrypt_numbertheory::{gen_rsa_modulus, gen_coprime};
+use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::Enrichable;
+use std::ops::{Add, Mul, Rem};
 
 /// The Paillier cryptosystem.
 pub struct Paillier;
@@ -30,10 +30,13 @@ pub struct RichPaillierCiphertext<'pk> {
 }
 
 impl<'pk> Enrichable<'pk, PaillierPublicKey, RichPaillierCiphertext<'pk>> for PaillierCiphertext {
-    fn enrich(self, public_key: &PaillierPublicKey) -> RichPaillierCiphertext where Self: Sized {
+    fn enrich(self, public_key: &PaillierPublicKey) -> RichPaillierCiphertext
+    where
+        Self: Sized,
+    {
         RichPaillierCiphertext {
             ciphertext: self,
-            public_key
+            public_key,
         }
     }
 }
@@ -165,12 +168,12 @@ impl<'pk> Mul<&Integer> for &RichPaillierCiphertext<'pk> {
 
 #[cfg(test)]
 mod tests {
+    use crate::cryptosystems::paillier::Paillier;
     use rand_core::OsRng;
     use rug::Integer;
+    use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
     use scicrypt_traits::randomness::SecureRng;
     use scicrypt_traits::security::BitsOfSecurity;
-    use crate::cryptosystems::paillier::Paillier;
-    use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
     use scicrypt_traits::Enrichable;
 
     #[test]
