@@ -1,28 +1,31 @@
-[package]
-name = "scicrypt"
-description = "Lightweight cryptographic building blocks for proof of concept implementations in applied cryptography"
-version = "0.3.1"
-authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
-edition = "2018"
-license = "MIT"
-homepage = "https://github.com/jellevos/scicrypt"
-repository = "https://github.com/jellevos/scicrypt"
-readme = "README.md"
+[workspace]
+members = ["scicrypt", "scicrypt-traits", "scicrypt-numbertheory", "scicrypt-he"]
 
-[dependencies]
-rand_core = "0.5"
-curve25519-dalek = "3"
-rug = "1.13"
-
-[dev-dependencies]
-primal = "0.3"
-criterion = "0.3"
-glass_pumpkin = "1.0.0"
-rand = "0.8"
-
-[package.metadata.docs.rs]
-rustdoc-args = [ "--html-in-header", "katex-header.html" ]
-
-[[bench]]
-name = "prime_gen"
-harness = false
+#[package]
+#name = "scicrypt"
+#description = "Lightweight cryptographic building blocks for proof of concept implementations in multi-party computation"
+#version = "0.4.0"  # In sync with `scicrypt-he` and `scicrypt-numbertheory`
+#authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
+#edition = "2018"
+#license = "MIT"
+#homepage = "https://github.com/jellevos/scicrypt"
+#repository = "https://github.com/jellevos/scicrypt"
+#readme = "README.md"
+#
+#[dependencies]
+#rand_core = "0.5"
+#curve25519-dalek = "3"
+#rug = "1.13"
+#
+#[dev-dependencies]
+#primal = "0.3"
+#criterion = "0.3"
+#glass_pumpkin = "1.0.0"
+#rand = "0.8"
+#
+#[package.metadata.docs.rs]
+#rustdoc-args = [ "--html-in-header", "katex-header.html" ]
+#
+#[[bench]]
+#name = "prime_gen"
+#harness = false

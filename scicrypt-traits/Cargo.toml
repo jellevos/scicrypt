@@ -1,0 +1,20 @@
+[package]
+name = "scicrypt-traits"
+description = "A scicrypt crate defining general traits for cryptographic systems and functionalities"
+version = "0.4.0"
+authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
+edition = "2018"
+license = "MIT"
+homepage = "https://github.com/jellevos/scicrypt"
+repository = "https://github.com/jellevos/scicrypt"
+readme = "README.md"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand_core = "0.5"
+rug = "1.13"
+
+[package.metadata.docs.rs]
+rustdoc-args = [ "--html-in-header", "../katex-header.html" ]

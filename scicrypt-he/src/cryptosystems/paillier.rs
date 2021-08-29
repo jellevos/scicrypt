@@ -1,9 +1,10 @@
-use crate::cryptosystems::AsymmetricCryptosystem;
-use crate::number_theory::{gen_coprime, gen_rsa_modulus};
-use crate::randomness::SecureRng;
-use crate::{BitsOfSecurity, Enrichable, RichCiphertext};
 use rug::Integer;
-use std::ops::{Add, Mul, Rem};
+use scicrypt_traits::Enrichable;
+use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::randomness::SecureRng;
+use std::ops::{Rem, Add, Mul};
+use scicrypt_numbertheory::{gen_rsa_modulus, gen_coprime};
 
 /// The Paillier cryptosystem.
 pub struct Paillier;
@@ -19,23 +20,35 @@ pub struct PaillierCiphertext {
     c: Integer,
 }
 
-impl Enrichable<PaillierPublicKey> for PaillierCiphertext {}
+pub struct RichPaillierCiphertext<'pk> {
+    ciphertext: PaillierCiphertext,
+    public_key: &'pk PaillierPublicKey,
+}
 
-impl AsymmetricCryptosystem for Paillier {
+impl<'pk> Enrichable<'pk, PaillierPublicKey, RichPaillierCiphertext<'pk>> for PaillierCiphertext {
+    fn enrich(self, public_key: &PaillierPublicKey) -> RichPaillierCiphertext where Self: Sized {
+        RichPaillierCiphertext {
+            ciphertext: self,
+            public_key
+        }
+    }
+}
+
+impl AsymmetricCryptosystem<'_> for Paillier {
     type Plaintext = Integer;
     type Ciphertext = PaillierCiphertext;
+    type RichCiphertext<'pk> = RichPaillierCiphertext<'pk>;
 
     type PublicKey = PaillierPublicKey;
     type SecretKey = (Integer, Integer);
 
     /// Generates a fresh Paillier keypair.
     /// ```
-    /// # use scicrypt::cryptosystems::paillier::Paillier;
-    /// # use scicrypt::randomness::SecureRng;
+    /// # use scicrypt_traits::randomness::SecureRng;
+    /// # use scicrypt_he::cryptosystems::paillier::Paillier;
+    /// # use scicrypt_traits::security::BitsOfSecurity;
+    /// # use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
     /// # use rand_core::OsRng;
-    /// # use scicrypt::cryptosystems::AsymmetricCryptosystem;
-    /// # use scicrypt::BitsOfSecurity;
-    /// #
     /// let mut rng = SecureRng::new(OsRng);
     /// let (public_key, secret_key) = Paillier::generate_keys(&BitsOfSecurity::Other {pk_bits: 160}, &mut rng);
     /// ```
@@ -53,13 +66,12 @@ impl AsymmetricCryptosystem for Paillier {
 
     /// Encrypts a plaintext integer using the Paillier public key.
     /// ```
-    /// # use scicrypt::cryptosystems::paillier::Paillier;
-    /// # use scicrypt::randomness::SecureRng;
-    /// # use rand_core::OsRng;
+    /// # use scicrypt_traits::randomness::SecureRng;
+    /// # use scicrypt_he::cryptosystems::paillier::Paillier;
+    /// # use scicrypt_traits::security::BitsOfSecurity;
+    /// # use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
     /// # use rug::Integer;
-    /// # use scicrypt::cryptosystems::AsymmetricCryptosystem;
-    /// # use scicrypt::BitsOfSecurity;
-    /// #
+    /// # use rand_core::OsRng;
     /// # let mut rng = SecureRng::new(OsRng);
     /// # let (public_key, secret_key) = Paillier::generate_keys(&BitsOfSecurity::Other {pk_bits: 160}, &mut rng);
     /// let ciphertext = Paillier::encrypt(&Integer::from(5), &public_key, &mut rng);
@@ -82,13 +94,13 @@ impl AsymmetricCryptosystem for Paillier {
 
     /// Decrypts a rich Paillier ciphertext using the secret key.
     /// ```
-    /// # use scicrypt::cryptosystems::paillier::Paillier;
-    /// # use scicrypt::randomness::SecureRng;
-    /// # use rand_core::OsRng;
+    /// # use scicrypt_traits::randomness::SecureRng;
+    /// # use scicrypt_he::cryptosystems::paillier::Paillier;
+    /// # use scicrypt_traits::security::BitsOfSecurity;
+    /// # use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+    /// # use scicrypt_traits::Enrichable;
     /// # use rug::Integer;
-    /// # use scicrypt::cryptosystems::AsymmetricCryptosystem;
-    /// # use scicrypt::{Enrichable, BitsOfSecurity};
-    /// #
+    /// # use rand_core::OsRng;
     /// # let mut rng = SecureRng::new(OsRng);
     /// # let (public_key, secret_key) = Paillier::generate_keys(&BitsOfSecurity::Other {pk_bits: 160}, &mut rng);
     /// # let ciphertext = Paillier::encrypt(&Integer::from(5), &public_key, &mut rng);
@@ -97,7 +109,7 @@ impl AsymmetricCryptosystem for Paillier {
     /// // Prints: "The decrypted message is 5".
     /// ```
     fn decrypt(
-        rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
+        rich_ciphertext: &RichPaillierCiphertext,
         secret_key: &Self::SecretKey,
     ) -> Self::Plaintext {
         let (lambda, mu) = secret_key;
@@ -118,11 +130,11 @@ impl AsymmetricCryptosystem for Paillier {
 }
 
 #[allow(clippy::suspicious_arithmetic_impl)]
-impl<'pk> Add for &RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey> {
-    type Output = RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey>;
+impl<'pk> Add for &RichPaillierCiphertext<'pk> {
+    type Output = RichPaillierCiphertext<'pk>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        RichCiphertext {
+        RichPaillierCiphertext {
             ciphertext: PaillierCiphertext {
                 c: Integer::from(&self.ciphertext.c * &rhs.ciphertext.c)
                     .rem(Integer::from(self.public_key.n.square_ref())),
@@ -132,13 +144,13 @@ impl<'pk> Add for &RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey> {
     }
 }
 
-impl<'pk> Mul<&Integer> for &RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey> {
-    type Output = RichCiphertext<'pk, PaillierCiphertext, PaillierPublicKey>;
+impl<'pk> Mul<&Integer> for &RichPaillierCiphertext<'pk> {
+    type Output = RichPaillierCiphertext<'pk>;
 
     fn mul(self, rhs: &Integer) -> Self::Output {
         let modulus = Integer::from(self.public_key.n.square_ref());
 
-        RichCiphertext {
+        RichPaillierCiphertext {
             ciphertext: PaillierCiphertext {
                 c: Integer::from(self.ciphertext.c.pow_mod_ref(rhs, &modulus).unwrap()),
             },
@@ -149,12 +161,13 @@ impl<'pk> Mul<&Integer> for &RichCiphertext<'pk, PaillierCiphertext, PaillierPub
 
 #[cfg(test)]
 mod tests {
-    use crate::cryptosystems::paillier::Paillier;
-    use crate::cryptosystems::AsymmetricCryptosystem;
-    use crate::randomness::SecureRng;
-    use crate::{BitsOfSecurity, Enrichable};
     use rand_core::OsRng;
     use rug::Integer;
+    use scicrypt_traits::randomness::SecureRng;
+    use scicrypt_traits::security::BitsOfSecurity;
+    use crate::cryptosystems::paillier::Paillier;
+    use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+    use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt() {

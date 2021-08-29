@@ -1,9 +1,10 @@
-use crate::cryptosystems::AsymmetricCryptosystem;
-use crate::number_theory::gen_rsa_modulus;
-use crate::randomness::SecureRng;
-use crate::{BitsOfSecurity, Enrichable, RichCiphertext};
 use rug::Integer;
+use scicrypt_traits::Enrichable;
+use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::randomness::SecureRng;
 use std::ops::{Mul, Rem};
+use scicrypt_numbertheory::gen_rsa_modulus;
 
 /// The RSA cryptosystem.
 pub struct RSA;
@@ -19,11 +20,24 @@ pub struct RSACiphertext {
     c: Integer,
 }
 
-impl Enrichable<RSAPublicKey> for RSACiphertext {}
+pub struct RichRSACiphertext<'pk> {
+    ciphertext: RSACiphertext,
+    public_key: &'pk RSAPublicKey,
+}
 
-impl AsymmetricCryptosystem for RSA {
+impl<'pk> Enrichable<'pk, RSAPublicKey, RichRSACiphertext<'pk>> for RSACiphertext {
+    fn enrich(self, public_key: &RSAPublicKey) -> RichRSACiphertext where Self: Sized {
+        RichRSACiphertext {
+            ciphertext: self,
+            public_key
+        }
+    }
+}
+
+impl AsymmetricCryptosystem<'_> for RSA {
     type Plaintext = Integer;
     type Ciphertext = RSACiphertext;
+    type RichCiphertext<'pk> = RichRSACiphertext<'pk>;
 
     type PublicKey = RSAPublicKey;
     type SecretKey = Integer;
@@ -51,7 +65,7 @@ impl AsymmetricCryptosystem for RSA {
     }
 
     fn decrypt(
-        rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
+        rich_ciphertext: &RichRSACiphertext,
         secret_key: &Self::SecretKey,
     ) -> Self::Plaintext {
         Integer::from(
@@ -63,11 +77,11 @@ impl AsymmetricCryptosystem for RSA {
     }
 }
 
-impl<'pk> Mul for &RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
-    type Output = RichCiphertext<'pk, RSACiphertext, RSAPublicKey>;
+impl<'pk> Mul for &RichRSACiphertext<'pk> {
+    type Output = RichRSACiphertext<'pk>;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        RichCiphertext {
+        RichRSACiphertext {
             ciphertext: RSACiphertext {
                 c: Integer::from(&self.ciphertext.c * &rhs.ciphertext.c).rem(&self.public_key.n),
             },
@@ -76,10 +90,10 @@ impl<'pk> Mul for &RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
     }
 }
 
-impl<'pk> RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
+impl<'pk> RichRSACiphertext<'pk> {
     /// Computes the ciphertext corresponding to the plaintext raised to a scalar power.
-    pub fn pow(&self, rhs: &Integer) -> RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
-        RichCiphertext {
+    pub fn pow(&self, rhs: &Integer) -> RichRSACiphertext {
+        RichRSACiphertext {
             ciphertext: RSACiphertext {
                 c: Integer::from(
                     self.ciphertext
@@ -95,12 +109,13 @@ impl<'pk> RichCiphertext<'pk, RSACiphertext, RSAPublicKey> {
 
 #[cfg(test)]
 mod tests {
-    use crate::cryptosystems::rsa::RSA;
-    use crate::cryptosystems::AsymmetricCryptosystem;
-    use crate::randomness::SecureRng;
-    use crate::{BitsOfSecurity, Enrichable};
     use rand_core::OsRng;
     use rug::Integer;
+    use scicrypt_traits::randomness::SecureRng;
+    use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+    use scicrypt_traits::security::BitsOfSecurity;
+    use scicrypt_traits::Enrichable;
+    use crate::cryptosystems::rsa::RSA;
 
     #[test]
     fn test_encrypt_decrypt_generator() {

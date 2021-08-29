@@ -1,10 +1,11 @@
-use crate::cryptosystems::curve_el_gamal::CurveElGamalCiphertext;
-use crate::randomness::SecureRng;
-use crate::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
-use crate::{BitsOfSecurity, DecryptionError, RichCiphertext};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
+use scicrypt_traits::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
+use crate::cryptosystems::curve_el_gamal::{CurveElGamalCiphertext, RichCurveElGamalCiphertext};
+use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::randomness::SecureRng;
+use scicrypt_traits::DecryptionError;
 
 /// N-out-of-N Threshold ElGamal cryptosystem over elliptic curves: Extension of ElGamal that requires n out of n parties to
 /// successfully decrypt. For this scheme there exists an efficient distributed key generation protocol.
@@ -13,6 +14,7 @@ pub struct NOfNCurveElGamal;
 impl AsymmetricNOfNCryptosystem for NOfNCurveElGamal {
     type Plaintext = RistrettoPoint;
     type Ciphertext = CurveElGamalCiphertext;
+    type RichCiphertext<'pk> = RichCurveElGamalCiphertext<'pk>;
     type PublicKey = RistrettoPoint;
     type PartialKey = Scalar;
     type DecryptionShare = (RistrettoPoint, RistrettoPoint);
@@ -52,8 +54,8 @@ impl AsymmetricNOfNCryptosystem for NOfNCurveElGamal {
         }
     }
 
-    fn partially_decrypt<'pk>(
-        rich_ciphertext: &RichCiphertext<'pk, Self::Ciphertext, Self::PublicKey>,
+    fn partially_decrypt(
+        rich_ciphertext: &RichCurveElGamalCiphertext,
         partial_key: &Self::PartialKey,
     ) -> Self::DecryptionShare {
         (
@@ -91,6 +93,7 @@ pub struct TOfNCurveElGamalDecryptionShare {
 impl AsymmetricTOfNCryptosystem for TOfNCurveElGamal {
     type Plaintext = RistrettoPoint;
     type Ciphertext = CurveElGamalCiphertext;
+    type RichCiphertext<'pk> = RichCurveElGamalCiphertext<'pk>;
     type PublicKey = RistrettoPoint;
     type PartialKey = TOfNCurveElGamalPartialKey;
     type DecryptionShare = TOfNCurveElGamalDecryptionShare;
@@ -142,8 +145,8 @@ impl AsymmetricTOfNCryptosystem for TOfNCurveElGamal {
         }
     }
 
-    fn partially_decrypt<'pk>(
-        rich_ciphertext: &RichCiphertext<'pk, Self::Ciphertext, Self::PublicKey>,
+    fn partially_decrypt(
+        rich_ciphertext: &RichCurveElGamalCiphertext,
         partial_key: &Self::PartialKey,
     ) -> Self::DecryptionShare {
         TOfNCurveElGamalDecryptionShare {
@@ -188,13 +191,14 @@ impl AsymmetricTOfNCryptosystem for TOfNCurveElGamal {
 
 #[cfg(test)]
 mod tests {
-    use crate::randomness::SecureRng;
-    use crate::threshold_cryptosystems::curve_el_gamal::{NOfNCurveElGamal, TOfNCurveElGamal};
-    use crate::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
-    use crate::{BitsOfSecurity, Enrichable};
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
+    use scicrypt_traits::randomness::SecureRng;
+    use crate::threshold_cryptosystems::curve_el_gamal::{NOfNCurveElGamal, TOfNCurveElGamal};
+    use scicrypt_traits::security::BitsOfSecurity;
+    use scicrypt_traits::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
+    use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {

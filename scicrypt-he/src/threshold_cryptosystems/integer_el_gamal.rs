@@ -1,10 +1,11 @@
-use crate::cryptosystems::integer_el_gamal::{IntegerElGamalCiphertext, IntegerElGamalPublicKey};
-use crate::number_theory::gen_safe_prime;
-use crate::randomness::SecureRng;
-use crate::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
-use crate::{BitsOfSecurity, DecryptionError, RichCiphertext};
+use scicrypt_traits::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
 use rug::Integer;
+use crate::cryptosystems::integer_el_gamal::{IntegerElGamalCiphertext, IntegerElGamalPublicKey, RichIntegerElGamalCiphertext};
+use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::randomness::SecureRng;
 use std::ops::Rem;
+use scicrypt_traits::DecryptionError;
+use scicrypt_numbertheory::gen_safe_prime;
 
 /// N-out-of-N Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires n out of n parties to
 /// successfully decrypt. For this scheme there exists an efficient distributed key generation protocol.
@@ -13,6 +14,7 @@ pub struct NOfNIntegerElGamal;
 impl AsymmetricNOfNCryptosystem for NOfNIntegerElGamal {
     type Plaintext = Integer;
     type Ciphertext = IntegerElGamalCiphertext;
+    type RichCiphertext<'pk> = RichIntegerElGamalCiphertext<'pk>;
     type PublicKey = IntegerElGamalPublicKey;
     type PartialKey = Integer;
     type DecryptionShare = (Integer, Integer);
@@ -56,8 +58,8 @@ impl AsymmetricNOfNCryptosystem for NOfNIntegerElGamal {
         }
     }
 
-    fn partially_decrypt<'pk>(
-        rich_ciphertext: &RichCiphertext<'pk, Self::Ciphertext, Self::PublicKey>,
+    fn partially_decrypt(
+        rich_ciphertext: &RichIntegerElGamalCiphertext,
         partial_key: &Self::PartialKey,
     ) -> Self::DecryptionShare {
         (
@@ -108,6 +110,7 @@ pub struct TOfNIntegerElGamalDecryptionShare {
 impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
     type Plaintext = Integer;
     type Ciphertext = IntegerElGamalCiphertext;
+    type RichCiphertext<'pk> = RichIntegerElGamalCiphertext<'pk>;
     type PublicKey = IntegerElGamalPublicKey;
     type PartialKey = TOfNIntegerElGamalPartialKey;
     type DecryptionShare = TOfNIntegerElGamalDecryptionShare;
@@ -169,8 +172,8 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
         }
     }
 
-    fn partially_decrypt<'pk>(
-        rich_ciphertext: &RichCiphertext<'pk, Self::Ciphertext, Self::PublicKey>,
+    fn partially_decrypt(
+        rich_ciphertext: &RichIntegerElGamalCiphertext,
         partial_key: &Self::PartialKey,
     ) -> Self::DecryptionShare {
         TOfNIntegerElGamalDecryptionShare {
@@ -229,15 +232,13 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
 
 #[cfg(test)]
 mod tests {
-    use crate::randomness::SecureRng;
-    use crate::threshold_cryptosystems::integer_el_gamal::{
-        NOfNIntegerElGamal, TOfNIntegerElGamal,
-    };
-    use crate::threshold_cryptosystems::AsymmetricNOfNCryptosystem;
-    use crate::threshold_cryptosystems::AsymmetricTOfNCryptosystem;
-    use crate::{BitsOfSecurity, Enrichable};
     use rand_core::OsRng;
     use rug::Integer;
+    use scicrypt_traits::randomness::SecureRng;
+    use crate::threshold_cryptosystems::integer_el_gamal::{NOfNIntegerElGamal, TOfNIntegerElGamal};
+    use scicrypt_traits::threshold_cryptosystems::{AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem};
+    use scicrypt_traits::security::BitsOfSecurity;
+    use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {

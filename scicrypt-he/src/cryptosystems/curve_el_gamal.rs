@@ -1,10 +1,12 @@
-use crate::cryptosystems::{AsymmetricCryptosystem, DecryptDirectly};
-use crate::randomness::SecureRng;
-use crate::{BitsOfSecurity, Enrichable, RichCiphertext};
-use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use std::ops::{Add, Mul};
+use crate::cryptosystems::DecryptDirectly;
+use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::randomness::SecureRng;
+use scicrypt_traits::Enrichable;
 
 /// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
 /// `curve25519-dalek` crate. ElGamal is a partially homomorphic cryptosystem.
@@ -16,6 +18,20 @@ pub struct CurveElGamal;
 pub struct CurveElGamalCiphertext {
     pub(crate) c1: RistrettoPoint,
     pub(crate) c2: RistrettoPoint,
+}
+
+pub struct RichCurveElGamalCiphertext<'pk> {
+    pub ciphertext: CurveElGamalCiphertext,
+    pub public_key: &'pk RistrettoPoint,
+}
+
+impl<'pk> Enrichable<'pk, RistrettoPoint, RichCurveElGamalCiphertext<'pk>> for CurveElGamalCiphertext {
+    fn enrich(self, public_key: &RistrettoPoint) -> RichCurveElGamalCiphertext where Self: Sized {
+        RichCurveElGamalCiphertext {
+            ciphertext: self,
+            public_key,
+        }
+    }
 }
 
 impl DecryptDirectly for CurveElGamal {
@@ -32,11 +48,10 @@ impl DecryptDirectly for CurveElGamal {
     }
 }
 
-impl Enrichable<RistrettoPoint> for CurveElGamalCiphertext {}
-
-impl AsymmetricCryptosystem for CurveElGamal {
+impl AsymmetricCryptosystem<'_> for CurveElGamal {
     type Plaintext = RistrettoPoint;
     type Ciphertext = CurveElGamalCiphertext;
+    type RichCiphertext<'pk> = RichCurveElGamalCiphertext<'pk>;
 
     type PublicKey = RistrettoPoint;
     type SecretKey = Scalar;
@@ -72,7 +87,7 @@ impl AsymmetricCryptosystem for CurveElGamal {
     }
 
     fn decrypt(
-        rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
+        rich_ciphertext: &RichCurveElGamalCiphertext,
         secret_key: &Self::SecretKey,
     ) -> Self::Plaintext {
         Self::decrypt_direct(&rich_ciphertext.ciphertext, secret_key)
@@ -104,13 +119,13 @@ impl Mul<&Scalar> for &CurveElGamalCiphertext {
 
 #[cfg(test)]
 mod tests {
-    use crate::cryptosystems::curve_el_gamal::CurveElGamal;
-    use crate::cryptosystems::AsymmetricCryptosystem;
-    use crate::randomness::SecureRng;
-    use crate::Enrichable;
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
+    use scicrypt_traits::randomness::SecureRng;
+    use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+    use scicrypt_traits::Enrichable;
+    use crate::cryptosystems::curve_el_gamal::CurveElGamal;
 
     #[test]
     fn test_encrypt_decrypt_generator() {

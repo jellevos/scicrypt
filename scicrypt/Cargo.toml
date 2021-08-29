@@ -1,0 +1,18 @@
+[package]
+name = "scicrypt"
+description = "Lightweight cryptographic building blocks for proof of concept implementations in multi-party computation"
+version = "0.4.0"  # In sync with `scicrypt-he` and `scicrypt-numbertheory`
+authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
+edition = "2018"
+license = "MIT"
+homepage = "https://github.com/jellevos/scicrypt"
+repository = "https://github.com/jellevos/scicrypt"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+scicrypt-he = { path = "../scicrypt-he" }
+
+[package.metadata.docs.rs]
+rustdoc-args = [ "--html-in-header", "../katex-header.html" ]

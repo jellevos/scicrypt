@@ -1,0 +1,26 @@
+[package]
+name = "scicrypt-numbertheory"
+description = "A scicrypt crate implementing number theoretic algorithms such as random (safe) prime generation"
+version = "0.4.0"
+authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
+edition = "2018"
+license = "MIT"
+homepage = "https://github.com/jellevos/scicrypt"
+repository = "https://github.com/jellevos/scicrypt"
+readme = "README.md"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+scicrypt-traits = { path = "../scicrypt-traits" }
+rug = "1.13"
+rand_core = "0.5"
+
+[dev-dependencies]
+primal = "0.3"
+criterion = "0.3"
+glass_pumpkin = "1.0.0"
+rand = "0.8"
+
+[package.metadata.docs.rs]
+rustdoc-args = [ "--html-in-header", "../katex-header.html" ]

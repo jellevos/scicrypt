@@ -633,13 +633,39 @@ dependencies = [
 
 [[package]]
 name = "scicrypt"
-version = "0.3.1"
+version = "0.4.0"
+dependencies = [
+ "scicrypt-he",
+]
+
+[[package]]
+name = "scicrypt-he"
+version = "0.4.0"
+dependencies = [
+ "curve25519-dalek",
+ "rand_core 0.5.1",
+ "rug",
+ "scicrypt-numbertheory",
+ "scicrypt-traits",
+]
+
+[[package]]
+name = "scicrypt-numbertheory"
+version = "0.4.0"
 dependencies = [
  "criterion",
- "curve25519-dalek",
  "glass_pumpkin",
  "primal",
  "rand",
+ "rand_core 0.5.1",
+ "rug",
+ "scicrypt-traits",
+]
+
+[[package]]
+name = "scicrypt-traits"
+version = "0.4.0"
+dependencies = [
  "rand_core 0.5.1",
  "rug",
 ]

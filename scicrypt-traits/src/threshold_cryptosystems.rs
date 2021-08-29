@@ -1,12 +1,6 @@
+use crate::security::BitsOfSecurity;
 use crate::randomness::SecureRng;
-use crate::{BitsOfSecurity, DecryptionError, RichCiphertext};
-
-/// Threshold ElGamal cryptosystem over an elliptic curve
-pub mod curve_el_gamal;
-/// Threshold ElGamal cryptosystem over the integers modulo a prime
-pub mod integer_el_gamal;
-/// Threshold Paillier cryptosystem.
-pub mod paillier;
+use crate::DecryptionError;
 
 /// An asymmetric threshold cryptosystem is a system of methods to encrypt plaintexts into
 /// ciphertexts, but instead of having a single secret key to decrypt them back into plaintexts, we
@@ -27,6 +21,7 @@ pub trait AsymmetricNOfNCryptosystem {
     type Plaintext;
     /// The type of the encrypted plaintexts.
     type Ciphertext;
+    type RichCiphertext<'p>;
 
     /// The type of the encryption key.
     type PublicKey;
@@ -52,8 +47,8 @@ pub trait AsymmetricNOfNCryptosystem {
     ) -> Self::Ciphertext;
 
     /// Partially decrypt the ciphertext using a partial key and its related public key.
-    fn partially_decrypt(
-        rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
+    fn partially_decrypt<'p>(
+        rich_ciphertext: &Self::RichCiphertext<'p>,
         partial_key: &Self::PartialKey,
     ) -> Self::DecryptionShare;
 
@@ -84,6 +79,7 @@ pub trait AsymmetricTOfNCryptosystem {
     type Plaintext;
     /// The type of the encrypted plaintexts.
     type Ciphertext;
+    type RichCiphertext<'p>;
 
     /// The type of the encryption key.
     type PublicKey;
@@ -110,8 +106,8 @@ pub trait AsymmetricTOfNCryptosystem {
     ) -> Self::Ciphertext;
 
     /// Partially decrypt the ciphertext using a partial key and its related public key.
-    fn partially_decrypt(
-        rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
+    fn partially_decrypt<'p>(
+        rich_ciphertext: &Self::RichCiphertext<'p>,
         partial_key: &Self::PartialKey,
     ) -> Self::DecryptionShare;
 

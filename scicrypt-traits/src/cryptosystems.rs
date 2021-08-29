@@ -1,14 +1,6 @@
+use crate::security::BitsOfSecurity;
 use crate::randomness::SecureRng;
-use crate::{BitsOfSecurity, RichCiphertext};
-
-/// Implementation of the ElGamal cryptosystem over an elliptic curve.
-pub mod curve_el_gamal;
-/// Implementation of the ElGamal cryptosystem over a safe prime group.
-pub mod integer_el_gamal;
-/// Implementation of the Paillier cryptosystem.
-pub mod paillier;
-/// Implementation of the RSA cryptosystem.
-pub mod rsa;
+use crate::{Enrichable};
 
 /// An asymmetric cryptosystem is a system of methods to encrypt plaintexts into ciphertexts, and
 /// decrypt those ciphertexts back into plaintexts. Anyone who has access to the public key can
@@ -17,11 +9,14 @@ pub mod rsa;
 /// The struct that implements an `AsymmetricCryptosystem` will hold the general parameters of that
 /// cryptosystem. Depending on the cryptosystem, those parameters could play an important role in
 /// deciding the level of security. As such, each cryptosystem should clearly indicate these.
-pub trait AsymmetricCryptosystem {
+pub trait AsymmetricCryptosystem<'pk> {
     /// The type of the plaintexts to be encrypted.
     type Plaintext;
     /// The type of the encrypted plaintexts.
-    type Ciphertext;
+    type Ciphertext: Enrichable<'pk, Self::PublicKey, Self::RichCiphertext<'pk>>;
+    /// Rich representation of a ciphertext that associates it with the corresponding public key.
+    /// This allows for performing homomorphic operations using operator overloading, among others.
+    type RichCiphertext<'p>;
 
     /// The type of the encryption key.
     type PublicKey;
@@ -43,27 +38,8 @@ pub trait AsymmetricCryptosystem {
     ) -> Self::Ciphertext;
 
     /// Decrypt the ciphertext using the secret key and its related public key.
-    fn decrypt(
-        rich_ciphertext: &RichCiphertext<Self::Ciphertext, Self::PublicKey>,
-        secret_key: &Self::SecretKey,
-    ) -> Self::Plaintext;
-}
-
-/// Some cryptosystems do not require the public key to decrypt, as all the necessary information
-/// is stored within the ciphertext and the secret key. For example, ElGamal when its group is
-/// hard-coded.
-pub trait DecryptDirectly {
-    /// The type of the plaintexts to be encrypted.
-    type Plaintext;
-    /// The type of the encrypted plaintexts.
-    type Ciphertext;
-
-    /// The type of the decryption key.
-    type SecretKey;
-
-    /// Decrypt a ciphertext using the secret key directly, without requiring a rich ciphertext.
-    fn decrypt_direct(
-        ciphertext: &Self::Ciphertext,
+    fn decrypt<'p>(
+        rich_ciphertext: &Self::RichCiphertext<'p>,
         secret_key: &Self::SecretKey,
     ) -> Self::Plaintext;
 }
