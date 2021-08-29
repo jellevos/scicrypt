@@ -20,8 +20,12 @@ pub struct CurveElGamalCiphertext {
     pub(crate) c2: RistrettoPoint,
 }
 
+/// A struct holding both a ciphertext and a reference to its associated public key, which is
+/// useful for decrypting directly using the secret key or performing homomorphic operations.
 pub struct RichCurveElGamalCiphertext<'pk> {
+    /// The ciphertext to operate on
     pub ciphertext: CurveElGamalCiphertext,
+    /// Reference to the associated public key
     pub public_key: &'pk RistrettoPoint,
 }
 

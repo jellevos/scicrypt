@@ -21,6 +21,8 @@ pub trait AsymmetricNOfNCryptosystem {
     type Plaintext;
     /// The type of the encrypted plaintexts.
     type Ciphertext;
+    /// Rich representation of a ciphertext that associates it with the corresponding public key.
+    /// This allows for performing homomorphic operations using operator overloading, among others.
     type RichCiphertext<'p>;
 
     /// The type of the encryption key.
@@ -79,6 +81,8 @@ pub trait AsymmetricTOfNCryptosystem {
     type Plaintext;
     /// The type of the encrypted plaintexts.
     type Ciphertext;
+    /// Rich representation of a ciphertext that associates it with the corresponding public key.
+    /// This allows for performing homomorphic operations using operator overloading, among others.
     type RichCiphertext<'p>;
 
     /// The type of the encryption key.

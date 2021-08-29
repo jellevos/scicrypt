@@ -20,8 +20,12 @@ pub struct RSACiphertext {
     c: Integer,
 }
 
+/// A struct holding both a ciphertext and a reference to its associated public key, which is
+/// useful for decrypting directly using the secret key or performing homomorphic operations.
 pub struct RichRSACiphertext<'pk> {
+    /// The ciphertext to operate on
     ciphertext: RSACiphertext,
+    /// Reference to the associated public key
     public_key: &'pk RSAPublicKey,
 }
 

@@ -17,4 +17,4 @@ scicrypt-numbertheory = { path = "../scicrypt-numbertheory" }
 scicrypt-he = { path = "../scicrypt-he" }
 
 [package.metadata.docs.rs]
-rustdoc-args = [ "--html-in-header", "../katex-header.html" ]
+rustdoc-args = [ "--html-in-header", "katex-header.html" ]

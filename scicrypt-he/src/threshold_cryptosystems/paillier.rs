@@ -29,8 +29,12 @@ pub struct ThresholdPaillierCiphertext {
     c: Integer,
 }
 
+/// A struct holding both a ciphertext and a reference to its associated public key, which is
+/// useful for decrypting directly using the secret key or performing homomorphic operations.
 pub struct RichThresholdPaillierCiphertext<'pk> {
+    /// The ciphertext to operate on
     ciphertext: ThresholdPaillierCiphertext,
+    /// Reference to the associated public key
     public_key: &'pk ThresholdPaillierPublicKey,
 }
 

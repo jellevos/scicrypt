@@ -40,8 +40,12 @@ pub struct IntegerElGamalCiphertext {
     pub(crate) c2: Integer,
 }
 
+/// A struct holding both a ciphertext and a reference to its associated public key, which is
+/// useful for decrypting directly using the secret key or performing homomorphic operations.
 pub struct RichIntegerElGamalCiphertext<'pk> {
+    /// The ciphertext to operate on
     pub ciphertext: IntegerElGamalCiphertext,
+    /// Reference to the associated public key
     pub public_key: &'pk IntegerElGamalPublicKey,
 }
 

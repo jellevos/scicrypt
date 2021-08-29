@@ -24,6 +24,8 @@ pub enum BitsOfSecurity {
 }
 
 impl BitsOfSecurity {
+    /// Returns the required modulus size for a given symmetric security level in the asymmetric
+    /// setting.
     pub fn to_public_key_bit_length(&self) -> u32 {
         match self {
             Self::AES80 => 1024,

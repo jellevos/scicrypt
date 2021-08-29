@@ -19,4 +19,4 @@ rug = "1.13"
 rand_core = "0.5"
 
 [package.metadata.docs.rs]
-rustdoc-args = [ "--html-in-header", "../katex-header.html" ]
+rustdoc-args = [ "--html-in-header", "katex-header.html" ]

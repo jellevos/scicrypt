@@ -23,7 +23,7 @@ glass_pumpkin = "1.0.0"
 rand = "0.8"
 
 [package.metadata.docs.rs]
-rustdoc-args = [ "--html-in-header", "../katex-header.html" ]
+rustdoc-args = [ "--html-in-header", "katex-header.html" ]
 
 [[bench]]
 name = "prime_gen"
