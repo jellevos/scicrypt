@@ -12,9 +12,9 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-scicrypt-traits = { path = "../scicrypt-traits" }
-scicrypt-numbertheory = { path = "../scicrypt-numbertheory" }
-scicrypt-he = { path = "../scicrypt-he" }
+scicrypt-traits = { version = "0.4.0", path = "../scicrypt-traits" }
+scicrypt-numbertheory = { version = "0.4.0", path = "../scicrypt-numbertheory" }
+scicrypt-he = { version = "0.4.0", path = "../scicrypt-he" }
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--html-in-header", "katex-header.html" ]
