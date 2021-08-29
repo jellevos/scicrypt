@@ -24,3 +24,7 @@ rand = "0.8"
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--html-in-header", "../katex-header.html" ]
+
+[[bench]]
+name = "prime_gen"
+harness = false

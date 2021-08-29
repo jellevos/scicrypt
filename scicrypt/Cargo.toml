@@ -1,13 +1,13 @@
 [package]
 name = "scicrypt"
 description = "Lightweight cryptographic building blocks for proof of concept implementations in multi-party computation"
-version = "0.4.0"  # In sync with `scicrypt-he` and `scicrypt-numbertheory`
+version = "0.4.0"  # In sync with `scicrypt-traits`, `scicrypt-numbertheory`, and `scicrypt-he`
 authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
 edition = "2018"
 license = "MIT"
 homepage = "https://github.com/jellevos/scicrypt"
 repository = "https://github.com/jellevos/scicrypt"
-readme = "README.md"
+readme = "../README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
