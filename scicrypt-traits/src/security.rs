@@ -1,5 +1,5 @@
 /// The number of bits of security as compared to the AES cryptosystem. Check
-/// https://www.keylength.com/en/4/ for recommendations.
+/// <https://www.keylength.com/en/4/> for recommendations.
 pub enum BitsOfSecurity {
     /// Security that is equivalent to the security of the 2TDEA cryptosystem. This choice of
     /// parameters is not secure and is only used for legacy.

@@ -636,6 +636,8 @@ name = "scicrypt"
 version = "0.4.0"
 dependencies = [
  "scicrypt-he",
+ "scicrypt-numbertheory",
+ "scicrypt-traits",
 ]
 
 [[package]]
