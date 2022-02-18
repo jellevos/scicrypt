@@ -42,10 +42,6 @@ pub fn gen_safe_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
         candidate <<= 1;
         candidate |= Integer::from(1);
 
-        if !candidate.mod_u(3) == 2 {
-            continue;
-        }
-
         if candidate.is_probably_prime(REPS) != IsPrime::No {
             return candidate;
         }
