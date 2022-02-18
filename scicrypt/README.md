@@ -36,7 +36,7 @@ Check the table below for a run time comparison (in milliseconds) for safe prime
 # Upcoming features
 These are the upcoming minor versions and the functionality they will add.
 
-## Ease of use update (~Week 38)
+## Ease of use update
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
     <tr><td>Encoding signed ints</td> <td></td></tr>
@@ -44,7 +44,7 @@ These are the upcoming minor versions and the functionality they will add.
     <tr><td>Debugging tools</td><td> </td></tr>
 </table>
 
-## Secret sharing update (~Week 36)
+## Secret sharing update
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
     <tr><td>Additive secret sharing</td> <td></td></tr>
@@ -52,10 +52,17 @@ These are the upcoming minor versions and the functionality they will add.
     <tr><td>Shamir's secret sharing</td><td> </td></tr>
 </table>
 
-## Oblivious transfer update (~Week 35)
+## Oblivious transfer update
 <table>
     <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
     <tr><td>OT & extensions</td> <td></td></tr>
     <tr><td>OPRF</td><td> </td></tr>
     <tr><td>OPPRF</td><td> </td></tr>
+</table>
+
+## RLWE-based encryption
+<table>
+    <tr><td><b>Functionality</b></td><td><b>Done</b></td></tr>
+    <tr><td>Polynomial arithmetic</td> <td></td></tr>
+    <tr><td>BGV (no bootstrapping)</td><td> </td></tr>
 </table>
