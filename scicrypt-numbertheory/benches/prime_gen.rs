@@ -33,6 +33,16 @@ pub fn safe_prime_benchmark(c: &mut Criterion) {
                 b.iter(|| from_rng(black_box(bits), &mut rng));
             },
         );
+
+        // Benchmark `unknown_order`'s safe prime generation
+        let mut rng = rand::rngs::OsRng;
+        group.bench_with_input(
+            BenchmarkId::new("unknown_order", bit_length),
+            bit_length,
+            |b, &bits| {
+                b.iter(|| BigNumber::safe_prime(bits));
+            },
+        );
     }
 
     group.finish();
