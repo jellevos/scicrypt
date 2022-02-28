@@ -206,19 +206,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "12dc3116fe595d7847c701796ac1b189bd86b81f4f593c6f775f9d80fb2e29f4"
 dependencies = [
  "byteorder",
- "digest 0.10.3",
+ "digest",
  "rand_core",
  "subtle",
  "zeroize",
-]
-
-[[package]]
-name = "digest"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3dd60d1080a57a05ab032377049e0591415d2b31afd7028356dbf3cc6dcb066"
-dependencies = [
- "generic-array",
 ]
 
 [[package]]
@@ -716,12 +707,12 @@ version = "0.5.0"
 dependencies = [
  "criterion",
  "glass_pumpkin",
+ "openssl",
  "primal",
  "rand",
  "rand_core",
  "rug",
  "scicrypt-traits",
- "unknown_order",
 ]
 
 [[package]]
@@ -749,9 +740,6 @@ name = "serde"
 version = "1.0.126"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec7505abeacaec74ae4778d9d9328fe5a5d04253220a85c4ee022239fc996d03"
-dependencies = [
- "serde_derive",
-]
 
 [[package]]
 name = "serde_cbor"
@@ -844,23 +832,6 @@ name = "unicode-xid"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
-
-[[package]]
-name = "unknown_order"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e2dce99fddcda77b9b574017ac16647f88d58930476f0b1214abd51c0bd5635"
-dependencies = [
- "digest 0.9.0",
- "glass_pumpkin",
- "num-bigint",
- "num-integer",
- "num-traits",
- "openssl",
- "rand",
- "serde",
- "zeroize",
-]
 
 [[package]]
 name = "vcpkg"
