@@ -23,18 +23,11 @@ pub fn gen_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
 ) -> Integer {
     'outer: loop {
         let mut candidate = Integer::from(Integer::random_bits(bit_length, &mut rng.rug_rng()));
+        candidate.set_bit(bit_length - 1, true);
+        candidate.set_bit(0, true);
 
-        let set_bits = (Integer::from(1) << (bit_length - 1)) + Integer::from(1);
-        candidate |= set_bits;
-
-        // From OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
-        let prime_count = match bit_length {
-            0..=512 => 64,
-            513..=1024 => 128,
-            1025..=2048 => 384,
-            2049..=4096 => 1024,
-            _ => 2048,
-        };
+        // A heuristic that closely follows OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
+        let prime_count: usize = bit_length as usize / 3;
         let mods: Vec<u32> = FIRST_PRIMES[..prime_count].iter().map(|p| candidate.mod_u(*p)).collect();
 
         let mut delta = 0;
@@ -73,22 +66,15 @@ pub fn gen_safe_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
 ) -> Integer {
     'outer: loop {
         let mut candidate = Integer::from(Integer::random_bits(bit_length, &mut rng.rug_rng()));
+        candidate.set_bit(bit_length - 1, true);
+        candidate.set_bit(0, true);
 
-        let set_bits = (Integer::from(1) << (bit_length - 1)) + Integer::from(1);
-        candidate |= set_bits;
-
-        // From OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
-        let prime_count = match bit_length {
-            0..=512 => 64,
-            513..=1024 => 128,
-            1025..=2048 => 384,
-            2049..=4096 => 1024,
-            _ => 2048,
-        };
+        // A heuristic that closely follows OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
+        let prime_count: usize = bit_length as usize / 3;
         let mods: Vec<u32> = FIRST_PRIMES[..prime_count].iter().map(|p| candidate.mod_u(*p)).collect();
 
         let mut delta = 0;
-        let max_delta = u32::MAX - FIRST_PRIMES.last().unwrap();
+        let max_delta = u32::MAX - FIRST_PRIMES[prime_count - 1];
         candidate = 'sieve: loop {
             for i in 1..prime_count {
                 if (mods[i] + delta) % FIRST_PRIMES[i] <= 1 {
