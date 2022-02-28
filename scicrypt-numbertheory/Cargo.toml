@@ -21,6 +21,7 @@ primal = "0.3"
 criterion = "0.3"
 glass_pumpkin = "1.0.0"
 rand = "0.8"
+openssl = "0.10"
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--html-in-header", "katex-header.html" ]
