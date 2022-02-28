@@ -8,10 +8,10 @@
 
 mod primes;
 
+use crate::primes::FIRST_PRIMES;
 use rug::integer::IsPrime;
 use rug::Integer;
 use scicrypt_traits::randomness::SecureRng;
-use crate::primes::FIRST_PRIMES;
 
 const REPS: u32 = 25;
 
@@ -28,7 +28,10 @@ pub fn gen_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
 
         // A heuristic that closely follows OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
         let prime_count: usize = bit_length as usize / 3;
-        let mods: Vec<u32> = FIRST_PRIMES[..prime_count].iter().map(|p| candidate.mod_u(*p)).collect();
+        let mods: Vec<u32> = FIRST_PRIMES[..prime_count]
+            .iter()
+            .map(|p| candidate.mod_u(*p))
+            .collect();
 
         let mut delta = 0;
         let max_delta = u32::MAX - FIRST_PRIMES.last().unwrap();
@@ -71,7 +74,10 @@ pub fn gen_safe_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
 
         // A heuristic that closely follows OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
         let prime_count: usize = bit_length as usize / 3;
-        let mods: Vec<u32> = FIRST_PRIMES[..prime_count].iter().map(|p| candidate.mod_u(*p)).collect();
+        let mods: Vec<u32> = FIRST_PRIMES[..prime_count]
+            .iter()
+            .map(|p| candidate.mod_u(*p))
+            .collect();
 
         let mut delta = 0;
         let max_delta = u32::MAX - FIRST_PRIMES[prime_count - 1];
