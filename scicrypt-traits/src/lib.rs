@@ -20,6 +20,9 @@ pub mod cryptosystems;
 /// General notion of threshold cryptosystems
 pub mod threshold_cryptosystems;
 
+/// General notion of secret sharing
+pub mod secret_sharing;
+
 /// Functionality to easily turn a ciphertext into a rich ciphertext
 pub trait Enrichable<'pk, PK, RC> {
     /// Enriches a ciphertext by associating it with a corresponding public key.

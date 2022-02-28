@@ -6,6 +6,9 @@
 //! Number theoretic functions, particularly suited for cryptography. Functions include extremely
 //! fast (safe) prime generation.
 
+mod primes;
+
+use crate::primes::FIRST_PRIMES;
 use rug::integer::IsPrime;
 use rug::Integer;
 use scicrypt_traits::randomness::SecureRng;
@@ -18,12 +21,40 @@ pub fn gen_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
     bit_length: u32,
     rng: &mut SecureRng<R>,
 ) -> Integer {
-    loop {
+    'outer: loop {
         let mut candidate = Integer::from(Integer::random_bits(bit_length, &mut rng.rug_rng()));
+        candidate.set_bit(bit_length - 1, true);
+        candidate.set_bit(0, true);
 
-        let set_bits = (Integer::from(1) << (bit_length - 1)) + Integer::from(1);
-        candidate |= set_bits;
+        // A heuristic that closely follows OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
+        let prime_count: usize = bit_length as usize / 3;
+        let mods: Vec<u32> = FIRST_PRIMES[..prime_count]
+            .iter()
+            .map(|p| candidate.mod_u(*p))
+            .collect();
 
+        let mut delta = 0;
+        let max_delta = u32::MAX - FIRST_PRIMES.last().unwrap();
+        candidate = 'sieve: loop {
+            for i in 1..prime_count {
+                if (mods[i] + delta) % FIRST_PRIMES[i] == 0 {
+                    // For candidate x and prime p, if x % p = 0 then x is not prime
+                    // So, we go to the next odd number and try again
+                    delta += 2;
+
+                    if delta > max_delta {
+                        continue 'outer;
+                    }
+
+                    continue 'sieve;
+                }
+            }
+
+            // If we have passed all prime_count first primes, then we are fairly certain this is a prime!
+            break candidate + delta;
+        };
+
+        // Ensure that we have a prime with a stronger primality test
         if candidate.is_probably_prime(REPS) != IsPrime::No {
             return candidate;
         }
@@ -36,14 +67,46 @@ pub fn gen_safe_prime<R: rand_core::RngCore + rand_core::CryptoRng>(
     bit_length: u32,
     rng: &mut SecureRng<R>,
 ) -> Integer {
-    loop {
-        let mut candidate = gen_prime(bit_length - 1, rng);
+    'outer: loop {
+        let mut candidate = Integer::from(Integer::random_bits(bit_length, &mut rng.rug_rng()));
+        candidate.set_bit(bit_length - 1, true);
+        candidate.set_bit(0, true);
 
-        candidate <<= 1;
-        candidate |= Integer::from(1);
+        // A heuristic that closely follows OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
+        let prime_count: usize = bit_length as usize / 3;
+        let mods: Vec<u32> = FIRST_PRIMES[..prime_count]
+            .iter()
+            .map(|p| candidate.mod_u(*p))
+            .collect();
 
+        let mut delta = 0;
+        let max_delta = u32::MAX - FIRST_PRIMES[prime_count - 1];
+        candidate = 'sieve: loop {
+            for i in 1..prime_count {
+                if (mods[i] + delta) % FIRST_PRIMES[i] <= 1 {
+                    // For candidate x and prime p, if x % p = 0 then x is not prime
+                    // So, we go to the next odd number and try again
+                    delta += 4;
+
+                    if delta > max_delta {
+                        continue 'outer;
+                    }
+
+                    continue 'sieve;
+                }
+            }
+
+            // If we have passed all prime_count first primes, then we are fairly certain this is a prime!
+            break candidate + delta;
+        };
+
+        // Ensure that we have a prime with a stronger primality test
         if candidate.is_probably_prime(REPS) != IsPrime::No {
-            return candidate;
+            // Ensure that p for 2p = 1 is also a prime with the stronger primality test
+            let candidate_reduced = Integer::from(&candidate >> 1);
+            if candidate_reduced.is_probably_prime(REPS) != IsPrime::No {
+                return candidate;
+            }
         }
     }
 }

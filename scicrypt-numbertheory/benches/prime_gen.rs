@@ -2,6 +2,7 @@
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use glass_pumpkin::safe_prime::from_rng;
+use openssl::bn::BigNum;
 use rand::rngs;
 use rand_core::OsRng;
 use scicrypt_numbertheory::gen_safe_prime;
@@ -31,6 +32,19 @@ pub fn safe_prime_benchmark(c: &mut Criterion) {
             bit_length,
             |b, &bits| {
                 b.iter(|| from_rng(black_box(bits), &mut rng));
+            },
+        );
+
+        // Benchmark `openssl`'s safe prime generation
+        let mut rng = rand::rngs::OsRng;
+        group.bench_with_input(
+            BenchmarkId::new("openssl", bit_length),
+            bit_length,
+            |b, &bits| {
+                b.iter(|| {
+                    let mut big = BigNum::new().unwrap();
+                    big.generate_prime(bits as i32, true, None, None);
+                });
             },
         );
     }
