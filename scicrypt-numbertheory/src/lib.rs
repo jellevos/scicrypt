@@ -7,6 +7,7 @@
 //! fast (safe) prime generation.
 
 mod primes;
+mod modular;
 
 use crate::primes::FIRST_PRIMES;
 use rug::integer::IsPrime;
