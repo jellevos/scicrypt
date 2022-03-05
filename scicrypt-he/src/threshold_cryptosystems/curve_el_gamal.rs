@@ -2,6 +2,7 @@ use crate::cryptosystems::curve_el_gamal::{CurveElGamalCiphertext, RichCurveElGa
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
+use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::threshold_cryptosystems::{
@@ -21,10 +22,10 @@ impl AsymmetricNOfNCryptosystem for NOfNCurveElGamal {
     type PartialKey = Scalar;
     type DecryptionShare = (RistrettoPoint, RistrettoPoint);
 
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
         key_count_n: usize,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> (Self::PublicKey, Vec<Self::PartialKey>) {
         match security_param {
             BitsOfSecurity::AES128 => (),
@@ -43,10 +44,10 @@ impl AsymmetricNOfNCryptosystem for NOfNCurveElGamal {
         (public_key, partial_keys)
     }
 
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn encrypt<R: SecureRng>(
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext {
         let y = Scalar::random(rng.rng());
 
@@ -100,11 +101,11 @@ impl AsymmetricTOfNCryptosystem for TOfNCurveElGamal {
     type PartialKey = TOfNCurveElGamalPartialKey;
     type DecryptionShare = TOfNCurveElGamalDecryptionShare;
 
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
         threshold_t: usize,
         key_count_n: usize,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> (Self::PublicKey, Vec<Self::PartialKey>) {
         match security_param {
             BitsOfSecurity::AES128 => (),
@@ -134,10 +135,10 @@ impl AsymmetricTOfNCryptosystem for TOfNCurveElGamal {
         (&master_key * &RISTRETTO_BASEPOINT_TABLE, partial_keys)
     }
 
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn encrypt<R: SecureRng>(
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext {
         let y = Scalar::random(rng.rng());
 
@@ -197,7 +198,7 @@ mod tests {
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    use scicrypt_traits::randomness::SecureRng;
+    use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{
         AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem,
@@ -206,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sks) = NOfNCurveElGamal::generate_keys(&BitsOfSecurity::default(), 3, &mut rng);
 
@@ -226,7 +227,7 @@ mod tests {
 
     #[test]
     fn test_encrypt_decrypt_2_of_3() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sks) = TOfNCurveElGamal::generate_keys(&BitsOfSecurity::default(), 2, 3, &mut rng);
 

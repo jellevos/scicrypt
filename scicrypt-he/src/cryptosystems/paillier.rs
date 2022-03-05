@@ -1,6 +1,7 @@
 use rug::Integer;
 use scicrypt_numbertheory::{gen_coprime, gen_rsa_modulus};
 use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::Enrichable;
@@ -51,17 +52,17 @@ impl AsymmetricCryptosystem<'_> for Paillier {
 
     /// Generates a fresh Paillier keypair.
     /// ```
-    /// # use scicrypt_traits::randomness::SecureRng;
+    /// # use scicrypt_traits::randomness::GeneralRng;
     /// # use scicrypt_he::cryptosystems::paillier::Paillier;
     /// # use scicrypt_traits::security::BitsOfSecurity;
     /// # use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
     /// # use rand_core::OsRng;
-    /// let mut rng = SecureRng::new(OsRng);
+    /// let mut rng = GeneralRng::new(OsRng);
     /// let (public_key, secret_key) = Paillier::generate_keys(&BitsOfSecurity::Other {pk_bits: 160}, &mut rng);
     /// ```
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> (Self::PublicKey, Self::SecretKey) {
         let (n, lambda) = gen_rsa_modulus(security_param.to_public_key_bit_length(), rng);
 
@@ -73,20 +74,20 @@ impl AsymmetricCryptosystem<'_> for Paillier {
 
     /// Encrypts a plaintext integer using the Paillier public key.
     /// ```
-    /// # use scicrypt_traits::randomness::SecureRng;
+    /// # use scicrypt_traits::randomness::GeneralRng;
     /// # use scicrypt_he::cryptosystems::paillier::Paillier;
     /// # use scicrypt_traits::security::BitsOfSecurity;
     /// # use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
     /// # use rug::Integer;
     /// # use rand_core::OsRng;
-    /// # let mut rng = SecureRng::new(OsRng);
+    /// # let mut rng = GeneralRng::new(OsRng);
     /// # let (public_key, secret_key) = Paillier::generate_keys(&BitsOfSecurity::Other {pk_bits: 160}, &mut rng);
     /// let ciphertext = Paillier::encrypt(&Integer::from(5), &public_key, &mut rng);
     /// ```
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn encrypt<R: SecureRng>(
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext {
         let n_squared = Integer::from(public_key.n.square_ref());
         let r = gen_coprime(&n_squared, rng);
@@ -101,14 +102,14 @@ impl AsymmetricCryptosystem<'_> for Paillier {
 
     /// Decrypts a rich Paillier ciphertext using the secret key.
     /// ```
-    /// # use scicrypt_traits::randomness::SecureRng;
+    /// # use scicrypt_traits::randomness::GeneralRng;
     /// # use scicrypt_he::cryptosystems::paillier::Paillier;
     /// # use scicrypt_traits::security::BitsOfSecurity;
     /// # use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
     /// # use scicrypt_traits::Enrichable;
     /// # use rug::Integer;
     /// # use rand_core::OsRng;
-    /// # let mut rng = SecureRng::new(OsRng);
+    /// # let mut rng = GeneralRng::new(OsRng);
     /// # let (public_key, secret_key) = Paillier::generate_keys(&BitsOfSecurity::Other {pk_bits: 160}, &mut rng);
     /// # let ciphertext = Paillier::encrypt(&Integer::from(5), &public_key, &mut rng);
     /// let rich_ciphertext = ciphertext.enrich(&public_key);
@@ -172,13 +173,13 @@ mod tests {
     use rand_core::OsRng;
     use rug::Integer;
     use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
-    use scicrypt_traits::randomness::SecureRng;
+    use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sk) = Paillier::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
 
@@ -192,7 +193,7 @@ mod tests {
 
     #[test]
     fn test_homomorphic_add() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sk) = Paillier::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
 
@@ -204,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_homomorphic_scalar_mul() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sk) = Paillier::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
 

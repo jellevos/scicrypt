@@ -1,3 +1,4 @@
+use crate::randomness::GeneralRng;
 use crate::randomness::SecureRng;
 use crate::security::BitsOfSecurity;
 use crate::Enrichable;
@@ -25,16 +26,16 @@ pub trait AsymmetricCryptosystem<'pk> {
 
     /// Generate a public and private key pair using a cryptographic RNG. The level of security is
     /// determined by the computational `security_param`.
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> (Self::PublicKey, Self::SecretKey);
 
     /// Encrypt the plaintext using the public key and a cryptographic RNG.
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn encrypt<R: SecureRng>(
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext;
 
     /// Decrypt the ciphertext using the secret key and its related public key.

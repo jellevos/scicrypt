@@ -6,7 +6,7 @@ use openssl::bn::BigNum;
 use rand::rngs;
 use rand_core::OsRng;
 use scicrypt_numbertheory::gen_safe_prime;
-use scicrypt_traits::randomness::SecureRng;
+use scicrypt_traits::randomness::GeneralRng;
 
 pub fn safe_prime_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("safe_prime_benchmark");
@@ -16,7 +16,7 @@ pub fn safe_prime_benchmark(c: &mut Criterion) {
         //group.throughput(Throughput::Bytes(*bit_length as u64));
 
         // Benchmark our `gen_safe_prime` function
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
         group.bench_with_input(
             BenchmarkId::new("gen_safe_prime", bit_length),
             bit_length,

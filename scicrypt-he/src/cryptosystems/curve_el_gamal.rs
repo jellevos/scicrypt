@@ -3,6 +3,7 @@ use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
 use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::Enrichable;
@@ -65,9 +66,9 @@ impl AsymmetricCryptosystem<'_> for CurveElGamal {
     type PublicKey = RistrettoPoint;
     type SecretKey = Scalar;
 
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> (Self::PublicKey, Self::SecretKey) {
         match security_param {
             BitsOfSecurity::AES128 => (),
@@ -82,10 +83,10 @@ impl AsymmetricCryptosystem<'_> for CurveElGamal {
         (public_key, secret_key)
     }
 
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn encrypt<R: SecureRng>(
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext {
         let y = Scalar::random(rng.rng());
 
@@ -133,12 +134,12 @@ mod tests {
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
     use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
-    use scicrypt_traits::randomness::SecureRng;
+    use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt_generator() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sk) = CurveElGamal::generate_keys(&Default::default(), &mut rng);
 
@@ -152,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_probabilistic_encryption() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, _) = CurveElGamal::generate_keys(&Default::default(), &mut rng);
 
@@ -164,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_homomorphic_add() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sk) = CurveElGamal::generate_keys(&Default::default(), &mut rng);
 
@@ -179,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_homomorphic_scalar_mul() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sk) = CurveElGamal::generate_keys(&Default::default(), &mut rng);
 
