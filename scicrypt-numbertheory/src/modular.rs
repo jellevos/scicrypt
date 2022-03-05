@@ -1,5 +1,3 @@
-
-
 trait EvenOdd {
     fn is_even(&self) -> bool;
     fn is_odd(&self) -> bool;
@@ -23,6 +21,29 @@ impl EvenOdd for isize {
     fn is_odd(&self) -> bool {
         (self & 1) == 1
     }
+}
+
+// Montgomery multiplication algorithm (Handbook of Applied Cryptography 14.36)
+pub fn mod_mul_montgomery(x: usize, y: usize, m: usize) -> usize {
+    let mut a = 0;
+    for i in 0..(usize::BITS - 1) {
+        let u = ((a & 1) + ((x >> i) & 1) * (y & 1)) & 1;
+        a = (a + ((x >> i) & 1) * y + u * m) >> 1;
+    }
+
+    if a >= m {
+        a -= m;
+    }
+
+    a // is xyR^-1 mod m
+}
+
+pub fn mod_mul(x: usize, y: usize, m: usize) -> usize {
+    // Compute xyR^-1 mod m and R^2 mod m, and multiply the two again
+    let xy = mod_mul_montgomery(x, y, m);
+    let r_mod_m = (usize::MAX - m + 1) % m;
+    let r2_mod_m = (r_mod_m * r_mod_m) % m;
+    mod_mul_montgomery(xy, r2_mod_m, m)
 }
 
 // Binary Greatest Common Divisor algorithm (Handbook of Applied Cryptography 14.54)
@@ -117,12 +138,40 @@ pub fn extended_gcd(mut x: isize, mut y: isize) -> (isize, (isize, isize)) {
     (g * v, (c, d))
 }
 
+// TODO: We can potentially implement a gcd and mult_inv method specifically for a^-1 mod m when m is odd, see note 14.64
+pub fn mult_inv(a: usize, m: usize) -> usize {
+    let (v, (c, d)) = extended_gcd(a as isize, m as isize);
+    if v != 1 {
+        panic!("a is not invertible wrt m");
+    }
+
+    if d >= 0 {
+        d as usize
+    } else {
+        (m as isize + d) as usize
+    }
+}
+
+// Garner's algorithm for the Chinese Remainder Theorem (Handbook of Applied Cryptography 14.71)
+// pub fn crt(reduced_values: Vec<usize>, moduli: Vec<usize>) -> usize {
+//     assert_eq!(reduced_values.len(), moduli.len());
+//     let t = moduli.len();
+//     for i in 2..t {
+//         let mut c = 1;
+//
+//         for j in 1..(i - 1) {
+//             let u = moduli[j]
+//         }
+//     }
+//
+//     0
+// }
 
 #[cfg(test)]
 mod tests {
     use rand::Rng;
     use rand_core::OsRng;
-    use crate::modular::{EvenOdd, extended_gcd, gcd};
+    use crate::modular::{EvenOdd, extended_gcd, gcd, mod_mul, mult_inv};
 
     #[test]
     fn test_isize_even() {
@@ -217,6 +266,27 @@ mod tests {
 
             println!("{}: {} {} + {} {}", v, a, x, b, y);
             assert_eq!(v, a * x + b * y);
+        }
+    }
+
+    #[test]
+    fn gcd_mult_inv_random() {
+        for _ in 0..10_000 {
+            let m: usize = 8333534987;  // Prime number
+            let a: usize = OsRng.gen_range(0..m);
+
+            assert_eq!(a * mult_inv(a, m) % m, 1);
+        }
+    }
+
+    #[test]
+    fn gcd_mod_mul_random() {
+        for _ in 0..10_000 {
+            let m: usize = 8333534987;  // Prime number
+            let a: usize = OsRng.gen_range(0..(m / 2));
+            let b: usize = OsRng.gen_range(0..(m / 2));
+
+            assert_eq!(mod_mul(a, b, m), (a * b) % m);
         }
     }
 }
