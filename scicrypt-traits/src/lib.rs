@@ -1,5 +1,6 @@
 #![feature(generic_associated_types)]
-// This is necessary for now, hopefully we can go back to stable around October
+#![feature(trait_alias)]
+// This is necessary for now, hopefully we can go back to stable in the future
 #![warn(missing_docs, unused_imports)]
 
 //! _This is a part of **scicrypt**. For more information, head to the

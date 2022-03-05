@@ -3,6 +3,7 @@ use crate::cryptosystems::integer_el_gamal::{
 };
 use rug::Integer;
 use scicrypt_numbertheory::gen_safe_prime;
+use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::threshold_cryptosystems::{
@@ -23,10 +24,10 @@ impl AsymmetricNOfNCryptosystem for NOfNIntegerElGamal {
     type PartialKey = Integer;
     type DecryptionShare = (Integer, Integer);
 
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
         key_count_n: usize,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> (Self::PublicKey, Vec<Self::PartialKey>) {
         let modulus = gen_safe_prime(security_param.to_public_key_bit_length(), rng);
 
@@ -46,10 +47,10 @@ impl AsymmetricNOfNCryptosystem for NOfNIntegerElGamal {
         )
     }
 
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn encrypt<R: SecureRng>(
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext {
         let q = Integer::from(&public_key.modulus >> 1);
         let y = q.random_below(&mut rng.rug_rng());
@@ -119,11 +120,11 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
     type PartialKey = TOfNIntegerElGamalPartialKey;
     type DecryptionShare = TOfNIntegerElGamalDecryptionShare;
 
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
         threshold_t: usize,
         key_count_n: usize,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> (Self::PublicKey, Vec<Self::PartialKey>) {
         let modulus = gen_safe_prime(security_param.to_public_key_bit_length(), rng);
 
@@ -160,10 +161,10 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
         )
     }
 
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn encrypt<R: SecureRng>(
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext {
         let q = Integer::from(&public_key.modulus >> 1);
         let y = q.random_below(&mut rng.rug_rng());
@@ -241,7 +242,7 @@ mod tests {
     };
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::randomness::SecureRng;
+    use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{
         AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem,
@@ -250,7 +251,7 @@ mod tests {
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sks) =
             NOfNIntegerElGamal::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, 3, &mut rng);
@@ -271,7 +272,7 @@ mod tests {
 
     #[test]
     fn test_encrypt_decrypt_2_of_3() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sks) = TOfNIntegerElGamal::generate_keys(
             &BitsOfSecurity::Other { pk_bits: 160 },

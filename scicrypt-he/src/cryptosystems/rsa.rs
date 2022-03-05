@@ -1,6 +1,7 @@
 use rug::Integer;
 use scicrypt_numbertheory::gen_rsa_modulus;
 use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::Enrichable;
@@ -49,9 +50,9 @@ impl AsymmetricCryptosystem<'_> for RSA {
     type PublicKey = RSAPublicKey;
     type SecretKey = Integer;
 
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> (Self::PublicKey, Self::SecretKey) {
         let (n, lambda) = gen_rsa_modulus(security_param.to_public_key_bit_length(), rng);
 
@@ -61,10 +62,10 @@ impl AsymmetricCryptosystem<'_> for RSA {
         (RSAPublicKey { n, e }, d)
     }
 
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn encrypt<R: SecureRng>(
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
-        _rng: &mut SecureRng<R>,
+        _rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext {
         RSACiphertext {
             c: Integer::from(plaintext.pow_mod_ref(&public_key.e, &public_key.n).unwrap()),
@@ -120,13 +121,13 @@ mod tests {
     use rand_core::OsRng;
     use rug::Integer;
     use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
-    use scicrypt_traits::randomness::SecureRng;
+    use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt_generator() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sk) = RSA::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
 
@@ -140,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_homomorphic_mul() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sk) = RSA::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
 
@@ -152,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_homomorphic_scalar_pow() {
-        let mut rng = SecureRng::new(OsRng);
+        let mut rng = GeneralRng::new(OsRng);
 
         let (pk, sk) = RSA::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
 

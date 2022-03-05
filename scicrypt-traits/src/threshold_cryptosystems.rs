@@ -1,3 +1,4 @@
+use crate::randomness::GeneralRng;
 use crate::randomness::SecureRng;
 use crate::security::BitsOfSecurity;
 use crate::DecryptionError;
@@ -35,17 +36,17 @@ pub trait AsymmetricNOfNCryptosystem {
     type DecryptionShare;
 
     /// Generate a public and private key pair using a cryptographic RNG.
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
         key_count_n: usize,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> (Self::PublicKey, Vec<Self::PartialKey>);
 
     /// Encrypt the plaintext using the public key and a cryptographic RNG.
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn encrypt<R: SecureRng>(
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext;
 
     /// Partially decrypt the ciphertext using a partial key and its related public key.
@@ -95,18 +96,18 @@ pub trait AsymmetricTOfNCryptosystem {
     type DecryptionShare;
 
     /// Generate a public and private key pair using a cryptographic RNG.
-    fn generate_keys<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
         threshold_t: usize,
         key_count_n: usize,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> (Self::PublicKey, Vec<Self::PartialKey>);
 
     /// Encrypt the plaintext using the public key and a cryptographic RNG.
-    fn encrypt<R: rand_core::RngCore + rand_core::CryptoRng>(
+    fn encrypt<R: SecureRng>(
         plaintext: &Self::Plaintext,
         public_key: &Self::PublicKey,
-        rng: &mut SecureRng<R>,
+        rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext;
 
     /// Partially decrypt the ciphertext using a partial key and its related public key.
