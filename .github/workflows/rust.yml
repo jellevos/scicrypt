@@ -68,9 +68,14 @@ jobs:
     name: Benchmarks
     runs-on: ubuntu-latest
     steps:
+      # Check out master and run benchmark there
+      - uses: actions/checkout@v2
+        with:
+          ref: refs/heads/master
       - uses: actions-rs/cargo@v1
         with:
           command: bench
+      # Check out the current branch and run benchmark here
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
@@ -80,4 +85,5 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: bench | tee benchmark_result
+      # Check if there is no regression
       - run: "! grep -q regressed benchmark_result"
