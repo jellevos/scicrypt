@@ -87,4 +87,4 @@ jobs:
         with:
           command: bench
       # Check if there is no regression
-      - run: "! grep -q regressed ${{steps.bench_result.outputs}}"
+      - run: "! ${{steps.bench_result.outputs}} | grep -q regressed"
