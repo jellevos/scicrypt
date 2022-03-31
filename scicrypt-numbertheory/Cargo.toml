@@ -29,3 +29,4 @@ rustdoc-args = [ "--html-in-header", "katex-header.html" ]
 [[bench]]
 name = "prime_gen"
 harness = false
+bench = false  # By default, this benchmark is turned off because it takes very long to complete

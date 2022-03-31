@@ -24,14 +24,17 @@ In addition, the library implements safe prime generation, which is faster than 
 other crates. The code is benchmarked between every version to ensure we do not increase run time and to compare against
 other implementations.
 
-Check the table below for a run time comparison (in milliseconds) for safe prime generation:
+Check the table below for an average run time comparison (in milliseconds) for safe prime generation:
 <table>
     <tr><td><b>Crate | Number of bits</b></td><td><b>128</b></td><td><b>192</b></td><td><b>256</b></td><td><b>320</b></td><td><b>384</b></td></tr>
-    <tr><td>glass_pumpkin</td> <td>52.160</td><td>157.70</td><td>319.03</td><td>772.41</td><td>1328.3</td></tr>
-    <tr><td>scicrypt</td><td>12.609</td><td>53.627</td><td>150.05</td><td>321.11</td><td>468.07</td></tr>
+    <tr><td>glass_pumpkin</td><td>52.5</td><td>170</td><td>402</td><td>652</td><td>1530</td></tr>
+    <tr><td>openssl</td><td>3.95</td><td>11.1</td><td>21.9</td><td>53.6</td><td>79.8</td></tr>
+    <tr><td>scicrypt</td><td>2.20</td><td>7.02</td><td>20.1</td><td>37.5</td><td>72.5</td></tr>
 </table>
 
-**Updated: 10 Aug 2021 by GitHub Actions**
+**Updated: 31 Mar 2022 from [GitHub Actions](https://github.com/jellevos/scicrypt/runs/5433877697)**
+
+You can run this benchmark yourself by executing `cargo bench --bench prime_gen`. By default, this benchmark is turned off because it can take up to 15 minutes to run. In other words, it will not run when you simply run `cargo bench`. _Note that on my personal laptop, OpenSSL slightly outperforms scicrypt on average, so results can differ based on hardware._
 
 # Upcoming features
 These are the upcoming minor versions and the functionality they will add.
