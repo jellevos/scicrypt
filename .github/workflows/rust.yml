@@ -83,8 +83,8 @@ jobs:
       # Check out the current branch and run benchmark here
       - uses: actions/checkout@v2
       - uses: actions-rs/cargo@v1
+        id: bench_result
         with:
           command: bench
-          id: bench_result
       # Check if there is no regression
       - run: "! grep -q regressed ${{steps.bench_result.outputs}}"
