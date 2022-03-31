@@ -84,6 +84,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions-rs/cargo@v1
         with:
-          command: bench | tee benchmark_result
+          command: bench
+          id: bench_result
       # Check if there is no regression
-      - run: "! grep -q regressed benchmark_result"
+      - run: "! grep -q regressed ${{steps.bench_result.outputs}}"
