@@ -68,6 +68,11 @@ jobs:
     name: Benchmarks
     runs-on: ubuntu-latest
     steps:
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          override: true
       # Check out master and run benchmark there
       - uses: actions/checkout@v2
         with:
@@ -77,11 +82,6 @@ jobs:
           command: bench
       # Check out the current branch and run benchmark here
       - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: nightly
-          override: true
       - uses: actions-rs/cargo@v1
         with:
           command: bench | tee benchmark_result
