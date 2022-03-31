@@ -68,6 +68,9 @@ jobs:
     name: Benchmarks
     runs-on: ubuntu-latest
     steps:
+      - uses: actions-rs/cargo@v1
+        with:
+          command: bench
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
@@ -76,4 +79,5 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: bench
+          command: bench | tee benchmark_result
+      - run: ! grep -q regressed benchmark_result
