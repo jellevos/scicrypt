@@ -9,7 +9,8 @@ homepage = "https://crates.io/crates/scicrypt-numbertheory"
 repository = "https://github.com/jellevos/scicrypt"
 readme = "README.md"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+bench = false  # Disable default bench (we use criterion)
 
 [dependencies]
 scicrypt-traits = { version = "0.5.0", path = "../scicrypt-traits" }
@@ -18,7 +19,7 @@ rand_core = "0.6"
 
 [dev-dependencies]
 primal = "0.3"
-criterion = "0.3"
+criterion = "0.3.3"
 glass_pumpkin = "1.0.0"
 rand = "0.8"
 openssl = "0.10"

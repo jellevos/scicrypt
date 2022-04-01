@@ -68,12 +68,18 @@ jobs:
     name: Benchmarks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: nightly
           override: true
-      - uses: actions-rs/cargo@v1
+      # Check out master and run benchmark there
+      - uses: actions/checkout@v2
         with:
-          command: bench
+          ref: refs/heads/master
+      - run: "cargo bench"
+      # Check out the current branch and run benchmark here
+      - uses: actions/checkout@v2
+      - run: "cargo bench | tee bench_result"
+      # Check if there is no regression
+      - run: "! grep -q regressed bench_result"
