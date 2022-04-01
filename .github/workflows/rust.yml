@@ -77,14 +77,9 @@ jobs:
       - uses: actions/checkout@v2
         with:
           ref: refs/heads/master
-      - uses: actions-rs/cargo@v1
-        with:
-          command: bench
+      - run: "cargo bench"
       # Check out the current branch and run benchmark here
       - uses: actions/checkout@v2
-      - uses: actions-rs/cargo@v1
-        with:
-          command: bench
-          args: -- | tee bench_result
+      - run: "cargo bench | tee bench_result"
       # Check if there is no regression
       - run: "! grep -q regressed bench_result"
