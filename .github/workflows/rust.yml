@@ -85,6 +85,6 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: bench
-          args: "| tee bench_result"
+          args: -- | tee bench_result
       # Check if there is no regression
       - run: "! grep -q regressed bench_result"
