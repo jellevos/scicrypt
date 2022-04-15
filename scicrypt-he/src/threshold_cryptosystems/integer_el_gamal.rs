@@ -1,5 +1,5 @@
 use crate::cryptosystems::integer_el_gamal::{
-    IntegerElGamalCiphertext, IntegerElGamalPublicKey, RichIntegerElGamalCiphertext,
+    IntegerElGamalCiphertext, IntegerElGamalPK,
 };
 use rug::Integer;
 use scicrypt_numbertheory::gen_safe_prime;
@@ -20,7 +20,7 @@ impl AsymmetricNOfNCryptosystem for NOfNIntegerElGamal {
     type Plaintext = Integer;
     type Ciphertext = IntegerElGamalCiphertext;
     type RichCiphertext<'pk> = RichIntegerElGamalCiphertext<'pk>;
-    type PublicKey = IntegerElGamalPublicKey;
+    type PublicKey = IntegerElGamalPK;
     type PartialKey = Integer;
     type DecryptionShare = (Integer, Integer);
 
@@ -39,7 +39,7 @@ impl AsymmetricNOfNCryptosystem for NOfNIntegerElGamal {
         let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &modulus));
 
         (
-            IntegerElGamalPublicKey {
+            IntegerElGamalPK {
                 h: public_key,
                 modulus,
             },
@@ -116,7 +116,7 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
     type Plaintext = Integer;
     type Ciphertext = IntegerElGamalCiphertext;
     type RichCiphertext<'pk> = RichIntegerElGamalCiphertext<'pk>;
-    type PublicKey = IntegerElGamalPublicKey;
+    type PublicKey = IntegerElGamalPK;
     type PartialKey = TOfNIntegerElGamalPartialKey;
     type DecryptionShare = TOfNIntegerElGamalDecryptionShare;
 
@@ -153,7 +153,7 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
         let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &modulus));
 
         (
-            IntegerElGamalPublicKey {
+            IntegerElGamalPK {
                 h: public_key,
                 modulus,
             },
@@ -247,7 +247,6 @@ mod tests {
     use scicrypt_traits::threshold_cryptosystems::{
         AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem,
     };
-    use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {

@@ -24,14 +24,6 @@ pub mod threshold_cryptosystems;
 /// General notion of secret sharing
 pub mod secret_sharing;
 
-/// Functionality to easily turn a ciphertext into a rich ciphertext
-pub trait Enrichable<'pk, PK, RC> {
-    /// Enriches a ciphertext by associating it with a corresponding public key.
-    fn enrich(self, public_key: &'pk PK) -> RC
-    where
-        Self: Sized;
-}
-
 /// General error that arises when decryption fails, for example because there were not enough
 /// distinct decryption shares to decrypt a threshold ciphertext.
 #[derive(Debug)]

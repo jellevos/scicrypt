@@ -1,4 +1,4 @@
-use crate::cryptosystems::curve_el_gamal::{CurveElGamalCiphertext, RichCurveElGamalCiphertext};
+use crate::cryptosystems::curve_el_gamal::{CurveElGamalCiphertext};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
@@ -203,7 +203,6 @@ mod tests {
     use scicrypt_traits::threshold_cryptosystems::{
         AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem,
     };
-    use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {

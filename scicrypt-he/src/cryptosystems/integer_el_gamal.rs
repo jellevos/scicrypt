@@ -1,10 +1,9 @@
 use rug::Integer;
 use scicrypt_numbertheory::gen_safe_prime;
-use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::cryptosystems::{Associable, AssociatedCiphertext, AsymmetricCryptosystem, PublicKey, SecretKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::Enrichable;
 use std::ops::{Mul, Rem};
 
 /// Multiplicatively homomorphic ElGamal over a safe prime group where the generator is 4.
@@ -27,10 +26,11 @@ use std::ops::{Mul, Rem};
 /// println!("[4] * [6] = [{}]", IntegerElGamal::decrypt(&(&rich_ciphertext_1 * &rich_ciphertext_2), &secret_key));
 /// // Prints: "[4] * [6] = [24]".
 /// ```
+#[derive(Copy, Clone)]
 pub struct IntegerElGamal;
 
 /// Public key containing the ElGamal encryption key and the modulus of the group.
-pub struct IntegerElGamalPublicKey {
+pub struct IntegerElGamalPK {
     pub(crate) h: Integer,
     pub(crate) modulus: Integer,
 }
@@ -41,36 +41,13 @@ pub struct IntegerElGamalCiphertext {
     pub(crate) c2: Integer,
 }
 
-/// A struct holding both a ciphertext and a reference to its associated public key, which is
-/// useful for decrypting directly using the secret key or performing homomorphic operations.
-pub struct RichIntegerElGamalCiphertext<'pk> {
-    /// The ciphertext to operate on
-    pub ciphertext: IntegerElGamalCiphertext,
-    /// Reference to the associated public key
-    pub public_key: &'pk IntegerElGamalPublicKey,
+impl Associable<IntegerElGamalPK> for IntegerElGamalCiphertext { }
+
+pub struct IntegerElGamalSK {
+    key: Integer,
 }
 
-impl<'pk> Enrichable<'pk, IntegerElGamalPublicKey, RichIntegerElGamalCiphertext<'pk>>
-    for IntegerElGamalCiphertext
-{
-    fn enrich(self, public_key: &IntegerElGamalPublicKey) -> RichIntegerElGamalCiphertext
-    where
-        Self: Sized,
-    {
-        RichIntegerElGamalCiphertext {
-            ciphertext: self,
-            public_key,
-        }
-    }
-}
-
-impl AsymmetricCryptosystem<'_> for IntegerElGamal {
-    type Plaintext = Integer;
-    type Ciphertext = IntegerElGamalCiphertext;
-    type RichCiphertext<'pk> = RichIntegerElGamalCiphertext<'pk>;
-    type PublicKey = IntegerElGamalPublicKey;
-    type SecretKey = Integer;
-
+impl AsymmetricCryptosystem<IntegerElGamalPK, IntegerElGamalSK> for IntegerElGamal {
     /// Generates a fresh ElGamal keypair.
     /// ```
     /// # use scicrypt_traits::randomness::GeneralRng;
@@ -84,7 +61,7 @@ impl AsymmetricCryptosystem<'_> for IntegerElGamal {
     fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
         rng: &mut GeneralRng<R>,
-    ) -> (Self::PublicKey, Self::SecretKey) {
+    ) -> (IntegerElGamalPK, IntegerElGamalSK) {
         let modulus = gen_safe_prime(security_param.to_public_key_bit_length(), rng);
 
         let q = Integer::from(&modulus >> 1);
@@ -92,13 +69,18 @@ impl AsymmetricCryptosystem<'_> for IntegerElGamal {
         let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&secret_key, &modulus));
 
         (
-            IntegerElGamalPublicKey {
+            IntegerElGamalPK {
                 h: public_key,
                 modulus,
             },
-            secret_key,
+            IntegerElGamalSK { key: secret_key},
         )
     }
+}
+
+impl PublicKey for IntegerElGamalPK {
+    type Plaintext = Integer;
+    type Ciphertext = IntegerElGamalCiphertext;
 
     /// Encrypts an integer using the public key.
     /// ```
@@ -112,21 +94,22 @@ impl AsymmetricCryptosystem<'_> for IntegerElGamal {
     /// # let (public_key, secret_key) = IntegerElGamal::generate_keys(&BitsOfSecurity::Other {pk_bits: 160}, &mut rng);
     /// let ciphertext = IntegerElGamal::encrypt(&Integer::from(5), &public_key, &mut rng);
     /// ```
-    fn encrypt<R: SecureRng>(
-        plaintext: &Self::Plaintext,
-        public_key: &Self::PublicKey,
-        rng: &mut GeneralRng<R>,
-    ) -> Self::Ciphertext {
-        let q = Integer::from(&public_key.modulus >> 1);
+    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(&self, plaintext: IntoP, rng: &mut GeneralRng<R>) -> AssociatedCiphertext<Self, Self::Ciphertext> where Self: Sized {
+        let q = Integer::from(&self.modulus >> 1);
         let y = q.random_below(&mut rng.rug_rng());
 
         IntegerElGamalCiphertext {
-            c1: Integer::from(Integer::from(4).secure_pow_mod_ref(&y, &public_key.modulus)),
+            c1: Integer::from(Integer::from(4).secure_pow_mod_ref(&y, &self.modulus)),
             c2: (plaintext
-                * Integer::from(public_key.h.secure_pow_mod_ref(&y, &public_key.modulus)))
-            .rem(&public_key.modulus),
-        }
+                * Integer::from(self.h.secure_pow_mod_ref(&y, &self.modulus)))
+                .rem(&self.modulus),
+        }.associate(&self)
     }
+}
+
+impl SecretKey<IntegerElGamalPK> for IntegerElGamalSK {
+    type Plaintext = ();
+    type Ciphertext = ();
 
     /// Decrypts an ElGamal ciphertext using the secret key.
     /// ```
@@ -144,28 +127,25 @@ impl AsymmetricCryptosystem<'_> for IntegerElGamal {
     /// println!("The decrypted message is {}", IntegerElGamal::decrypt(&rich_ciphertext, &secret_key));
     /// // Prints: "The decrypted message is 5".
     /// ```
-    fn decrypt(
-        rich_ciphertext: &RichIntegerElGamalCiphertext,
-        secret_key: &Self::SecretKey,
-    ) -> Self::Plaintext {
-        (&rich_ciphertext.ciphertext.c2
+    fn decrypt(&self, associated_ciphertext: &AssociatedCiphertext<IntegerElGamalPK, Self::Ciphertext>) -> Self::Plaintext {
+        (&associated_ciphertext.ciphertext.c2
             * Integer::from(
-                rich_ciphertext
-                    .ciphertext
-                    .c1
-                    .secure_pow_mod_ref(secret_key, &rich_ciphertext.public_key.modulus),
-            )
-            .invert(&rich_ciphertext.public_key.modulus)
+            associated_ciphertext
+                .ciphertext
+                .c1
+                .secure_pow_mod_ref(&self, &associated_ciphertext.public_key.modulus),
+        )
+            .invert(&associated_ciphertext.public_key.modulus)
             .unwrap())
-        .rem(&rich_ciphertext.public_key.modulus)
+            .rem(&associated_ciphertext.public_key.modulus)
     }
 }
 
-impl<'pk> Mul for &RichIntegerElGamalCiphertext<'pk> {
-    type Output = RichIntegerElGamalCiphertext<'pk>;
+impl<'pk> Mul for &AssociatedCiphertext<'pk, IntegerElGamalPK, IntegerElGamalCiphertext> {
+    type Output = AssociatedCiphertext<'pk, IntegerElGamalPK, IntegerElGamalCiphertext>;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        RichIntegerElGamalCiphertext {
+        AssociatedCiphertext {
             ciphertext: IntegerElGamalCiphertext {
                 c1: Integer::from(&self.ciphertext.c1 * &rhs.ciphertext.c1)
                     .rem(&self.public_key.modulus),
@@ -177,28 +157,29 @@ impl<'pk> Mul for &RichIntegerElGamalCiphertext<'pk> {
     }
 }
 
-impl<'pk> RichIntegerElGamalCiphertext<'pk> {
-    /// Computes the ciphertext corresponding to the plaintext raised to a scalar power.
-    pub fn pow(&self, rhs: &Integer) -> RichIntegerElGamalCiphertext {
-        RichIntegerElGamalCiphertext {
-            ciphertext: IntegerElGamalCiphertext {
-                c1: Integer::from(
-                    self.ciphertext
-                        .c1
-                        .pow_mod_ref(rhs, &self.public_key.modulus)
-                        .unwrap(),
-                ),
-                c2: Integer::from(
-                    self.ciphertext
-                        .c2
-                        .pow_mod_ref(rhs, &self.public_key.modulus)
-                        .unwrap(),
-                ),
-            },
-            public_key: self.public_key,
-        }
-    }
-}
+// TODO: Replace with trait and impl
+// impl<'pk> AssociatedCiphertext<'pk, IntegerElGamalPK, IntegerElGamalCiphertext> {
+//     /// Computes the ciphertext corresponding to the plaintext raised to a scalar power.
+//     pub fn pow(&self, rhs: &Integer) -> RichIntegerElGamalCiphertext {
+//         RichIntegerElGamalCiphertext {
+//             ciphertext: IntegerElGamalCiphertext {
+//                 c1: Integer::from(
+//                     self.ciphertext
+//                         .c1
+//                         .pow_mod_ref(rhs, &self.public_key.modulus)
+//                         .unwrap(),
+//                 ),
+//                 c2: Integer::from(
+//                     self.ciphertext
+//                         .c2
+//                         .pow_mod_ref(rhs, &self.public_key.modulus)
+//                         .unwrap(),
+//                 ),
+//             },
+//             public_key: self.public_key,
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -208,7 +189,6 @@ mod tests {
     use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
-    use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt_generator() {

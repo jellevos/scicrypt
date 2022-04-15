@@ -4,7 +4,7 @@ use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::threshold_cryptosystems::AsymmetricTOfNCryptosystem;
-use scicrypt_traits::{DecryptionError, Enrichable};
+use scicrypt_traits::{DecryptionError};
 use std::ops::Rem;
 
 /// Threshold Paillier cryptosystem: Extension of Paillier that requires t out of n parties to
@@ -214,7 +214,6 @@ mod tests {
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::AsymmetricTOfNCryptosystem;
-    use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt_2_of_3() {

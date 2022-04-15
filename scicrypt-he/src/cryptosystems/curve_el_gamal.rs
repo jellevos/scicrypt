@@ -1,16 +1,15 @@
-use crate::cryptosystems::DecryptDirectly;
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::cryptosystems::{Associable, AssociatedCiphertext, AsymmetricCryptosystem, PublicKey, SecretKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::Enrichable;
 use std::ops::{Add, Mul};
 
 /// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
 /// `curve25519-dalek` crate. ElGamal is a partially homomorphic cryptosystem.
+#[derive(Copy, Clone)]
 pub struct CurveElGamal;
 
 /// ElGamal ciphertext containing curve points. The addition operator on the ciphertext is
@@ -21,55 +20,30 @@ pub struct CurveElGamalCiphertext {
     pub(crate) c2: RistrettoPoint,
 }
 
-/// A struct holding both a ciphertext and a reference to its associated public key, which is
-/// useful for decrypting directly using the secret key or performing homomorphic operations.
-pub struct RichCurveElGamalCiphertext<'pk> {
-    /// The ciphertext to operate on
-    pub ciphertext: CurveElGamalCiphertext,
-    /// Reference to the associated public key
-    pub public_key: &'pk RistrettoPoint,
+pub struct CurveElGamalPK {
+    point: RistrettoPoint
 }
 
-impl<'pk> Enrichable<'pk, RistrettoPoint, RichCurveElGamalCiphertext<'pk>>
-    for CurveElGamalCiphertext
-{
-    fn enrich(self, public_key: &RistrettoPoint) -> RichCurveElGamalCiphertext
-    where
-        Self: Sized,
-    {
-        RichCurveElGamalCiphertext {
-            ciphertext: self,
-            public_key,
-        }
+pub struct CurveElGamalSK {
+    key: Scalar
+}
+
+impl Associable<CurveElGamalPK> for CurveElGamalCiphertext {}
+
+impl CurveElGamalSK {
+    fn decrypt_directly(
+        &self,
+        ciphertext: &CurveElGamalCiphertext,
+    ) -> RistrettoPoint {
+        ciphertext.c2 - self.key * ciphertext.c1
     }
 }
 
-impl DecryptDirectly for CurveElGamal {
-    type Plaintext = RistrettoPoint;
-    type Ciphertext = CurveElGamalCiphertext;
-
-    type SecretKey = Scalar;
-
-    fn decrypt_direct(
-        ciphertext: &Self::Ciphertext,
-        secret_key: &Self::SecretKey,
-    ) -> Self::Plaintext {
-        ciphertext.c2 - secret_key * ciphertext.c1
-    }
-}
-
-impl AsymmetricCryptosystem<'_> for CurveElGamal {
-    type Plaintext = RistrettoPoint;
-    type Ciphertext = CurveElGamalCiphertext;
-    type RichCiphertext<'pk> = RichCurveElGamalCiphertext<'pk>;
-
-    type PublicKey = RistrettoPoint;
-    type SecretKey = Scalar;
-
+impl AsymmetricCryptosystem<CurveElGamalPK, CurveElGamalSK> for CurveElGamal {
     fn generate_keys<R: SecureRng>(
         security_param: &BitsOfSecurity,
         rng: &mut GeneralRng<R>,
-    ) -> (Self::PublicKey, Self::SecretKey) {
+    ) -> (CurveElGamalPK, CurveElGamalSK) {
         match security_param {
             BitsOfSecurity::AES128 => (),
             _ => panic!(
@@ -80,27 +54,30 @@ impl AsymmetricCryptosystem<'_> for CurveElGamal {
         let secret_key = Scalar::random(rng.rng());
         let public_key = &secret_key * &RISTRETTO_BASEPOINT_TABLE;
 
-        (public_key, secret_key)
+        (CurveElGamalPK { point: public_key }, CurveElGamalSK { key: secret_key })
     }
+}
 
-    fn encrypt<R: SecureRng>(
-        plaintext: &Self::Plaintext,
-        public_key: &Self::PublicKey,
-        rng: &mut GeneralRng<R>,
-    ) -> Self::Ciphertext {
+impl PublicKey for CurveElGamalPK {
+    type Plaintext = RistrettoPoint;
+    type Ciphertext = CurveElGamalCiphertext;
+
+    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(&self, plaintext: IntoP, rng: &mut GeneralRng<R>) -> AssociatedCiphertext<Self, Self::Ciphertext> where Self: Sized {
         let y = Scalar::random(rng.rng());
 
         CurveElGamalCiphertext {
             c1: &y * &RISTRETTO_BASEPOINT_TABLE,
-            c2: plaintext + y * public_key,
-        }
+            c2: plaintext + y * self.point,
+        }.associate(&self)
     }
+}
 
-    fn decrypt(
-        rich_ciphertext: &RichCurveElGamalCiphertext,
-        secret_key: &Self::SecretKey,
-    ) -> Self::Plaintext {
-        Self::decrypt_direct(&rich_ciphertext.ciphertext, secret_key)
+impl SecretKey<CurveElGamalPK> for CurveElGamalSK {
+    type Plaintext = RistrettoPoint;
+    type Ciphertext = CurveElGamalCiphertext;
+
+    fn decrypt(&self, associated_ciphertext: &AssociatedCiphertext<CurveElGamalPK, Self::Ciphertext>) -> Self::Plaintext {
+        self.decrypt_directly(&associated_ciphertext.ciphertext)
     }
 }
 
@@ -135,7 +112,6 @@ mod tests {
     use rand_core::OsRng;
     use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
     use scicrypt_traits::randomness::GeneralRng;
-    use scicrypt_traits::Enrichable;
 
     #[test]
     fn test_encrypt_decrypt_generator() {
