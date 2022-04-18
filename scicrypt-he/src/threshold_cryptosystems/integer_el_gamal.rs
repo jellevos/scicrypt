@@ -1,41 +1,37 @@
-use crate::cryptosystems::integer_el_gamal::{
-    IntegerElGamalCiphertext, IntegerElGamalPK,
-};
+use crate::cryptosystems::integer_el_gamal::{AssociatedIntegerElGamalCiphertext, IntegerElGamalCiphertext, IntegerElGamalPK};
 use rug::Integer;
 use scicrypt_numbertheory::gen_safe_prime;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::threshold_cryptosystems::{
-    AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem,
-};
+use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem, TOfNCryptosystem};
 use scicrypt_traits::DecryptionError;
 use std::ops::Rem;
+use scicrypt_traits::cryptosystems::{SecretKey};
 
 /// N-out-of-N Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires n out of n parties to
 /// successfully decrypt. For this scheme there exists an efficient distributed key generation protocol.
+#[derive(Copy, Clone)]
 pub struct NOfNIntegerElGamal;
 
-impl AsymmetricNOfNCryptosystem for NOfNIntegerElGamal {
-    type Plaintext = Integer;
-    type Ciphertext = IntegerElGamalCiphertext;
-    type RichCiphertext<'pk> = RichIntegerElGamalCiphertext<'pk>;
-    type PublicKey = IntegerElGamalPK;
-    type PartialKey = Integer;
-    type DecryptionShare = (Integer, Integer);
+pub struct NOfNIntegerElGamalSK {
+    key: Integer
+}
 
+impl NOfNCryptosystem<'_, IntegerElGamalPK, NOfNIntegerElGamalSK, NOfNIntegerElGamalShare> for NOfNIntegerElGamal {
     fn generate_keys<R: SecureRng>(
+        &self,
         security_param: &BitsOfSecurity,
         key_count_n: usize,
         rng: &mut GeneralRng<R>,
-    ) -> (Self::PublicKey, Vec<Self::PartialKey>) {
+    ) -> (IntegerElGamalPK, Vec<NOfNIntegerElGamalSK>) {
         let modulus = gen_safe_prime(security_param.to_public_key_bit_length(), rng);
 
-        let partial_keys: Vec<Integer> = (0..key_count_n)
-            .map(|_| Integer::from(modulus.random_below_ref(&mut rng.rug_rng())))
+        let partial_keys: Vec<NOfNIntegerElGamalSK> = (0..key_count_n)
+            .map(|_| NOfNIntegerElGamalSK { key: Integer::from(modulus.random_below_ref(&mut rng.rug_rng())) })
             .collect();
 
-        let master_key: Integer = partial_keys.iter().sum();
+        let master_key: Integer = partial_keys.iter().map(|k| &k.key).sum();
         let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &modulus));
 
         (
@@ -46,86 +42,70 @@ impl AsymmetricNOfNCryptosystem for NOfNIntegerElGamal {
             partial_keys,
         )
     }
+}
 
-    fn encrypt<R: SecureRng>(
-        plaintext: &Self::Plaintext,
-        public_key: &Self::PublicKey,
-        rng: &mut GeneralRng<R>,
-    ) -> Self::Ciphertext {
-        let q = Integer::from(&public_key.modulus >> 1);
-        let y = q.random_below(&mut rng.rug_rng());
+pub struct NOfNIntegerElGamalShare(IntegerElGamalCiphertext);
 
-        IntegerElGamalCiphertext {
-            c1: Integer::from(Integer::from(4).secure_pow_mod_ref(&y, &public_key.modulus)),
-            c2: (plaintext
-                * Integer::from(public_key.h.secure_pow_mod_ref(&y, &public_key.modulus)))
-            .rem(&public_key.modulus),
-        }
-    }
+impl SecretKey<'_, IntegerElGamalPK> for NOfNIntegerElGamalSK {
+    type Plaintext = NOfNIntegerElGamalShare;
+    type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
 
-    fn partially_decrypt(
-        rich_ciphertext: &RichIntegerElGamalCiphertext,
-        partial_key: &Self::PartialKey,
-    ) -> Self::DecryptionShare {
-        (
-            Integer::from(
-                rich_ciphertext
+    fn decrypt(&self, associated_ciphertext: &AssociatedIntegerElGamalCiphertext) -> Self::Plaintext {
+        NOfNIntegerElGamalShare {
+            0: IntegerElGamalCiphertext { c1: Integer::from(
+                associated_ciphertext
                     .ciphertext
                     .c1
-                    .secure_pow_mod_ref(partial_key, &rich_ciphertext.public_key.modulus),
-            ),
-            Integer::from(&rich_ciphertext.ciphertext.c2),
-        )
+                    .secure_pow_mod_ref(&self.key, &associated_ciphertext.public_key.modulus),
+            ), c2: Integer::from(&associated_ciphertext.ciphertext.c2), }
+        }
     }
+}
 
-    fn combine(
-        decryption_shares: &[Self::DecryptionShare],
-        public_key: &Self::PublicKey,
-    ) -> Result<Self::Plaintext, DecryptionError> {
+impl DecryptionShare for NOfNIntegerElGamalShare {
+    type Plaintext = Integer;
+    type PublicKey = IntegerElGamalPK;
+
+    fn combine(decryption_shares: &[Self], public_key: &Self::PublicKey) -> Result<Self::Plaintext, DecryptionError> {
         Ok((Integer::from(
-            &decryption_shares[0].1
+            &decryption_shares[0].0.c2
                 * &decryption_shares
-                    .iter()
-                    .map(|(a, _)| a)
-                    .product::<Integer>()
-                    .invert(&public_key.modulus)
-                    .unwrap(),
+                .iter()
+                .map(|share| &share.0.c1)
+                .product::<Integer>()
+                .invert(&public_key.modulus)
+                .unwrap(),
         ))
-        .rem(&public_key.modulus))
+            .rem(&public_key.modulus))
     }
 }
 
 /// Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires t out of n parties to
 /// successfully decrypt.
+#[derive(Copy, Clone)]
 pub struct TOfNIntegerElGamal;
 
 /// One of the partial keys, of which t must be used to decrypt successfully.
-pub struct TOfNIntegerElGamalPartialKey {
-    id: i32,
-    key: Integer,
+pub struct TOfNIntegerElGamalSK {
+    pub(crate) id: i32,
+    pub(crate) key: Integer,
 }
 
 /// A partially decrypted ciphertext, of which t must be combined to decrypt successfully.
-pub struct TOfNIntegerElGamalDecryptionShare {
+pub struct TOfNIntegerElGamalShare {
     id: i32,
     c1: Integer,
     c2: Integer,
 }
 
-impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
-    type Plaintext = Integer;
-    type Ciphertext = IntegerElGamalCiphertext;
-    type RichCiphertext<'pk> = RichIntegerElGamalCiphertext<'pk>;
-    type PublicKey = IntegerElGamalPK;
-    type PartialKey = TOfNIntegerElGamalPartialKey;
-    type DecryptionShare = TOfNIntegerElGamalDecryptionShare;
-
+impl TOfNCryptosystem<'_, IntegerElGamalPK, TOfNIntegerElGamalSK, TOfNIntegerElGamalShare> for TOfNIntegerElGamal {
     fn generate_keys<R: SecureRng>(
+        &self,
         security_param: &BitsOfSecurity,
         threshold_t: usize,
         key_count_n: usize,
         rng: &mut GeneralRng<R>,
-    ) -> (Self::PublicKey, Vec<Self::PartialKey>) {
+    ) -> (IntegerElGamalPK, Vec<TOfNIntegerElGamalSK>) {
         let modulus = gen_safe_prime(security_param.to_public_key_bit_length(), rng);
 
         let q = Integer::from(&modulus >> 1);
@@ -135,7 +115,7 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
             .map(|_| Integer::from(q.random_below_ref(&mut rng.rug_rng())))
             .collect();
 
-        let partial_keys: Vec<TOfNIntegerElGamalPartialKey> = (1..=key_count_n)
+        let partial_keys: Vec<TOfNIntegerElGamalSK> = (1..=key_count_n)
             .map(|i| {
                 let mut key = Integer::from(&master_key);
 
@@ -146,7 +126,7 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
                     .rem(&q);
                 }
 
-                TOfNIntegerElGamalPartialKey { id: i as i32, key }
+                TOfNIntegerElGamalSK { id: i as i32, key }
             })
             .collect();
 
@@ -160,43 +140,31 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
             partial_keys,
         )
     }
+}
 
-    fn encrypt<R: SecureRng>(
-        plaintext: &Self::Plaintext,
-        public_key: &Self::PublicKey,
-        rng: &mut GeneralRng<R>,
-    ) -> Self::Ciphertext {
-        let q = Integer::from(&public_key.modulus >> 1);
-        let y = q.random_below(&mut rng.rug_rng());
+impl SecretKey<'_, IntegerElGamalPK> for TOfNIntegerElGamalSK {
+    type Plaintext = TOfNIntegerElGamalShare;
+    type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
 
-        IntegerElGamalCiphertext {
-            c1: Integer::from(Integer::from(4).secure_pow_mod_ref(&y, &public_key.modulus)),
-            c2: (plaintext
-                * Integer::from(public_key.h.secure_pow_mod_ref(&y, &public_key.modulus)))
-            .rem(&public_key.modulus),
-        }
-    }
-
-    fn partially_decrypt(
-        rich_ciphertext: &RichIntegerElGamalCiphertext,
-        partial_key: &Self::PartialKey,
-    ) -> Self::DecryptionShare {
-        TOfNIntegerElGamalDecryptionShare {
-            id: partial_key.id,
+    fn decrypt(&self, associated_ciphertext: &AssociatedIntegerElGamalCiphertext) -> Self::Plaintext {
+        TOfNIntegerElGamalShare {
+            id: self.id,
             c1: Integer::from(
-                rich_ciphertext
+                associated_ciphertext
                     .ciphertext
                     .c1
-                    .secure_pow_mod_ref(&partial_key.key, &rich_ciphertext.public_key.modulus),
+                    .secure_pow_mod_ref(&self.key, &associated_ciphertext.public_key.modulus),
             ),
-            c2: rich_ciphertext.ciphertext.c2.clone(),
+            c2: associated_ciphertext.ciphertext.c2.clone(),
         }
     }
+}
 
-    fn combine(
-        decryption_shares: &[Self::DecryptionShare],
-        public_key: &Self::PublicKey,
-    ) -> Result<Self::Plaintext, DecryptionError> {
+impl DecryptionShare for TOfNIntegerElGamalShare {
+    type Plaintext = Integer;
+    type PublicKey = IntegerElGamalPK;
+
+    fn combine(decryption_shares: &[Self], public_key: &Self::PublicKey) -> Result<Self::Plaintext, DecryptionError> {
         let q = Integer::from(&public_key.modulus >> 1);
 
         let multiplied: Integer = decryption_shares
@@ -217,10 +185,10 @@ impl AsymmetricTOfNCryptosystem for TOfNIntegerElGamal {
                     b = (b * Integer::from(decryption_shares[i_prime].id)).rem(&q);
                     b = (b
                         * (Integer::from(decryption_shares[i_prime].id)
-                            - Integer::from(decryption_shares[i].id))
+                        - Integer::from(decryption_shares[i].id))
                         .invert(&q)
                         .unwrap())
-                    .rem(&q);
+                        .rem(&q);
                 }
 
                 Integer::from(share.c1.pow_mod_ref(&b, &public_key.modulus).unwrap())
@@ -245,7 +213,7 @@ mod tests {
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{
-        AsymmetricNOfNCryptosystem, AsymmetricTOfNCryptosystem,
+        NOfNCryptosystem, TOfNCryptosystem,
     };
 
     #[test]

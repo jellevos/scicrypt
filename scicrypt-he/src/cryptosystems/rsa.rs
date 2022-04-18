@@ -1,6 +1,6 @@
 use rug::Integer;
 use scicrypt_numbertheory::gen_rsa_modulus;
-use scicrypt_traits::cryptosystems::{Associable, AssociatedCiphertext, AsymmetricCryptosystem, PublicKey, SecretKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -25,10 +25,23 @@ pub struct RsaCiphertext {
     c: Integer,
 }
 
-impl Associable<RsaPK> for RsaCiphertext { }
+pub struct AssociatedRsaCiphertext<'pk> {
+    ciphertext: RsaCiphertext,
+    public_key: &'pk RsaPK,
+}
 
-impl AsymmetricCryptosystem<RsaPK, RsaSK> for Rsa {
+impl RsaCiphertext {
+    pub fn associate(self, public_key: &RsaPK) -> AssociatedRsaCiphertext {
+        AssociatedRsaCiphertext {
+            ciphertext: self,
+            public_key,
+        }
+    }
+}
+
+impl AsymmetricCryptosystem<'_, RsaPK, RsaSK> for Rsa {
     fn generate_keys<R: SecureRng>(
+        &self,
         security_param: &BitsOfSecurity,
         rng: &mut GeneralRng<R>,
     ) -> (RsaPK, RsaSK) {
@@ -43,20 +56,20 @@ impl AsymmetricCryptosystem<RsaPK, RsaSK> for Rsa {
 
 impl PublicKey for RsaPK {
     type Plaintext = Integer;
-    type Ciphertext = RsaCiphertext;
+    type Ciphertext<'pk> = AssociatedRsaCiphertext<'pk>;
 
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(&self, plaintext: IntoP, rng: &mut GeneralRng<R>) -> AssociatedCiphertext<Self, Self::Ciphertext> where Self: Sized {
+    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(&self, plaintext: IntoP, _rng: &mut GeneralRng<R>) -> AssociatedRsaCiphertext {
         RsaCiphertext {
-            c: Integer::from(plaintext.pow_mod_ref(&self.e, &self.n).unwrap()),
-        }.associate()
+            c: Integer::from(plaintext.into().pow_mod_ref(&self.e, &self.n).unwrap()),
+        }.associate(self)
     }
 }
 
-impl SecretKey<RsaPK> for RsaSK {
+impl SecretKey<'_, RsaPK> for RsaSK {
     type Plaintext = Integer;
-    type Ciphertext = RsaCiphertext;
+    type Ciphertext<'pk> = AssociatedRsaCiphertext<'pk>;
 
-    fn decrypt(&self, associated_ciphertext: &AssociatedCiphertext<RsaPK, Self::Ciphertext>) -> Self::Plaintext {
+    fn decrypt(&self, associated_ciphertext: &AssociatedRsaCiphertext) -> Self::Plaintext {
         Integer::from(
             associated_ciphertext
                 .ciphertext
@@ -66,11 +79,11 @@ impl SecretKey<RsaPK> for RsaSK {
     }
 }
 
-impl<'pk> Mul for &AssociatedCiphertext<'pk, RsaPK, RsaCiphertext> {
-    type Output = AssociatedCiphertext<'pk, RsaPK, RsaCiphertext>;
+impl<'pk> Mul for &AssociatedRsaCiphertext<'pk> {
+    type Output = AssociatedRsaCiphertext<'pk>;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        AssociatedCiphertext {
+        AssociatedRsaCiphertext {
             ciphertext: RsaCiphertext {
                 c: Integer::from(&self.ciphertext.c * &rhs.ciphertext.c).rem(&self.public_key.n),
             },
