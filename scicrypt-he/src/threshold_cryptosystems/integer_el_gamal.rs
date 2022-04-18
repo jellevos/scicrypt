@@ -228,35 +228,32 @@ impl DecryptionShare for TOfNIntegerElGamalShare {
 
 #[cfg(test)]
 mod tests {
-    use crate::threshold_cryptosystems::integer_el_gamal::{
-        NOfNIntegerElGamal, TOfNIntegerElGamal,
-    };
+    use crate::threshold_cryptosystems::integer_el_gamal::{NOfNIntegerElGamal, NOfNIntegerElGamalShare, TOfNIntegerElGamal, TOfNIntegerElGamalShare};
     use rand_core::OsRng;
     use rug::Integer;
+    use scicrypt_traits::cryptosystems::{PublicKey, SecretKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
-    use scicrypt_traits::threshold_cryptosystems::{
-        NOfNCryptosystem, TOfNCryptosystem,
-    };
+    use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem, TOfNCryptosystem};
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sks) =
-            NOfNIntegerElGamal::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, 3, &mut rng);
+        let el_gamal = NOfNIntegerElGamal::setup(&Default::default());
+        let (pk, sks) = el_gamal.generate_keys(3, &mut rng);
 
         let plaintext = Integer::from(25);
 
-        let ciphertext = NOfNIntegerElGamal::encrypt(&plaintext, &pk, &mut rng).enrich(&pk);
+        let ciphertext = pk.encrypt(Integer::from(&plaintext), &mut rng);
 
-        let share_1 = NOfNIntegerElGamal::partially_decrypt(&ciphertext, &sks[0]);
-        let share_2 = NOfNIntegerElGamal::partially_decrypt(&ciphertext, &sks[1]);
-        let share_3 = NOfNIntegerElGamal::partially_decrypt(&ciphertext, &sks[2]);
+        let share_1 = sks[0].decrypt(&ciphertext);
+        let share_2 = sks[1].decrypt(&ciphertext);
+        let share_3 = sks[2].decrypt(&ciphertext);
 
         assert_eq!(
             plaintext,
-            NOfNIntegerElGamal::combine(&vec![share_1, share_2, share_3], &pk).unwrap()
+            NOfNIntegerElGamalShare::combine(&[share_1, share_2, share_3], &pk).unwrap()
         );
     }
 
@@ -264,8 +261,8 @@ mod tests {
     fn test_encrypt_decrypt_2_of_3() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sks) = TOfNIntegerElGamal::generate_keys(
-            &BitsOfSecurity::Other { pk_bits: 160 },
+        let el_gamal = TOfNIntegerElGamal::setup(&Default::default());
+        let (pk, sks) = el_gamal.generate_keys(
             2,
             3,
             &mut rng,
@@ -273,14 +270,14 @@ mod tests {
 
         let plaintext = Integer::from(2100u64);
 
-        let ciphertext = TOfNIntegerElGamal::encrypt(&plaintext, &pk, &mut rng).enrich(&pk);
+        let ciphertext = pk.encrypt(Integer::from(&plaintext), &mut rng);
 
-        let share_1 = TOfNIntegerElGamal::partially_decrypt(&ciphertext, &sks[0]);
-        let share_3 = TOfNIntegerElGamal::partially_decrypt(&ciphertext, &sks[2]);
+        let share_1 = sks[0].decrypt(&ciphertext);
+        let share_3 = sks[2].decrypt(&ciphertext);
 
         assert_eq!(
             plaintext,
-            TOfNIntegerElGamal::combine(&vec![share_1, share_3], &pk).unwrap()
+            TOfNIntegerElGamalShare::combine(&[share_1, share_3], &pk).unwrap()
         );
     }
 }

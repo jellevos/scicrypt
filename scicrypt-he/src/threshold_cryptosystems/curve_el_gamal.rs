@@ -176,33 +176,33 @@ impl DecryptionShare for TOfNCurveElGamalShare {
 
 #[cfg(test)]
 mod tests {
-    use crate::threshold_cryptosystems::curve_el_gamal::{NOfNCurveElGamal, TOfNCurveElGamal};
+    use crate::threshold_cryptosystems::curve_el_gamal::{NOfNCurveElGamal, NOfNCurveElGamalShare, TOfNCurveElGamal, TOfNCurveElGamalShare};
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
+    use scicrypt_traits::cryptosystems::{PublicKey, SecretKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
-    use scicrypt_traits::threshold_cryptosystems::{
-        NOfNCryptosystem, TOfNCryptosystem,
-    };
+    use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem, TOfNCryptosystem};
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sks) = NOfNCurveElGamal::generate_keys(&BitsOfSecurity::default(), 3, &mut rng);
+        let el_gamal = NOfNCurveElGamal::setup(&BitsOfSecurity::default());
+        let (pk, sks) = el_gamal.generate_keys(3, &mut rng);
 
         let plaintext = &Scalar::from(19u64) * &RISTRETTO_BASEPOINT_TABLE;
 
-        let ciphertext = NOfNCurveElGamal::encrypt(&plaintext, &pk, &mut rng).enrich(&pk);
+        let ciphertext = pk.encrypt(plaintext, &mut rng);
 
-        let share_1 = NOfNCurveElGamal::partially_decrypt(&ciphertext, &sks[0]);
-        let share_2 = NOfNCurveElGamal::partially_decrypt(&ciphertext, &sks[1]);
-        let share_3 = NOfNCurveElGamal::partially_decrypt(&ciphertext, &sks[2]);
+        let share_1 = sks[0].decrypt(&ciphertext);
+        let share_2 = sks[1].decrypt(&ciphertext);
+        let share_3 = sks[2].decrypt(&ciphertext);
 
         assert_eq!(
             plaintext,
-            NOfNCurveElGamal::combine(&vec![share_1, share_2, share_3], &pk).unwrap()
+            NOfNCurveElGamalShare::combine(&[share_1, share_2, share_3], &pk).unwrap()
         );
     }
 
@@ -210,18 +210,19 @@ mod tests {
     fn test_encrypt_decrypt_2_of_3() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sks) = TOfNCurveElGamal::generate_keys(&BitsOfSecurity::default(), 2, 3, &mut rng);
+        let el_gamal = TOfNCurveElGamal::setup(&BitsOfSecurity::default());
+        let (pk, sks) = el_gamal.generate_keys(2, 3, &mut rng);
 
         let plaintext = &Scalar::from(21u64) * &RISTRETTO_BASEPOINT_TABLE;
 
-        let ciphertext = TOfNCurveElGamal::encrypt(&plaintext, &pk, &mut rng).enrich(&pk);
+        let ciphertext = pk.encrypt(plaintext, &mut rng);
 
-        let share_1 = TOfNCurveElGamal::partially_decrypt(&ciphertext, &sks[0]);
-        let share_3 = TOfNCurveElGamal::partially_decrypt(&ciphertext, &sks[2]);
+        let share_1 = sks[0].decrypt(&ciphertext);
+        let share_3 = sks[2].decrypt(&ciphertext);
 
         assert_eq!(
             plaintext,
-            TOfNCurveElGamal::combine(&vec![share_1, share_3], &pk).unwrap()
+            TOfNCurveElGamalShare::combine(&[share_1, share_3], &pk).unwrap()
         );
     }
 }

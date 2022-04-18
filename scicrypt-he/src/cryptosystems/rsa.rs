@@ -99,30 +99,26 @@ impl<'pk> Mul for &AssociatedRsaCiphertext<'pk> {
     }
 }
 
-// TODO: Add later as trait and impl
-// impl<'pk> RichRSACiphertext<'pk> {
-//     /// Computes the ciphertext corresponding to the plaintext raised to a scalar power.
-//     pub fn pow(&self, rhs: &Integer) -> RichRSACiphertext {
-//         RichRSACiphertext {
-//             ciphertext: RsaCiphertext {
-//                 c: Integer::from(
-//                     self.ciphertext
-//                         .c
-//                         .pow_mod_ref(rhs, &self.public_key.n)
-//                         .unwrap(),
-//                 ),
-//             },
-//             public_key: self.public_key,
-//         }
-//     }
-// }
+impl<'pk> AssociatedRsaCiphertext<'pk> {
+    /// Computes the ciphertext corresponding to the plaintext raised to a scalar power.
+    pub fn pow(&self, rhs: &Integer) -> AssociatedRsaCiphertext {
+        RsaCiphertext {
+            c: Integer::from(
+                self.ciphertext
+                    .c
+                    .pow_mod_ref(rhs, &self.public_key.n)
+                    .unwrap(),
+            ),
+        }.associate(self.public_key)
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use crate::cryptosystems::rsa::Rsa;
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
 
@@ -130,13 +126,14 @@ mod tests {
     fn test_encrypt_decrypt_generator() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sk) = Rsa::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
+        let rsa = Rsa::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = Rsa::encrypt(&Integer::from(15), &pk, &mut rng);
+        let ciphertext = pk.encrypt(15, &mut rng);
 
         assert_eq!(
-            Integer::from(15),
-            Rsa::decrypt(&ciphertext.enrich(&pk), &sk)
+            15,
+            sk.decrypt(&ciphertext)
         );
     }
 
@@ -144,23 +141,25 @@ mod tests {
     fn test_homomorphic_mul() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sk) = Rsa::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
+        let rsa = Rsa::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = Rsa::encrypt(&Integer::from(7), &pk, &mut rng).enrich(&pk);
+        let ciphertext = pk.encrypt(7, &mut rng);
         let ciphertext_twice = &ciphertext * &ciphertext;
 
-        assert_eq!(Integer::from(49), Rsa::decrypt(&ciphertext_twice, &sk));
+        assert_eq!(49, sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
     fn test_homomorphic_scalar_pow() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sk) = Rsa::generate_keys(&BitsOfSecurity::Other { pk_bits: 160 }, &mut rng);
+        let rsa = Rsa::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = Rsa::encrypt(&Integer::from(9), &pk, &mut rng).enrich(&pk);
+        let ciphertext = pk.encrypt(9, &mut rng);
         let ciphertext_twice = ciphertext.pow(&Integer::from(4));
 
-        assert_eq!(Integer::from(6561), Rsa::decrypt(&ciphertext_twice, &sk));
+        assert_eq!(Integer::from(6561), sk.decrypt(&ciphertext_twice));
     }
 }

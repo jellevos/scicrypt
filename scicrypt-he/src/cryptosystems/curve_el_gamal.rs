@@ -20,13 +20,21 @@ pub struct CurveElGamalCiphertext {
     pub(crate) c2: RistrettoPoint,
 }
 
+#[derive(Debug)]
 pub struct CurveElGamalPK {
     pub(crate) point: RistrettoPoint
 }
 
+#[derive(Debug)]
 pub struct AssociatedCurveElGamalCiphertext<'pk> {
     pub(crate) ciphertext: CurveElGamalCiphertext,
     pub(crate) public_key: &'pk CurveElGamalPK,
+}
+
+impl<'pk> PartialEq for AssociatedCurveElGamalCiphertext<'pk> {
+    fn eq(&self, other: &Self) -> bool {
+        self.ciphertext == other.ciphertext
+    }
 }
 
 pub struct CurveElGamalSK {
@@ -97,26 +105,26 @@ impl SecretKey<'_, CurveElGamalPK> for CurveElGamalSK {
     }
 }
 
-impl Add for &CurveElGamalCiphertext {
-    type Output = CurveElGamalCiphertext;
+impl<'pk> Add for &AssociatedCurveElGamalCiphertext<'pk> {
+    type Output = AssociatedCurveElGamalCiphertext<'pk>;
 
     /// Homomorphic operation between two ElGamal ciphertexts.
     fn add(self, rhs: Self) -> Self::Output {
         CurveElGamalCiphertext {
-            c1: self.c1 + rhs.c1,
-            c2: self.c2 + rhs.c2,
-        }
+            c1: self.ciphertext.c1 + rhs.ciphertext.c1,
+            c2: self.ciphertext.c2 + rhs.ciphertext.c2,
+        }.associate(self.public_key)
     }
 }
 
-impl Mul<&Scalar> for &CurveElGamalCiphertext {
-    type Output = CurveElGamalCiphertext;
+impl<'pk> Mul<&Scalar> for &AssociatedCurveElGamalCiphertext<'pk> {
+    type Output = AssociatedCurveElGamalCiphertext<'pk>;
 
     fn mul(self, rhs: &Scalar) -> Self::Output {
         CurveElGamalCiphertext {
-            c1: self.c1 * rhs,
-            c2: self.c2 * rhs,
-        }
+            c1: self.ciphertext.c1 * rhs,
+            c2: self.ciphertext.c2 * rhs,
+        }.associate(self.public_key)
     }
 }
 
@@ -126,7 +134,7 @@ mod tests {
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey};
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
     use scicrypt_traits::randomness::GeneralRng;
 
     #[test]
@@ -136,11 +144,11 @@ mod tests {
         let el_gamal = CurveElGamal::setup(&Default::default());
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&RISTRETTO_BASEPOINT_POINT, &mut rng);
+        let ciphertext = pk.encrypt(RISTRETTO_BASEPOINT_POINT, &mut rng);
 
         assert_eq!(
             RISTRETTO_BASEPOINT_POINT,
-            CurveElGamal::decrypt(&ciphertext.enrich(&pk), &sk)
+            sk.decrypt(&ciphertext)
         );
     }
 
@@ -148,10 +156,11 @@ mod tests {
     fn test_probabilistic_encryption() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, _) = CurveElGamal::generate_keys(&Default::default(), &mut rng);
+        let el_gamal = CurveElGamal::setup(&Default::default());
+        let (pk, _) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext1 = CurveElGamal::encrypt(&RISTRETTO_BASEPOINT_POINT, &pk, &mut rng);
-        let ciphertext2 = CurveElGamal::encrypt(&RISTRETTO_BASEPOINT_POINT, &pk, &mut rng);
+        let ciphertext1 = pk.encrypt(RISTRETTO_BASEPOINT_POINT, &mut rng);
+        let ciphertext2 = pk.encrypt(RISTRETTO_BASEPOINT_POINT, &mut rng);
 
         assert_ne!(ciphertext1, ciphertext2);
     }
@@ -160,14 +169,15 @@ mod tests {
     fn test_homomorphic_add() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sk) = CurveElGamal::generate_keys(&Default::default(), &mut rng);
+        let el_gamal = CurveElGamal::setup(&Default::default());
+        let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext = CurveElGamal::encrypt(&RISTRETTO_BASEPOINT_POINT, &pk, &mut rng);
+        let ciphertext = pk.encrypt(RISTRETTO_BASEPOINT_POINT, &mut rng);
         let ciphertext_twice = &ciphertext + &ciphertext;
 
         assert_eq!(
             &Scalar::from(2u64) * &RISTRETTO_BASEPOINT_POINT,
-            CurveElGamal::decrypt(&ciphertext_twice.enrich(&pk), &sk)
+            sk.decrypt(&ciphertext_twice)
         );
     }
 
@@ -175,14 +185,15 @@ mod tests {
     fn test_homomorphic_scalar_mul() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sk) = CurveElGamal::generate_keys(&Default::default(), &mut rng);
+        let el_gamal = CurveElGamal::setup(&Default::default());
+        let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext = CurveElGamal::encrypt(&RISTRETTO_BASEPOINT_POINT, &pk, &mut rng);
+        let ciphertext = pk.encrypt(RISTRETTO_BASEPOINT_POINT, &mut rng);
         let ciphertext_thrice = &ciphertext * &Scalar::from(3u64);
 
         assert_eq!(
             &Scalar::from(3u64) * &RISTRETTO_BASEPOINT_POINT,
-            CurveElGamal::decrypt(&ciphertext_thrice.enrich(&pk), &sk)
+            sk.decrypt(&ciphertext_thrice)
         );
     }
 }

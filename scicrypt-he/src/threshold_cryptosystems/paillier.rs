@@ -208,32 +208,33 @@ impl DecryptionShare for ThresholdPaillierShare {
 
 #[cfg(test)]
 mod tests {
-    use crate::threshold_cryptosystems::paillier::ThresholdPaillier;
+    use crate::threshold_cryptosystems::paillier::{ThresholdPaillier, ThresholdPaillierShare};
     use rand_core::OsRng;
     use rug::Integer;
+    use scicrypt_traits::cryptosystems::{PublicKey, SecretKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
-    use scicrypt_traits::threshold_cryptosystems::TOfNCryptosystem;
+    use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, TOfNCryptosystem};
 
     #[test]
     fn test_encrypt_decrypt_2_of_3() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sks) = ThresholdPaillier::generate_keys(
-            &BitsOfSecurity::Other { pk_bits: 160 },
+        let paillier = ThresholdPaillier::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let (pk, sks) = paillier.generate_keys(
             2,
             3,
             &mut rng,
         );
 
-        let ciphertext = ThresholdPaillier::encrypt(&Integer::from(19), &pk, &mut rng).enrich(&pk);
+        let ciphertext = pk.encrypt(19, &mut rng);
 
-        let share_1 = ThresholdPaillier::partially_decrypt(&ciphertext, &sks[0]);
-        let share_3 = ThresholdPaillier::partially_decrypt(&ciphertext, &sks[2]);
+        let share_1 = sks[0].decrypt(&ciphertext);
+        let share_3 = sks[2].decrypt(&ciphertext);
 
         assert_eq!(
-            Integer::from(19),
-            ThresholdPaillier::combine(&vec![share_1, share_3], &pk).unwrap()
+            19,
+            ThresholdPaillierShare::combine(&[share_1, share_3], &pk).unwrap()
         );
     }
 }
