@@ -18,11 +18,12 @@ use crate::DecryptionError;
 /// of that cryptosystem. Depending on the cryptosystem, those parameters could play an important
 /// role in deciding the level of security. As such, each cryptosystem should clearly indicate
 /// these.
-pub trait NOfNCryptosystem<'pk, PK: 'pk + PublicKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: SecretKey<'pk, PK>, DS: DecryptionShare>: Copy {
+pub trait NOfNCryptosystem<'pk, PK: 'pk + PublicKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: SecretKey<'pk, PK>, DS: DecryptionShare>: Clone {
+    fn setup(security_parameter: &BitsOfSecurity) -> Self;
+
     /// Generate a public key, and $n$ secret keys using a cryptographic RNG.
     fn generate_keys<R: SecureRng>(
         &self,
-        security_param: &BitsOfSecurity,
         key_count_n: usize,
         rng: &mut GeneralRng<R>,
     ) -> (PK, Vec<SK>);
@@ -54,11 +55,12 @@ pub trait DecryptionShare: Sized {
 /// of that cryptosystem. Depending on the cryptosystem, those parameters could play an important
 /// role in deciding the level of security. As such, each cryptosystem should clearly indicate
 /// these.
-pub trait TOfNCryptosystem<'pk, PK: 'pk + PublicKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: SecretKey<'pk, PK>, DS: DecryptionShare>: Copy {
+pub trait TOfNCryptosystem<'pk, PK: 'pk + PublicKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: SecretKey<'pk, PK>, DS: DecryptionShare>: Clone {
+    fn setup(security_parameter: &BitsOfSecurity) -> Self;
+
     /// Generate a public and private key pair using a cryptographic RNG.
     fn generate_keys<R: SecureRng>(
         &self,
-        security_param: &BitsOfSecurity,
         threshold_t: usize,
         key_count_n: usize,
         rng: &mut GeneralRng<R>,

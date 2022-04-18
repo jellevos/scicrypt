@@ -52,11 +52,7 @@ impl CurveElGamalSK {
 }
 
 impl AsymmetricCryptosystem<'_, CurveElGamalPK, CurveElGamalSK> for CurveElGamal {
-    fn generate_keys<R: SecureRng>(
-        &self,
-        security_param: &BitsOfSecurity,
-        rng: &mut GeneralRng<R>,
-    ) -> (CurveElGamalPK, CurveElGamalSK) {
+    fn setup(security_param: &BitsOfSecurity) -> Self {
         match security_param {
             BitsOfSecurity::AES128 => (),
             _ => panic!(
@@ -64,6 +60,13 @@ impl AsymmetricCryptosystem<'_, CurveElGamalPK, CurveElGamalSK> for CurveElGamal
             ),
         }
 
+        CurveElGamal {}
+    }
+
+    fn generate_keys<R: SecureRng>(
+        &self,
+        rng: &mut GeneralRng<R>,
+    ) -> (CurveElGamalPK, CurveElGamalSK) {
         let secret_key = Scalar::random(rng.rng());
         let public_key = &secret_key * &RISTRETTO_BASEPOINT_TABLE;
 
@@ -123,16 +126,17 @@ mod tests {
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey};
     use scicrypt_traits::randomness::GeneralRng;
 
     #[test]
     fn test_encrypt_decrypt_generator() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let (pk, sk) = CurveElGamal::generate_keys(&Default::default(), &mut rng);
+        let el_gamal = CurveElGamal::setup(&Default::default());
+        let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext = CurveElGamal::encrypt(&RISTRETTO_BASEPOINT_POINT, &pk, &mut rng);
+        let ciphertext = pk.encrypt(&RISTRETTO_BASEPOINT_POINT, &mut rng);
 
         assert_eq!(
             RISTRETTO_BASEPOINT_POINT,

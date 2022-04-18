@@ -9,6 +9,8 @@
 //! Paillier, ElGamal and RSA. We also implement several threshold versions of the cryptosystems,
 //! where multiple keys must be used to successfully decrypt a ciphertext.
 
+mod constants;
+
 /// Partially homomorphic cryptosystems with one key.
 pub mod cryptosystems;
 

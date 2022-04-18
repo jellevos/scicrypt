@@ -9,7 +9,9 @@ use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKe
 
 /// The Paillier cryptosystem.
 #[derive(Copy, Clone)]
-pub struct Paillier;
+pub struct Paillier {
+    modulus_size: u32,
+}
 
 /// Public key for the Paillier cryptosystem.
 pub struct PaillierPK {
@@ -42,6 +44,12 @@ impl PaillierCiphertext {  // Associable<PaillierPK, AssociatedPaillierCiphertex
 }
 
 impl AsymmetricCryptosystem<'_, PaillierPK, PaillierSK> for Paillier {
+    fn setup(security_param: &BitsOfSecurity) -> Self {
+        Paillier {
+            modulus_size: security_param.to_public_key_bit_length(),
+        }
+    }
+
     /// Generates a fresh Paillier keypair.
     /// ```
     /// # use scicrypt_traits::randomness::GeneralRng;
@@ -54,10 +62,9 @@ impl AsymmetricCryptosystem<'_, PaillierPK, PaillierSK> for Paillier {
     /// ```
     fn generate_keys<R: SecureRng>(
         &self,
-        security_param: &BitsOfSecurity,
         rng: &mut GeneralRng<R>,
     ) -> (PaillierPK, PaillierSK) {
-        let (n, lambda) = gen_rsa_modulus(security_param.to_public_key_bit_length(), rng);
+        let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
 
         let g = &n + Integer::from(1);
         let mu = Integer::from(lambda.invert_ref(&n).unwrap());

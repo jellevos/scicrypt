@@ -21,12 +21,7 @@ pub struct NOfNCurveElGamalSK {
 pub struct NOfNCurveElGamalShare(CurveElGamalCiphertext);
 
 impl NOfNCryptosystem<'_, CurveElGamalPK, NOfNCurveElGamalSK, NOfNCurveElGamalShare> for NOfNCurveElGamal {
-    fn generate_keys<R: SecureRng>(
-        &self,
-        security_param: &BitsOfSecurity,
-        key_count_n: usize,
-        rng: &mut GeneralRng<R>,
-    ) -> (CurveElGamalPK, Vec<NOfNCurveElGamalSK>) {
+    fn setup(security_param: &BitsOfSecurity) -> Self {
         match security_param {
             BitsOfSecurity::AES128 => (),
             _ => panic!(
@@ -34,6 +29,14 @@ impl NOfNCryptosystem<'_, CurveElGamalPK, NOfNCurveElGamalSK, NOfNCurveElGamalSh
             ),
         }
 
+        NOfNCurveElGamal { }
+    }
+
+    fn generate_keys<R: SecureRng>(
+        &self,
+        key_count_n: usize,
+        rng: &mut GeneralRng<R>,
+    ) -> (CurveElGamalPK, Vec<NOfNCurveElGamalSK>) {
         let partial_keys: Vec<NOfNCurveElGamalSK> = (0..key_count_n)
             .map(|_| NOfNCurveElGamalSK { key: Scalar::random(rng.rng()) })
             .collect();
@@ -79,13 +82,7 @@ pub struct TOfNCurveElGamalShare {
 }
 
 impl TOfNCryptosystem<'_, CurveElGamalPK, TOfNCurveElGamalSK, TOfNCurveElGamalShare> for TOfNCurveElGamal {
-    fn generate_keys<R: SecureRng>(
-        &self,
-        security_param: &BitsOfSecurity,
-        threshold_t: usize,
-        key_count_n: usize,
-        rng: &mut GeneralRng<R>,
-    ) -> (CurveElGamalPK, Vec<TOfNCurveElGamalSK>) {
+    fn setup(security_param: &BitsOfSecurity) -> Self {
         match security_param {
             BitsOfSecurity::AES128 => (),
             _ => panic!(
@@ -93,6 +90,15 @@ impl TOfNCryptosystem<'_, CurveElGamalPK, TOfNCurveElGamalSK, TOfNCurveElGamalSh
             ),
         }
 
+        TOfNCurveElGamal { }
+    }
+
+    fn generate_keys<R: SecureRng>(
+        &self,
+        threshold_t: usize,
+        key_count_n: usize,
+        rng: &mut GeneralRng<R>,
+    ) -> (CurveElGamalPK, Vec<TOfNCurveElGamalSK>) {
         let master_key = Scalar::random(rng.rng());
 
         let coefficients: Vec<Scalar> = (0..(threshold_t - 1))

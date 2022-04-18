@@ -9,12 +9,13 @@ use crate::security::BitsOfSecurity;
 /// The struct that implements an `AsymmetricCryptosystem` will hold the general parameters of that
 /// cryptosystem. Depending on the cryptosystem, those parameters could play an important role in
 /// deciding the level of security. As such, each cryptosystem should clearly indicate these.
-pub trait AsymmetricCryptosystem<'pk, PK: 'pk + PublicKey<Plaintext = SK::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: SecretKey<'pk, PK>>: Copy {
+pub trait AsymmetricCryptosystem<'pk, PK: 'pk + PublicKey<Plaintext = SK::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: SecretKey<'pk, PK>>: Clone {
+    fn setup(security_parameter: &BitsOfSecurity) -> Self;
+
     /// Generate a public and private key pair using a cryptographic RNG. The level of security is
     /// determined by the computational `security_parameter`.
     fn generate_keys<R: SecureRng>(
         &self,
-        security_parameter: &BitsOfSecurity,
         rng: &mut GeneralRng<R>,
     ) -> (PK, SK);
 }

@@ -11,7 +11,9 @@ use scicrypt_traits::cryptosystems::{PublicKey, SecretKey};
 /// Threshold Paillier cryptosystem: Extension of Paillier that requires t out of n parties to
 /// successfully decrypt.
 #[derive(Copy, Clone)]
-pub struct ThresholdPaillier;
+pub struct ThresholdPaillier {
+    modulus_size: u32,
+}
 
 /// The public key for encryption.
 pub struct ThresholdPaillierPK {
@@ -44,15 +46,20 @@ pub struct ThresholdPaillierShare {
 }
 
 impl TOfNCryptosystem<'_, ThresholdPaillierPK, ThresholdPaillierSK, ThresholdPaillierShare> for ThresholdPaillier {
+    fn setup(security_param: &BitsOfSecurity) -> Self {
+        ThresholdPaillier {
+            modulus_size: security_param.to_public_key_bit_length(),
+        }
+    }
+
     fn generate_keys<R: SecureRng>(
         &self,
-        security_param: &BitsOfSecurity,
         threshold_t: usize,
         key_count_n: usize,
         rng: &mut GeneralRng<R>,
     ) -> (ThresholdPaillierPK, Vec<ThresholdPaillierSK>) {
-        let prime_p = gen_safe_prime(security_param.to_public_key_bit_length() / 2, rng);
-        let prime_q = gen_safe_prime(security_param.to_public_key_bit_length() / 2, rng);
+        let prime_p = gen_safe_prime(self.modulus_size / 2, rng);
+        let prime_q = gen_safe_prime(self.modulus_size / 2, rng);
 
         let subprime_p = Integer::from(&prime_p >> 1);
         let subprime_q = Integer::from(&prime_q >> 1);

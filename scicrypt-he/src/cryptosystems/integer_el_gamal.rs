@@ -5,6 +5,7 @@ use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use std::ops::{Mul, Rem};
+use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 
 /// Multiplicatively homomorphic ElGamal over a safe prime group where the generator is 4.
 ///
@@ -26,8 +27,10 @@ use std::ops::{Mul, Rem};
 /// println!("[4] * [6] = [{}]", IntegerElGamal::decrypt(&(&rich_ciphertext_1 * &rich_ciphertext_2), &secret_key));
 /// // Prints: "[4] * [6] = [24]".
 /// ```
-#[derive(Copy, Clone)]
-pub struct IntegerElGamal;
+#[derive(Clone)]
+pub struct IntegerElGamal {
+    modulus: Integer,
+}
 
 /// Public key containing the ElGamal encryption key and the modulus of the group.
 pub struct IntegerElGamalPK {
@@ -60,6 +63,18 @@ pub struct IntegerElGamalSK {
 }
 
 impl AsymmetricCryptosystem<'_, IntegerElGamalPK, IntegerElGamalSK> for IntegerElGamal {
+    /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
+    fn setup(security_param: &BitsOfSecurity) -> Self {
+        IntegerElGamal {
+            modulus: Integer::from_str_radix(match security_param.to_public_key_bit_length() {
+                1024 => SAFE_PRIME_1024,
+                2048 => SAFE_PRIME_2048,
+                3072 => SAFE_PRIME_3072,
+                _ => panic!("No parameters available for this security parameter"),
+            }, 16).unwrap(),
+        }
+    }
+
     /// Generates a fresh ElGamal keypair.
     /// ```
     /// # use scicrypt_traits::randomness::GeneralRng;
@@ -72,19 +87,16 @@ impl AsymmetricCryptosystem<'_, IntegerElGamalPK, IntegerElGamalSK> for IntegerE
     /// ```
     fn generate_keys<R: SecureRng>(
         &self,
-        security_param: &BitsOfSecurity,
         rng: &mut GeneralRng<R>,
     ) -> (IntegerElGamalPK, IntegerElGamalSK) {
-        let modulus = gen_safe_prime(security_param.to_public_key_bit_length(), rng);
-
-        let q = Integer::from(&modulus >> 1);
+        let q = Integer::from(&self.modulus >> 1);
         let secret_key = q.random_below(&mut rng.rug_rng());
-        let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&secret_key, &modulus));
+        let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&secret_key, &self.modulus));
 
         (
             IntegerElGamalPK {
                 h: public_key,
-                modulus,
+                modulus: Integer::from(&self.modulus),
             },
             IntegerElGamalSK { key: secret_key},
         )

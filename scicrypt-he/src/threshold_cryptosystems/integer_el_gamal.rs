@@ -8,36 +8,48 @@ use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem
 use scicrypt_traits::DecryptionError;
 use std::ops::Rem;
 use scicrypt_traits::cryptosystems::{SecretKey};
+use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 
 /// N-out-of-N Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires n out of n parties to
 /// successfully decrypt. For this scheme there exists an efficient distributed key generation protocol.
-#[derive(Copy, Clone)]
-pub struct NOfNIntegerElGamal;
+#[derive(Clone)]
+pub struct NOfNIntegerElGamal {
+    modulus: Integer,
+}
 
 pub struct NOfNIntegerElGamalSK {
     key: Integer
 }
 
 impl NOfNCryptosystem<'_, IntegerElGamalPK, NOfNIntegerElGamalSK, NOfNIntegerElGamalShare> for NOfNIntegerElGamal {
+    /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
+    fn setup(security_param: &BitsOfSecurity) -> Self {
+        NOfNIntegerElGamal {
+            modulus: Integer::from_str_radix(match security_param.to_public_key_bit_length() {
+                1024 => SAFE_PRIME_1024,
+                2048 => SAFE_PRIME_2048,
+                3072 => SAFE_PRIME_3072,
+                _ => panic!("No parameters available for this security parameter"),
+            }, 16).unwrap(),
+        }
+    }
+
     fn generate_keys<R: SecureRng>(
         &self,
-        security_param: &BitsOfSecurity,
         key_count_n: usize,
         rng: &mut GeneralRng<R>,
     ) -> (IntegerElGamalPK, Vec<NOfNIntegerElGamalSK>) {
-        let modulus = gen_safe_prime(security_param.to_public_key_bit_length(), rng);
-
         let partial_keys: Vec<NOfNIntegerElGamalSK> = (0..key_count_n)
-            .map(|_| NOfNIntegerElGamalSK { key: Integer::from(modulus.random_below_ref(&mut rng.rug_rng())) })
+            .map(|_| NOfNIntegerElGamalSK { key: Integer::from(self.modulus.random_below_ref(&mut rng.rug_rng())) })
             .collect();
 
         let master_key: Integer = partial_keys.iter().map(|k| &k.key).sum();
-        let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &modulus));
+        let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &self.modulus));
 
         (
             IntegerElGamalPK {
                 h: public_key,
-                modulus,
+                modulus: Integer::from(&self.modulus),
             },
             partial_keys,
         )
@@ -82,8 +94,10 @@ impl DecryptionShare for NOfNIntegerElGamalShare {
 
 /// Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires t out of n parties to
 /// successfully decrypt.
-#[derive(Copy, Clone)]
-pub struct TOfNIntegerElGamal;
+#[derive(Clone)]
+pub struct TOfNIntegerElGamal {
+    modulus: Integer,
+}
 
 /// One of the partial keys, of which t must be used to decrypt successfully.
 pub struct TOfNIntegerElGamalSK {
@@ -99,16 +113,25 @@ pub struct TOfNIntegerElGamalShare {
 }
 
 impl TOfNCryptosystem<'_, IntegerElGamalPK, TOfNIntegerElGamalSK, TOfNIntegerElGamalShare> for TOfNIntegerElGamal {
+    /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
+    fn setup(security_param: &BitsOfSecurity) -> Self {
+        TOfNIntegerElGamal {
+            modulus: Integer::from_str_radix(match security_param.to_public_key_bit_length() {
+                1024 => SAFE_PRIME_1024,
+                2048 => SAFE_PRIME_2048,
+                3072 => SAFE_PRIME_3072,
+                _ => panic!("No parameters available for this security parameter"),
+            }, 16).unwrap(),
+        }
+    }
+
     fn generate_keys<R: SecureRng>(
         &self,
-        security_param: &BitsOfSecurity,
         threshold_t: usize,
         key_count_n: usize,
         rng: &mut GeneralRng<R>,
     ) -> (IntegerElGamalPK, Vec<TOfNIntegerElGamalSK>) {
-        let modulus = gen_safe_prime(security_param.to_public_key_bit_length(), rng);
-
-        let q = Integer::from(&modulus >> 1);
+        let q = Integer::from(&self.modulus >> 1);
         let master_key = Integer::from(q.random_below_ref(&mut rng.rug_rng()));
 
         let coefficients: Vec<Integer> = (0..(threshold_t - 1))
@@ -130,12 +153,12 @@ impl TOfNCryptosystem<'_, IntegerElGamalPK, TOfNIntegerElGamalSK, TOfNIntegerElG
             })
             .collect();
 
-        let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &modulus));
+        let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &self.modulus));
 
         (
             IntegerElGamalPK {
                 h: public_key,
-                modulus,
+                modulus: Integer::from(&self.modulus),
             },
             partial_keys,
         )

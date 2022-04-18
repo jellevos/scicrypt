@@ -8,7 +8,9 @@ use std::ops::{Mul, Rem};
 
 /// The RSA cryptosystem.
 #[derive(Copy, Clone)]
-pub struct Rsa;
+pub struct Rsa {
+    modulus_size: u32,
+}
 
 /// Public key for the RSA cryptosystem.
 pub struct RsaPK {
@@ -40,12 +42,17 @@ impl RsaCiphertext {
 }
 
 impl AsymmetricCryptosystem<'_, RsaPK, RsaSK> for Rsa {
+    fn setup(security_param: &BitsOfSecurity) -> Self {
+        Rsa {
+            modulus_size: security_param.to_public_key_bit_length(),
+        }
+    }
+
     fn generate_keys<R: SecureRng>(
         &self,
-        security_param: &BitsOfSecurity,
         rng: &mut GeneralRng<R>,
     ) -> (RsaPK, RsaSK) {
-        let (n, lambda) = gen_rsa_modulus(security_param.to_public_key_bit_length(), rng);
+        let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
 
         let e = Integer::from(65537);
         let d = Integer::from(e.invert_ref(&lambda).unwrap());
