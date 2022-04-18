@@ -55,10 +55,8 @@ impl DecryptionKey<'_, CurveElGamalPK> for NOfNCurveElGamalSK {
     type Ciphertext<'pk> = AssociatedCurveElGamalCiphertext<'pk>;
 
     fn decrypt(&self, associated_ciphertext: &AssociatedCurveElGamalCiphertext) -> Self::Plaintext {
-        NOfNCurveElGamalShare {
-            0: CurveElGamalCiphertext { c1: self.key * associated_ciphertext.ciphertext.c1,
-                c2: associated_ciphertext.ciphertext.c2, }
-        }
+        NOfNCurveElGamalShare(CurveElGamalCiphertext { c1: self.key * associated_ciphertext.ciphertext.c1,
+                c2: associated_ciphertext.ciphertext.c2 })
     }
 }
 
@@ -66,6 +64,7 @@ impl DecryptionShare for NOfNCurveElGamalShare {
     type Plaintext = RistrettoPoint;
     type PublicKey = CurveElGamalPK;
 
+    #[allow(clippy::op_ref)]
     fn combine(decryption_shares: &[Self], _public_key: &Self::PublicKey) -> Result<Self::Plaintext, DecryptionError> {
         Ok(decryption_shares[0].0.c2 - &decryption_shares.iter().map(|share| share.0.c1).sum())
     }

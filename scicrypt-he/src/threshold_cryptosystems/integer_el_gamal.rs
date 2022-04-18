@@ -64,14 +64,12 @@ impl DecryptionKey<'_, IntegerElGamalPK> for NOfNIntegerElGamalSK {
     type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
 
     fn decrypt(&self, associated_ciphertext: &AssociatedIntegerElGamalCiphertext) -> Self::Plaintext {
-        NOfNIntegerElGamalShare {
-            0: IntegerElGamalCiphertext { c1: Integer::from(
+        NOfNIntegerElGamalShare(IntegerElGamalCiphertext { c1: Integer::from(
                 associated_ciphertext
                     .ciphertext
                     .c1
                     .secure_pow_mod_ref(&self.key, &associated_ciphertext.public_key.modulus),
-            ), c2: Integer::from(&associated_ciphertext.ciphertext.c2), }
-        }
+            ), c2: Integer::from(&associated_ciphertext.ciphertext.c2), })
     }
 }
 

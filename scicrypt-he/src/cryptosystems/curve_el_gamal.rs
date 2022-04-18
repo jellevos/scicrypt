@@ -95,7 +95,7 @@ impl EncryptionKey for CurveElGamalPK {
         CurveElGamalCiphertext {
             c1: &y * &RISTRETTO_BASEPOINT_TABLE,
             c2: plaintext.into() + y * self.point,
-        }.associate(&self)
+        }.associate(self)
     }
 }
 

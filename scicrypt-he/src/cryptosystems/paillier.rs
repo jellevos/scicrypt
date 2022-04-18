@@ -102,7 +102,7 @@ impl EncryptionKey for PaillierPK {
 
         PaillierCiphertext {
             c: (first * second).rem(&n_squared),
-        }.associate(&self)
+        }.associate(self)
     }
 }
 

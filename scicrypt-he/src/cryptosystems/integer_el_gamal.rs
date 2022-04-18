@@ -131,7 +131,7 @@ impl EncryptionKey for IntegerElGamalPK {
             c2: (plaintext.into()
                 * Integer::from(self.h.secure_pow_mod_ref(&y, &self.modulus)))
                 .rem(&self.modulus),
-        }.associate(&self)
+        }.associate(self)
     }
 }
 
