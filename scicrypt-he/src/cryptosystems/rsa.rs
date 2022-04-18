@@ -1,6 +1,6 @@
 use rug::Integer;
 use scicrypt_numbertheory::gen_rsa_modulus;
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -18,21 +18,24 @@ pub struct RsaPK {
     e: Integer,
 }
 
+/// Decryption key for RSA
 pub struct RsaSK {
     d: Integer,
 }
 
-/// Ciphertext of the Paillier cryptosystem, which is multiplicatively homomorphic.
+/// Ciphertext of the RSA cryptosystem, which is multiplicatively homomorphic.
 pub struct RsaCiphertext {
     c: Integer,
 }
 
+/// Ciphertext of the RSA cryptosystem, with an associated public key
 pub struct AssociatedRsaCiphertext<'pk> {
     ciphertext: RsaCiphertext,
     public_key: &'pk RsaPK,
 }
 
 impl RsaCiphertext {
+    /// Associate the ciphertext with a public key
     pub fn associate(self, public_key: &RsaPK) -> AssociatedRsaCiphertext {
         AssociatedRsaCiphertext {
             ciphertext: self,
@@ -61,7 +64,7 @@ impl AsymmetricCryptosystem<'_, RsaPK, RsaSK> for Rsa {
     }
 }
 
-impl PublicKey for RsaPK {
+impl EncryptionKey for RsaPK {
     type Plaintext = Integer;
     type Ciphertext<'pk> = AssociatedRsaCiphertext<'pk>;
 
@@ -72,7 +75,7 @@ impl PublicKey for RsaPK {
     }
 }
 
-impl SecretKey<'_, RsaPK> for RsaSK {
+impl DecryptionKey<'_, RsaPK> for RsaSK {
     type Plaintext = Integer;
     type Ciphertext<'pk> = AssociatedRsaCiphertext<'pk>;
 
@@ -118,7 +121,7 @@ mod tests {
     use crate::cryptosystems::rsa::Rsa;
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
 

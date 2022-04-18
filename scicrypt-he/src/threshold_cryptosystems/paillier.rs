@@ -6,7 +6,7 @@ use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, TOfNCryptosystem};
 use scicrypt_traits::{DecryptionError};
 use std::ops::Rem;
-use scicrypt_traits::cryptosystems::{PublicKey, SecretKey};
+use scicrypt_traits::cryptosystems::{EncryptionKey, DecryptionKey};
 
 /// Threshold Paillier cryptosystem: Extension of Paillier that requires t out of n parties to
 /// successfully decrypt.
@@ -34,6 +34,7 @@ pub struct ThresholdPaillierCiphertext {
     c: Integer,
 }
 
+/// A ciphertext for T-out-of-N paillier with an associated public key
 pub struct AssociatedThresholdPaillierCiphertext<'pk> {
     ciphertext: ThresholdPaillierCiphertext,
     public_key: &'pk ThresholdPaillierPK,
@@ -105,8 +106,8 @@ impl TOfNCryptosystem<'_, ThresholdPaillierPK, ThresholdPaillierSK, ThresholdPai
     }
 }
 
-// impl Associable<ThresholdPaillierPK> for ThresholdPaillierCiphertext { }
 impl ThresholdPaillierCiphertext {
+    /// Associates the ciphertext with a public key
     pub fn associate(self, public_key: &ThresholdPaillierPK) -> AssociatedThresholdPaillierCiphertext {
         AssociatedThresholdPaillierCiphertext {
             ciphertext: self,
@@ -115,7 +116,7 @@ impl ThresholdPaillierCiphertext {
     }
 }
 
-impl PublicKey for ThresholdPaillierPK {
+impl EncryptionKey for ThresholdPaillierPK {
     type Plaintext = Integer;
     type Ciphertext<'pk> = AssociatedThresholdPaillierCiphertext<'pk>;
 
@@ -137,7 +138,7 @@ impl PublicKey for ThresholdPaillierPK {
     }
 }
 
-impl SecretKey<'_, ThresholdPaillierPK> for ThresholdPaillierSK {
+impl DecryptionKey<'_, ThresholdPaillierPK> for ThresholdPaillierSK {
     type Plaintext = ThresholdPaillierShare;
     type Ciphertext<'pk> = AssociatedThresholdPaillierCiphertext<'pk>;
 
@@ -211,7 +212,7 @@ mod tests {
     use crate::threshold_cryptosystems::paillier::{ThresholdPaillier, ThresholdPaillierShare};
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{PublicKey, SecretKey};
+    use scicrypt_traits::cryptosystems::{EncryptionKey, DecryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, TOfNCryptosystem};

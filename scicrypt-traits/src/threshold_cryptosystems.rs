@@ -1,4 +1,4 @@
-use crate::cryptosystems::{PublicKey, SecretKey};
+use crate::cryptosystems::{EncryptionKey, DecryptionKey};
 use crate::randomness::GeneralRng;
 use crate::randomness::SecureRng;
 use crate::security::BitsOfSecurity;
@@ -18,7 +18,8 @@ use crate::DecryptionError;
 /// of that cryptosystem. Depending on the cryptosystem, those parameters could play an important
 /// role in deciding the level of security. As such, each cryptosystem should clearly indicate
 /// these.
-pub trait NOfNCryptosystem<'pk, PK: 'pk + PublicKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: SecretKey<'pk, PK>, DS: DecryptionShare>: Clone {
+pub trait NOfNCryptosystem<'pk, PK: 'pk + EncryptionKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: DecryptionKey<'pk, PK>, DS: DecryptionShare>: Clone {
+    /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
 
     /// Generate a public key, and $n$ secret keys using a cryptographic RNG.
@@ -29,8 +30,12 @@ pub trait NOfNCryptosystem<'pk, PK: 'pk + PublicKey<Plaintext = DS::Plaintext, C
     ) -> (PK, Vec<SK>);
 }
 
+/// A `DecryptionShare` is the result of decrypting with a partial key. When enough of these shares
+/// are combined, they reveal the actual decryption.
 pub trait DecryptionShare: Sized {
+    /// The type of the plaintext retrieved when decryption shares are combined.
     type Plaintext;
+    /// The public key that created the original ciphertexts.
     type PublicKey;
 
     /// Combine $t$ decryption shares belonging to distinct partial keys to finish decryption. It is
@@ -55,7 +60,8 @@ pub trait DecryptionShare: Sized {
 /// of that cryptosystem. Depending on the cryptosystem, those parameters could play an important
 /// role in deciding the level of security. As such, each cryptosystem should clearly indicate
 /// these.
-pub trait TOfNCryptosystem<'pk, PK: 'pk + PublicKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: SecretKey<'pk, PK>, DS: DecryptionShare>: Clone {
+pub trait TOfNCryptosystem<'pk, PK: 'pk + EncryptionKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: DecryptionKey<'pk, PK>, DS: DecryptionShare>: Clone {
+    /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
 
     /// Generate a public and private key pair using a cryptographic RNG.

@@ -5,7 +5,7 @@ use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use std::ops::{Add, Mul, Rem};
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
 
 /// The Paillier cryptosystem.
 #[derive(Copy, Clone)]
@@ -19,6 +19,7 @@ pub struct PaillierPK {
     g: Integer,
 }
 
+/// Decryption key for the Paillier cryptosystem.
 pub struct PaillierSK {
     lambda: Integer,
     mu: Integer,
@@ -29,6 +30,7 @@ pub struct PaillierCiphertext {
     c: Integer,
 }
 
+/// Ciphertext of the Paillier cryptosystem, with an associated public key
 pub struct AssociatedPaillierCiphertext<'pk> {
     ciphertext: PaillierCiphertext,
     public_key: &'pk PaillierPK,
@@ -74,7 +76,7 @@ impl AsymmetricCryptosystem<'_, PaillierPK, PaillierSK> for Paillier {
     }
 }
 
-impl PublicKey for PaillierPK {
+impl EncryptionKey for PaillierPK {
     type Plaintext = Integer;
     type Ciphertext<'pk> = AssociatedPaillierCiphertext<'pk>;
 
@@ -83,7 +85,7 @@ impl PublicKey for PaillierPK {
     /// # use scicrypt_traits::randomness::GeneralRng;
     /// # use scicrypt_he::cryptosystems::paillier::Paillier;
     /// # use scicrypt_traits::security::BitsOfSecurity;
-    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey};
+    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
     /// # use rug::Integer;
     /// # use rand_core::OsRng;
     /// # let mut rng = GeneralRng::new(OsRng);
@@ -104,7 +106,7 @@ impl PublicKey for PaillierPK {
     }
 }
 
-impl SecretKey<'_, PaillierPK> for PaillierSK {
+impl DecryptionKey<'_, PaillierPK> for PaillierSK {
     type Plaintext = Integer;
     type Ciphertext<'pk> = AssociatedPaillierCiphertext<'pk>;
 
@@ -113,7 +115,7 @@ impl SecretKey<'_, PaillierPK> for PaillierSK {
     /// # use scicrypt_traits::randomness::GeneralRng;
     /// # use scicrypt_he::cryptosystems::paillier::Paillier;
     /// # use scicrypt_traits::security::BitsOfSecurity;
-    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
     /// # use rug::Integer;
     /// # use rand_core::OsRng;
     /// # let mut rng = GeneralRng::new(OsRng);
@@ -175,7 +177,7 @@ mod tests {
     use crate::cryptosystems::paillier::Paillier;
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
 

@@ -1,6 +1,5 @@
 use rug::Integer;
-use scicrypt_numbertheory::gen_safe_prime;
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -14,7 +13,7 @@ use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 /// # use scicrypt_traits::randomness::GeneralRng;
 /// # use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
 /// # use scicrypt_traits::security::BitsOfSecurity;
-/// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+/// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
 /// # use rand_core::OsRng;
 /// # use rug::Integer;
 /// let mut rng = GeneralRng::new(OsRng);
@@ -44,6 +43,7 @@ pub struct IntegerElGamalCiphertext {
     pub(crate) c2: Integer,
 }
 
+/// ElGamal ciphertext of integers, associated with a public key
 pub struct AssociatedIntegerElGamalCiphertext<'pk> {
     pub(crate) ciphertext: IntegerElGamalCiphertext,
     pub(crate) public_key: &'pk IntegerElGamalPK,
@@ -58,6 +58,7 @@ impl IntegerElGamalCiphertext {  //Associable<IntegerElGamalPK, AssociatedIntege
     }
 }
 
+/// Decryption key for Integer-based ElGamal
 pub struct IntegerElGamalSK {
     pub(crate) key: Integer,
 }
@@ -104,7 +105,7 @@ impl AsymmetricCryptosystem<'_, IntegerElGamalPK, IntegerElGamalSK> for IntegerE
     }
 }
 
-impl PublicKey for IntegerElGamalPK {
+impl EncryptionKey for IntegerElGamalPK {
     type Plaintext = Integer;
     type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
 
@@ -113,7 +114,7 @@ impl PublicKey for IntegerElGamalPK {
     /// # use scicrypt_traits::randomness::GeneralRng;
     /// # use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
     /// # use scicrypt_traits::security::BitsOfSecurity;
-    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey};
+    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
     /// # use rand_core::OsRng;
     /// # use rug::Integer;
     /// # let mut rng = GeneralRng::new(OsRng);
@@ -134,7 +135,7 @@ impl PublicKey for IntegerElGamalPK {
     }
 }
 
-impl SecretKey<'_, IntegerElGamalPK> for IntegerElGamalSK {
+impl DecryptionKey<'_, IntegerElGamalPK> for IntegerElGamalSK {
     type Plaintext = Integer;
     type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
 
@@ -143,7 +144,7 @@ impl SecretKey<'_, IntegerElGamalPK> for IntegerElGamalSK {
     /// # use scicrypt_traits::randomness::GeneralRng;
     /// # use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
     /// # use scicrypt_traits::security::BitsOfSecurity;
-    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
     /// # use rug::Integer;
     /// # use rand_core::OsRng;
     /// # let mut rng = GeneralRng::new(OsRng);
@@ -208,7 +209,7 @@ mod tests {
     use crate::cryptosystems::integer_el_gamal::IntegerElGamal;
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
 

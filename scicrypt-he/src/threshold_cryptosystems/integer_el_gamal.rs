@@ -1,13 +1,12 @@
 use crate::cryptosystems::integer_el_gamal::{AssociatedIntegerElGamalCiphertext, IntegerElGamalCiphertext, IntegerElGamalPK};
 use rug::Integer;
-use scicrypt_numbertheory::gen_safe_prime;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem, TOfNCryptosystem};
 use scicrypt_traits::DecryptionError;
 use std::ops::Rem;
-use scicrypt_traits::cryptosystems::{SecretKey};
+use scicrypt_traits::cryptosystems::{DecryptionKey};
 use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 
 /// N-out-of-N Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires n out of n parties to
@@ -17,6 +16,7 @@ pub struct NOfNIntegerElGamal {
     modulus: Integer,
 }
 
+/// Decryption key for N-out-of-N Integer-based ElGamal
 pub struct NOfNIntegerElGamalSK {
     key: Integer
 }
@@ -56,9 +56,10 @@ impl NOfNCryptosystem<'_, IntegerElGamalPK, NOfNIntegerElGamalSK, NOfNIntegerElG
     }
 }
 
+/// Decryption share of N-out-of-N integer-based ElGamal
 pub struct NOfNIntegerElGamalShare(IntegerElGamalCiphertext);
 
-impl SecretKey<'_, IntegerElGamalPK> for NOfNIntegerElGamalSK {
+impl DecryptionKey<'_, IntegerElGamalPK> for NOfNIntegerElGamalSK {
     type Plaintext = NOfNIntegerElGamalShare;
     type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
 
@@ -165,7 +166,7 @@ impl TOfNCryptosystem<'_, IntegerElGamalPK, TOfNIntegerElGamalSK, TOfNIntegerElG
     }
 }
 
-impl SecretKey<'_, IntegerElGamalPK> for TOfNIntegerElGamalSK {
+impl DecryptionKey<'_, IntegerElGamalPK> for TOfNIntegerElGamalSK {
     type Plaintext = TOfNIntegerElGamalShare;
     type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
 
@@ -231,7 +232,7 @@ mod tests {
     use crate::threshold_cryptosystems::integer_el_gamal::{NOfNIntegerElGamal, NOfNIntegerElGamalShare, TOfNIntegerElGamal, TOfNIntegerElGamalShare};
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{PublicKey, SecretKey};
+    use scicrypt_traits::cryptosystems::{EncryptionKey, DecryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem, TOfNCryptosystem};

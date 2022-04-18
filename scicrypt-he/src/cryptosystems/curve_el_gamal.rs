@@ -1,7 +1,7 @@
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -20,11 +20,13 @@ pub struct CurveElGamalCiphertext {
     pub(crate) c2: RistrettoPoint,
 }
 
+/// Encryption key for curve-based ElGamal
 #[derive(Debug)]
 pub struct CurveElGamalPK {
     pub(crate) point: RistrettoPoint
 }
 
+/// Ciphertext for curve-based ElGamal with the associated public key
 #[derive(Debug)]
 pub struct AssociatedCurveElGamalCiphertext<'pk> {
     pub(crate) ciphertext: CurveElGamalCiphertext,
@@ -37,6 +39,7 @@ impl<'pk> PartialEq for AssociatedCurveElGamalCiphertext<'pk> {
     }
 }
 
+/// Decryption key for curve-based ElGamal
 pub struct CurveElGamalSK {
     key: Scalar
 }
@@ -82,7 +85,7 @@ impl AsymmetricCryptosystem<'_, CurveElGamalPK, CurveElGamalSK> for CurveElGamal
     }
 }
 
-impl PublicKey for CurveElGamalPK {
+impl EncryptionKey for CurveElGamalPK {
     type Plaintext = RistrettoPoint;
     type Ciphertext<'pk> = AssociatedCurveElGamalCiphertext<'pk>;
 
@@ -96,7 +99,7 @@ impl PublicKey for CurveElGamalPK {
     }
 }
 
-impl SecretKey<'_, CurveElGamalPK> for CurveElGamalSK {
+impl DecryptionKey<'_, CurveElGamalPK> for CurveElGamalSK {
     type Plaintext = RistrettoPoint;
     type Ciphertext<'pk> = AssociatedCurveElGamalCiphertext<'pk>;
 
@@ -134,7 +137,7 @@ mod tests {
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, PublicKey, SecretKey};
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
 
     #[test]

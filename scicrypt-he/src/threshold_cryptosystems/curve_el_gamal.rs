@@ -2,7 +2,7 @@ use crate::cryptosystems::curve_el_gamal::{AssociatedCurveElGamalCiphertext, Cur
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use scicrypt_traits::cryptosystems::{SecretKey};
+use scicrypt_traits::cryptosystems::{DecryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -14,10 +14,12 @@ use scicrypt_traits::DecryptionError;
 #[derive(Copy, Clone)]
 pub struct NOfNCurveElGamal;
 
+/// Decryption key of N-out-of-N curve-based ElGamal
 pub struct NOfNCurveElGamalSK {
     key: Scalar,
 }
 
+/// Decryption share of N-out-of-N curve-based ElGamal
 pub struct NOfNCurveElGamalShare(CurveElGamalCiphertext);
 
 impl NOfNCryptosystem<'_, CurveElGamalPK, NOfNCurveElGamalSK, NOfNCurveElGamalShare> for NOfNCurveElGamal {
@@ -48,7 +50,7 @@ impl NOfNCryptosystem<'_, CurveElGamalPK, NOfNCurveElGamalSK, NOfNCurveElGamalSh
     }
 }
 
-impl SecretKey<'_, CurveElGamalPK> for NOfNCurveElGamalSK {
+impl DecryptionKey<'_, CurveElGamalPK> for NOfNCurveElGamalSK {
     type Plaintext = NOfNCurveElGamalShare;
     type Ciphertext<'pk> = AssociatedCurveElGamalCiphertext<'pk>;
 
@@ -64,7 +66,7 @@ impl DecryptionShare for NOfNCurveElGamalShare {
     type Plaintext = RistrettoPoint;
     type PublicKey = CurveElGamalPK;
 
-    fn combine(decryption_shares: &[Self], public_key: &Self::PublicKey) -> Result<Self::Plaintext, DecryptionError> {
+    fn combine(decryption_shares: &[Self], _public_key: &Self::PublicKey) -> Result<Self::Plaintext, DecryptionError> {
         Ok(decryption_shares[0].0.c2 - &decryption_shares.iter().map(|share| share.0.c1).sum())
     }
 }
@@ -127,7 +129,7 @@ struct TOfNCurveElGamalSK {
     key: Scalar,
 }
 
-impl SecretKey<'_, CurveElGamalPK> for TOfNCurveElGamalSK {
+impl DecryptionKey<'_, CurveElGamalPK> for TOfNCurveElGamalSK {
     type Plaintext = TOfNCurveElGamalShare;
     type Ciphertext<'pk> = AssociatedCurveElGamalCiphertext<'pk>;
 
@@ -180,7 +182,7 @@ mod tests {
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    use scicrypt_traits::cryptosystems::{PublicKey, SecretKey};
+    use scicrypt_traits::cryptosystems::{EncryptionKey, DecryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem, TOfNCryptosystem};
