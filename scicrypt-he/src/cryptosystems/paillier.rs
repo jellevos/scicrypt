@@ -1,11 +1,11 @@
 use rug::Integer;
 use scicrypt_numbertheory::{gen_coprime, gen_rsa_modulus};
 //use scicrypt_traits::cryptosystems::{Associable, AssociatedCiphertext, AsymmetricCryptosystem, PublicKey, SecretKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use std::ops::{Add, Mul, Rem};
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
 
 /// The Paillier cryptosystem.
 #[derive(Copy, Clone)]
@@ -36,11 +36,12 @@ pub struct AssociatedPaillierCiphertext<'pk> {
     public_key: &'pk PaillierPK,
 }
 
-impl PaillierCiphertext {  // Associable<PaillierPK, AssociatedPaillierCiphertext<'_>> for
+impl PaillierCiphertext {
+    // Associable<PaillierPK, AssociatedPaillierCiphertext<'_>> for
     fn associate(self, public_key: &PaillierPK) -> AssociatedPaillierCiphertext {
         AssociatedPaillierCiphertext {
             ciphertext: self,
-            public_key
+            public_key,
         }
     }
 }
@@ -63,10 +64,7 @@ impl AsymmetricCryptosystem<'_, PaillierPK, PaillierSK> for Paillier {
     /// let paillier = Paillier::setup(&BitsOfSecurity::Other {pk_bits: 160});
     /// let (public_key, secret_key) = paillier.generate_keys(&mut rng);
     /// ```
-    fn generate_keys<R: SecureRng>(
-        &self,
-        rng: &mut GeneralRng<R>,
-    ) -> (PaillierPK, PaillierSK) {
+    fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (PaillierPK, PaillierSK) {
         let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
 
         let g = &n + Integer::from(1);
@@ -93,7 +91,11 @@ impl EncryptionKey for PaillierPK {
     /// # let (public_key, secret_key) = paillier.generate_keys(&mut rng);
     /// let ciphertext = public_key.encrypt(5, &mut rng);
     /// ```
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(&self, plaintext: IntoP, rng: &mut GeneralRng<R>) -> AssociatedPaillierCiphertext {
+    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(
+        &self,
+        plaintext: IntoP,
+        rng: &mut GeneralRng<R>,
+    ) -> AssociatedPaillierCiphertext {
         let n_squared = Integer::from(self.n.square_ref());
         let r = gen_coprime(&n_squared, rng);
 
@@ -102,7 +104,8 @@ impl EncryptionKey for PaillierPK {
 
         PaillierCiphertext {
             c: (first * second).rem(&n_squared),
-        }.associate(self)
+        }
+        .associate(self)
     }
 }
 
@@ -177,7 +180,7 @@ mod tests {
     use crate::cryptosystems::paillier::Paillier;
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
 
@@ -190,10 +193,7 @@ mod tests {
 
         let ciphertext = pk.encrypt(15, &mut rng);
 
-        assert_eq!(
-            15,
-            sk.decrypt(&ciphertext)
-        );
+        assert_eq!(15, sk.decrypt(&ciphertext));
     }
 
     #[test]
@@ -219,9 +219,6 @@ mod tests {
         let ciphertext = pk.encrypt(9, &mut rng);
         let ciphertext_twice = &ciphertext * &Integer::from(16);
 
-        assert_eq!(
-            144,
-            sk.decrypt(&ciphertext_twice)
-        );
+        assert_eq!(144, sk.decrypt(&ciphertext_twice));
     }
 }

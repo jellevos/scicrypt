@@ -1,7 +1,7 @@
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -23,7 +23,7 @@ pub struct CurveElGamalCiphertext {
 /// Encryption key for curve-based ElGamal
 #[derive(Debug)]
 pub struct CurveElGamalPK {
-    pub(crate) point: RistrettoPoint
+    pub(crate) point: RistrettoPoint,
 }
 
 /// Ciphertext for curve-based ElGamal with the associated public key
@@ -41,10 +41,11 @@ impl<'pk> PartialEq for AssociatedCurveElGamalCiphertext<'pk> {
 
 /// Decryption key for curve-based ElGamal
 pub struct CurveElGamalSK {
-    key: Scalar
+    key: Scalar,
 }
 
-impl CurveElGamalCiphertext {  //Associable<CurveElGamalPK, AssociatedCurveElGamalCiphertext<'_>> for
+impl CurveElGamalCiphertext {
+    //Associable<CurveElGamalPK, AssociatedCurveElGamalCiphertext<'_>> for
     fn associate(self, public_key: &CurveElGamalPK) -> AssociatedCurveElGamalCiphertext {
         AssociatedCurveElGamalCiphertext {
             ciphertext: self,
@@ -54,10 +55,7 @@ impl CurveElGamalCiphertext {  //Associable<CurveElGamalPK, AssociatedCurveElGam
 }
 
 impl CurveElGamalSK {
-    fn decrypt_directly(
-        &self,
-        ciphertext: &CurveElGamalCiphertext,
-    ) -> RistrettoPoint {
+    fn decrypt_directly(&self, ciphertext: &CurveElGamalCiphertext) -> RistrettoPoint {
         ciphertext.c2 - self.key * ciphertext.c1
     }
 }
@@ -81,7 +79,10 @@ impl AsymmetricCryptosystem<'_, CurveElGamalPK, CurveElGamalSK> for CurveElGamal
         let secret_key = Scalar::random(rng.rng());
         let public_key = &secret_key * &RISTRETTO_BASEPOINT_TABLE;
 
-        (CurveElGamalPK { point: public_key }, CurveElGamalSK { key: secret_key })
+        (
+            CurveElGamalPK { point: public_key },
+            CurveElGamalSK { key: secret_key },
+        )
     }
 }
 
@@ -89,13 +90,18 @@ impl EncryptionKey for CurveElGamalPK {
     type Plaintext = RistrettoPoint;
     type Ciphertext<'pk> = AssociatedCurveElGamalCiphertext<'pk>;
 
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(&self, plaintext: IntoP, rng: &mut GeneralRng<R>) -> AssociatedCurveElGamalCiphertext {
+    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(
+        &self,
+        plaintext: IntoP,
+        rng: &mut GeneralRng<R>,
+    ) -> AssociatedCurveElGamalCiphertext {
         let y = Scalar::random(rng.rng());
 
         CurveElGamalCiphertext {
             c1: &y * &RISTRETTO_BASEPOINT_TABLE,
             c2: plaintext.into() + y * self.point,
-        }.associate(self)
+        }
+        .associate(self)
     }
 }
 
@@ -116,7 +122,8 @@ impl<'pk> Add for &AssociatedCurveElGamalCiphertext<'pk> {
         CurveElGamalCiphertext {
             c1: self.ciphertext.c1 + rhs.ciphertext.c1,
             c2: self.ciphertext.c2 + rhs.ciphertext.c2,
-        }.associate(self.public_key)
+        }
+        .associate(self.public_key)
     }
 }
 
@@ -127,7 +134,8 @@ impl<'pk> Mul<&Scalar> for &AssociatedCurveElGamalCiphertext<'pk> {
         CurveElGamalCiphertext {
             c1: self.ciphertext.c1 * rhs,
             c2: self.ciphertext.c2 * rhs,
-        }.associate(self.public_key)
+        }
+        .associate(self.public_key)
     }
 }
 
@@ -137,7 +145,7 @@ mod tests {
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
 
     #[test]
@@ -149,10 +157,7 @@ mod tests {
 
         let ciphertext = pk.encrypt(RISTRETTO_BASEPOINT_POINT, &mut rng);
 
-        assert_eq!(
-            RISTRETTO_BASEPOINT_POINT,
-            sk.decrypt(&ciphertext)
-        );
+        assert_eq!(RISTRETTO_BASEPOINT_POINT, sk.decrypt(&ciphertext));
     }
 
     #[test]

@@ -1,10 +1,10 @@
+use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 use rug::Integer;
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use std::ops::{Mul, Rem};
-use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 
 /// Multiplicatively homomorphic ElGamal over a safe prime group where the generator is 4.
 ///
@@ -49,11 +49,12 @@ pub struct AssociatedIntegerElGamalCiphertext<'pk> {
     pub(crate) public_key: &'pk IntegerElGamalPK,
 }
 
-impl IntegerElGamalCiphertext {  //Associable<IntegerElGamalPK, AssociatedIntegerElGamalCiphertext<'_>> for
+impl IntegerElGamalCiphertext {
+    //Associable<IntegerElGamalPK, AssociatedIntegerElGamalCiphertext<'_>> for
     fn associate(self, public_key: &IntegerElGamalPK) -> AssociatedIntegerElGamalCiphertext {
         AssociatedIntegerElGamalCiphertext {
             ciphertext: self,
-            public_key
+            public_key,
         }
     }
 }
@@ -67,12 +68,16 @@ impl AsymmetricCryptosystem<'_, IntegerElGamalPK, IntegerElGamalSK> for IntegerE
     /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
     fn setup(security_param: &BitsOfSecurity) -> Self {
         IntegerElGamal {
-            modulus: Integer::from_str_radix(match security_param.to_public_key_bit_length() {
-                1024 => SAFE_PRIME_1024,
-                2048 => SAFE_PRIME_2048,
-                3072 => SAFE_PRIME_3072,
-                _ => panic!("No parameters available for this security parameter"),
-            }, 16).unwrap(),
+            modulus: Integer::from_str_radix(
+                match security_param.to_public_key_bit_length() {
+                    1024 => SAFE_PRIME_1024,
+                    2048 => SAFE_PRIME_2048,
+                    3072 => SAFE_PRIME_3072,
+                    _ => panic!("No parameters available for this security parameter"),
+                },
+                16,
+            )
+            .unwrap(),
         }
     }
 
@@ -93,14 +98,15 @@ impl AsymmetricCryptosystem<'_, IntegerElGamalPK, IntegerElGamalSK> for IntegerE
     ) -> (IntegerElGamalPK, IntegerElGamalSK) {
         let q = Integer::from(&self.modulus >> 1);
         let secret_key = q.random_below(&mut rng.rug_rng());
-        let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&secret_key, &self.modulus));
+        let public_key =
+            Integer::from(Integer::from(4).secure_pow_mod_ref(&secret_key, &self.modulus));
 
         (
             IntegerElGamalPK {
                 h: public_key,
                 modulus: Integer::from(&self.modulus),
             },
-            IntegerElGamalSK { key: secret_key},
+            IntegerElGamalSK { key: secret_key },
         )
     }
 }
@@ -122,16 +128,20 @@ impl EncryptionKey for IntegerElGamalPK {
     /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
     /// let ciphertext = public_key.encrypt(5, &mut rng);
     /// ```
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(&self, plaintext: IntoP, rng: &mut GeneralRng<R>) -> AssociatedIntegerElGamalCiphertext {
+    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(
+        &self,
+        plaintext: IntoP,
+        rng: &mut GeneralRng<R>,
+    ) -> AssociatedIntegerElGamalCiphertext {
         let q = Integer::from(&self.modulus >> 1);
         let y = q.random_below(&mut rng.rug_rng());
 
         IntegerElGamalCiphertext {
             c1: Integer::from(Integer::from(4).secure_pow_mod_ref(&y, &self.modulus)),
-            c2: (plaintext.into()
-                * Integer::from(self.h.secure_pow_mod_ref(&y, &self.modulus)))
+            c2: (plaintext.into() * Integer::from(self.h.secure_pow_mod_ref(&y, &self.modulus)))
                 .rem(&self.modulus),
-        }.associate(self)
+        }
+        .associate(self)
     }
 }
 
@@ -154,17 +164,20 @@ impl DecryptionKey<'_, IntegerElGamalPK> for IntegerElGamalSK {
     /// println!("The decrypted message is {}", secret_key.decrypt(&ciphertext));
     /// // Prints: "The decrypted message is 5".
     /// ```
-    fn decrypt(&self, associated_ciphertext: &AssociatedIntegerElGamalCiphertext) -> Self::Plaintext {
+    fn decrypt(
+        &self,
+        associated_ciphertext: &AssociatedIntegerElGamalCiphertext,
+    ) -> Self::Plaintext {
         (&associated_ciphertext.ciphertext.c2
             * Integer::from(
-            associated_ciphertext
-                .ciphertext
-                .c1
-                .secure_pow_mod_ref(&self.key, &associated_ciphertext.public_key.modulus),
-        )
+                associated_ciphertext
+                    .ciphertext
+                    .c1
+                    .secure_pow_mod_ref(&self.key, &associated_ciphertext.public_key.modulus),
+            )
             .invert(&associated_ciphertext.public_key.modulus)
             .unwrap())
-            .rem(&associated_ciphertext.public_key.modulus)
+        .rem(&associated_ciphertext.public_key.modulus)
     }
 }
 
@@ -200,7 +213,8 @@ impl<'pk> AssociatedIntegerElGamalCiphertext<'pk> {
                     .pow_mod_ref(rhs, &self.public_key.modulus)
                     .unwrap(),
             ),
-        }.associate(self.public_key)
+        }
+        .associate(self.public_key)
     }
 }
 
@@ -209,7 +223,7 @@ mod tests {
     use crate::cryptosystems::integer_el_gamal::IntegerElGamal;
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
 
@@ -222,10 +236,7 @@ mod tests {
 
         let ciphertext = pk.encrypt(19, &mut rng);
 
-        assert_eq!(
-            19,
-            sk.decrypt(&ciphertext)
-        );
+        assert_eq!(19, sk.decrypt(&ciphertext));
     }
 
     #[test]
@@ -238,10 +249,7 @@ mod tests {
         let ciphertext = pk.encrypt(7, &mut rng);
         let ciphertext_twice = &ciphertext * &ciphertext;
 
-        assert_eq!(
-            49,
-            sk.decrypt(&ciphertext_twice)
-        );
+        assert_eq!(49, sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
@@ -254,9 +262,6 @@ mod tests {
         let ciphertext = pk.encrypt(9, &mut rng);
         let ciphertext_twice = ciphertext.pow(&Integer::from(4));
 
-        assert_eq!(
-            6561,
-            sk.decrypt(&ciphertext_twice)
-        );
+        assert_eq!(6561, sk.decrypt(&ciphertext_twice));
     }
 }

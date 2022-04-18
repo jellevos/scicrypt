@@ -1,13 +1,17 @@
-use crate::cryptosystems::integer_el_gamal::{AssociatedIntegerElGamalCiphertext, IntegerElGamalCiphertext, IntegerElGamalPK};
+use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
+use crate::cryptosystems::integer_el_gamal::{
+    AssociatedIntegerElGamalCiphertext, IntegerElGamalCiphertext, IntegerElGamalPK,
+};
 use rug::Integer;
+use scicrypt_traits::cryptosystems::DecryptionKey;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem, TOfNCryptosystem};
+use scicrypt_traits::threshold_cryptosystems::{
+    DecryptionShare, NOfNCryptosystem, TOfNCryptosystem,
+};
 use scicrypt_traits::DecryptionError;
 use std::ops::Rem;
-use scicrypt_traits::cryptosystems::{DecryptionKey};
-use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 
 /// N-out-of-N Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires n out of n parties to
 /// successfully decrypt. For this scheme there exists an efficient distributed key generation protocol.
@@ -18,19 +22,25 @@ pub struct NOfNIntegerElGamal {
 
 /// Decryption key for N-out-of-N Integer-based ElGamal
 pub struct NOfNIntegerElGamalSK {
-    key: Integer
+    key: Integer,
 }
 
-impl NOfNCryptosystem<'_, IntegerElGamalPK, NOfNIntegerElGamalSK, NOfNIntegerElGamalShare> for NOfNIntegerElGamal {
+impl NOfNCryptosystem<'_, IntegerElGamalPK, NOfNIntegerElGamalSK, NOfNIntegerElGamalShare>
+    for NOfNIntegerElGamal
+{
     /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
     fn setup(security_param: &BitsOfSecurity) -> Self {
         NOfNIntegerElGamal {
-            modulus: Integer::from_str_radix(match security_param.to_public_key_bit_length() {
-                1024 => SAFE_PRIME_1024,
-                2048 => SAFE_PRIME_2048,
-                3072 => SAFE_PRIME_3072,
-                _ => panic!("No parameters available for this security parameter"),
-            }, 16).unwrap(),
+            modulus: Integer::from_str_radix(
+                match security_param.to_public_key_bit_length() {
+                    1024 => SAFE_PRIME_1024,
+                    2048 => SAFE_PRIME_2048,
+                    3072 => SAFE_PRIME_3072,
+                    _ => panic!("No parameters available for this security parameter"),
+                },
+                16,
+            )
+            .unwrap(),
         }
     }
 
@@ -40,11 +50,14 @@ impl NOfNCryptosystem<'_, IntegerElGamalPK, NOfNIntegerElGamalSK, NOfNIntegerElG
         rng: &mut GeneralRng<R>,
     ) -> (IntegerElGamalPK, Vec<NOfNIntegerElGamalSK>) {
         let partial_keys: Vec<NOfNIntegerElGamalSK> = (0..key_count_n)
-            .map(|_| NOfNIntegerElGamalSK { key: Integer::from(self.modulus.random_below_ref(&mut rng.rug_rng())) })
+            .map(|_| NOfNIntegerElGamalSK {
+                key: Integer::from(self.modulus.random_below_ref(&mut rng.rug_rng())),
+            })
             .collect();
 
         let master_key: Integer = partial_keys.iter().map(|k| &k.key).sum();
-        let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &self.modulus));
+        let public_key =
+            Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &self.modulus));
 
         (
             IntegerElGamalPK {
@@ -63,13 +76,19 @@ impl DecryptionKey<'_, IntegerElGamalPK> for NOfNIntegerElGamalSK {
     type Plaintext = NOfNIntegerElGamalShare;
     type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
 
-    fn decrypt(&self, associated_ciphertext: &AssociatedIntegerElGamalCiphertext) -> Self::Plaintext {
-        NOfNIntegerElGamalShare(IntegerElGamalCiphertext { c1: Integer::from(
+    fn decrypt(
+        &self,
+        associated_ciphertext: &AssociatedIntegerElGamalCiphertext,
+    ) -> Self::Plaintext {
+        NOfNIntegerElGamalShare(IntegerElGamalCiphertext {
+            c1: Integer::from(
                 associated_ciphertext
                     .ciphertext
                     .c1
                     .secure_pow_mod_ref(&self.key, &associated_ciphertext.public_key.modulus),
-            ), c2: Integer::from(&associated_ciphertext.ciphertext.c2), })
+            ),
+            c2: Integer::from(&associated_ciphertext.ciphertext.c2),
+        })
     }
 }
 
@@ -77,17 +96,20 @@ impl DecryptionShare for NOfNIntegerElGamalShare {
     type Plaintext = Integer;
     type PublicKey = IntegerElGamalPK;
 
-    fn combine(decryption_shares: &[Self], public_key: &Self::PublicKey) -> Result<Self::Plaintext, DecryptionError> {
+    fn combine(
+        decryption_shares: &[Self],
+        public_key: &Self::PublicKey,
+    ) -> Result<Self::Plaintext, DecryptionError> {
         Ok((Integer::from(
             &decryption_shares[0].0.c2
                 * &decryption_shares
-                .iter()
-                .map(|share| &share.0.c1)
-                .product::<Integer>()
-                .invert(&public_key.modulus)
-                .unwrap(),
+                    .iter()
+                    .map(|share| &share.0.c1)
+                    .product::<Integer>()
+                    .invert(&public_key.modulus)
+                    .unwrap(),
         ))
-            .rem(&public_key.modulus))
+        .rem(&public_key.modulus))
     }
 }
 
@@ -111,16 +133,22 @@ pub struct TOfNIntegerElGamalShare {
     c2: Integer,
 }
 
-impl TOfNCryptosystem<'_, IntegerElGamalPK, TOfNIntegerElGamalSK, TOfNIntegerElGamalShare> for TOfNIntegerElGamal {
+impl TOfNCryptosystem<'_, IntegerElGamalPK, TOfNIntegerElGamalSK, TOfNIntegerElGamalShare>
+    for TOfNIntegerElGamal
+{
     /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
     fn setup(security_param: &BitsOfSecurity) -> Self {
         TOfNIntegerElGamal {
-            modulus: Integer::from_str_radix(match security_param.to_public_key_bit_length() {
-                1024 => SAFE_PRIME_1024,
-                2048 => SAFE_PRIME_2048,
-                3072 => SAFE_PRIME_3072,
-                _ => panic!("No parameters available for this security parameter"),
-            }, 16).unwrap(),
+            modulus: Integer::from_str_radix(
+                match security_param.to_public_key_bit_length() {
+                    1024 => SAFE_PRIME_1024,
+                    2048 => SAFE_PRIME_2048,
+                    3072 => SAFE_PRIME_3072,
+                    _ => panic!("No parameters available for this security parameter"),
+                },
+                16,
+            )
+            .unwrap(),
         }
     }
 
@@ -152,7 +180,8 @@ impl TOfNCryptosystem<'_, IntegerElGamalPK, TOfNIntegerElGamalSK, TOfNIntegerElG
             })
             .collect();
 
-        let public_key = Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &self.modulus));
+        let public_key =
+            Integer::from(Integer::from(4).secure_pow_mod_ref(&master_key, &self.modulus));
 
         (
             IntegerElGamalPK {
@@ -168,7 +197,10 @@ impl DecryptionKey<'_, IntegerElGamalPK> for TOfNIntegerElGamalSK {
     type Plaintext = TOfNIntegerElGamalShare;
     type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
 
-    fn decrypt(&self, associated_ciphertext: &AssociatedIntegerElGamalCiphertext) -> Self::Plaintext {
+    fn decrypt(
+        &self,
+        associated_ciphertext: &AssociatedIntegerElGamalCiphertext,
+    ) -> Self::Plaintext {
         TOfNIntegerElGamalShare {
             id: self.id,
             c1: Integer::from(
@@ -186,7 +218,10 @@ impl DecryptionShare for TOfNIntegerElGamalShare {
     type Plaintext = Integer;
     type PublicKey = IntegerElGamalPK;
 
-    fn combine(decryption_shares: &[Self], public_key: &Self::PublicKey) -> Result<Self::Plaintext, DecryptionError> {
+    fn combine(
+        decryption_shares: &[Self],
+        public_key: &Self::PublicKey,
+    ) -> Result<Self::Plaintext, DecryptionError> {
         let q = Integer::from(&public_key.modulus >> 1);
 
         let multiplied: Integer = decryption_shares
@@ -207,10 +242,10 @@ impl DecryptionShare for TOfNIntegerElGamalShare {
                     b = (b * Integer::from(decryption_shares[i_prime].id)).rem(&q);
                     b = (b
                         * (Integer::from(decryption_shares[i_prime].id)
-                        - Integer::from(decryption_shares[i].id))
+                            - Integer::from(decryption_shares[i].id))
                         .invert(&q)
                         .unwrap())
-                        .rem(&q);
+                    .rem(&q);
                 }
 
                 Integer::from(share.c1.pow_mod_ref(&b, &public_key.modulus).unwrap())
@@ -227,13 +262,17 @@ impl DecryptionShare for TOfNIntegerElGamalShare {
 
 #[cfg(test)]
 mod tests {
-    use crate::threshold_cryptosystems::integer_el_gamal::{NOfNIntegerElGamal, NOfNIntegerElGamalShare, TOfNIntegerElGamal, TOfNIntegerElGamalShare};
+    use crate::threshold_cryptosystems::integer_el_gamal::{
+        NOfNIntegerElGamal, NOfNIntegerElGamalShare, TOfNIntegerElGamal, TOfNIntegerElGamalShare,
+    };
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{EncryptionKey, DecryptionKey};
+    use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
-    use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem, TOfNCryptosystem};
+    use scicrypt_traits::threshold_cryptosystems::{
+        DecryptionShare, NOfNCryptosystem, TOfNCryptosystem,
+    };
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {
@@ -261,11 +300,7 @@ mod tests {
         let mut rng = GeneralRng::new(OsRng);
 
         let el_gamal = TOfNIntegerElGamal::setup(&Default::default());
-        let (pk, sks) = el_gamal.generate_keys(
-            2,
-            3,
-            &mut rng,
-        );
+        let (pk, sks) = el_gamal.generate_keys(2, 3, &mut rng);
 
         let plaintext = Integer::from(2100u64);
 

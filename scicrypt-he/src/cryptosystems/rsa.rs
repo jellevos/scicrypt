@@ -1,6 +1,6 @@
 use rug::Integer;
 use scicrypt_numbertheory::gen_rsa_modulus;
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -51,10 +51,7 @@ impl AsymmetricCryptosystem<'_, RsaPK, RsaSK> for Rsa {
         }
     }
 
-    fn generate_keys<R: SecureRng>(
-        &self,
-        rng: &mut GeneralRng<R>,
-    ) -> (RsaPK, RsaSK) {
+    fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (RsaPK, RsaSK) {
         let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
 
         let e = Integer::from(65537);
@@ -68,10 +65,15 @@ impl EncryptionKey for RsaPK {
     type Plaintext = Integer;
     type Ciphertext<'pk> = AssociatedRsaCiphertext<'pk>;
 
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(&self, plaintext: IntoP, _rng: &mut GeneralRng<R>) -> AssociatedRsaCiphertext {
+    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(
+        &self,
+        plaintext: IntoP,
+        _rng: &mut GeneralRng<R>,
+    ) -> AssociatedRsaCiphertext {
         RsaCiphertext {
             c: Integer::from(plaintext.into().pow_mod_ref(&self.e, &self.n).unwrap()),
-        }.associate(self)
+        }
+        .associate(self)
     }
 }
 
@@ -112,7 +114,8 @@ impl<'pk> AssociatedRsaCiphertext<'pk> {
                     .pow_mod_ref(rhs, &self.public_key.n)
                     .unwrap(),
             ),
-        }.associate(self.public_key)
+        }
+        .associate(self.public_key)
     }
 }
 
@@ -121,7 +124,7 @@ mod tests {
     use crate::cryptosystems::rsa::Rsa;
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
+    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
 
@@ -134,10 +137,7 @@ mod tests {
 
         let ciphertext = pk.encrypt(15, &mut rng);
 
-        assert_eq!(
-            15,
-            sk.decrypt(&ciphertext)
-        );
+        assert_eq!(15, sk.decrypt(&ciphertext));
     }
 
     #[test]

@@ -1,4 +1,4 @@
-use crate::cryptosystems::{EncryptionKey, DecryptionKey};
+use crate::cryptosystems::{DecryptionKey, EncryptionKey};
 use crate::randomness::GeneralRng;
 use crate::randomness::SecureRng;
 use crate::security::BitsOfSecurity;
@@ -18,7 +18,13 @@ use crate::DecryptionError;
 /// of that cryptosystem. Depending on the cryptosystem, those parameters could play an important
 /// role in deciding the level of security. As such, each cryptosystem should clearly indicate
 /// these.
-pub trait NOfNCryptosystem<'pk, PK: 'pk + EncryptionKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: DecryptionKey<'pk, PK>, DS: DecryptionShare>: Clone {
+pub trait NOfNCryptosystem<
+    'pk,
+    PK: 'pk + EncryptionKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>,
+    SK: DecryptionKey<'pk, PK>,
+    DS: DecryptionShare,
+>: Clone
+{
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
 
@@ -60,7 +66,13 @@ pub trait DecryptionShare: Sized {
 /// of that cryptosystem. Depending on the cryptosystem, those parameters could play an important
 /// role in deciding the level of security. As such, each cryptosystem should clearly indicate
 /// these.
-pub trait TOfNCryptosystem<'pk, PK: 'pk + EncryptionKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: DecryptionKey<'pk, PK>, DS: DecryptionShare>: Clone {
+pub trait TOfNCryptosystem<
+    'pk,
+    PK: 'pk + EncryptionKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>,
+    SK: DecryptionKey<'pk, PK>,
+    DS: DecryptionShare,
+>: Clone
+{
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
 

@@ -9,16 +9,18 @@ use crate::security::BitsOfSecurity;
 /// The struct that implements an `AsymmetricCryptosystem` will hold the general parameters of that
 /// cryptosystem. Depending on the cryptosystem, those parameters could play an important role in
 /// deciding the level of security. As such, each cryptosystem should clearly indicate these.
-pub trait AsymmetricCryptosystem<'pk, PK: 'pk + EncryptionKey<Plaintext = SK::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>, SK: DecryptionKey<'pk, PK>>: Clone {
+pub trait AsymmetricCryptosystem<
+    'pk,
+    PK: 'pk + EncryptionKey<Plaintext = SK::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>,
+    SK: DecryptionKey<'pk, PK>,
+>: Clone
+{
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
 
     /// Generate a public and private key pair using a cryptographic RNG. The level of security is
     /// determined by the computational `security_parameter`.
-    fn generate_keys<R: SecureRng>(
-        &self,
-        rng: &mut GeneralRng<R>,
-    ) -> (PK, SK);
+    fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (PK, SK);
 }
 
 /// The encryption key.
@@ -26,10 +28,16 @@ pub trait EncryptionKey: Sized {
     /// The type of the plaintexts to be encrypted.
     type Plaintext;
     /// The type of the encrypted plaintexts.
-    type Ciphertext<'pk> where Self: 'pk;
+    type Ciphertext<'pk>
+    where
+        Self: 'pk;
 
     /// Encrypt the plaintext using the public key and a cryptographic RNG.
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(&self, plaintext: IntoP, rng: &mut GeneralRng<R>) -> Self::Ciphertext<'_>;
+    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(
+        &self,
+        plaintext: IntoP,
+        rng: &mut GeneralRng<R>,
+    ) -> Self::Ciphertext<'_>;
 }
 
 /// The decryption key.

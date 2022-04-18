@@ -1,12 +1,16 @@
-use crate::cryptosystems::curve_el_gamal::{AssociatedCurveElGamalCiphertext, CurveElGamalCiphertext, CurveElGamalPK};
+use crate::cryptosystems::curve_el_gamal::{
+    AssociatedCurveElGamalCiphertext, CurveElGamalCiphertext, CurveElGamalPK,
+};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use scicrypt_traits::cryptosystems::{DecryptionKey};
+use scicrypt_traits::cryptosystems::DecryptionKey;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem, TOfNCryptosystem};
+use scicrypt_traits::threshold_cryptosystems::{
+    DecryptionShare, NOfNCryptosystem, TOfNCryptosystem,
+};
 use scicrypt_traits::DecryptionError;
 
 /// N-out-of-N Threshold ElGamal cryptosystem over elliptic curves: Extension of ElGamal that requires n out of n parties to
@@ -22,7 +26,9 @@ pub struct NOfNCurveElGamalSK {
 /// Decryption share of N-out-of-N curve-based ElGamal
 pub struct NOfNCurveElGamalShare(CurveElGamalCiphertext);
 
-impl NOfNCryptosystem<'_, CurveElGamalPK, NOfNCurveElGamalSK, NOfNCurveElGamalShare> for NOfNCurveElGamal {
+impl NOfNCryptosystem<'_, CurveElGamalPK, NOfNCurveElGamalSK, NOfNCurveElGamalShare>
+    for NOfNCurveElGamal
+{
     fn setup(security_param: &BitsOfSecurity) -> Self {
         match security_param {
             BitsOfSecurity::AES128 => (),
@@ -31,7 +37,7 @@ impl NOfNCryptosystem<'_, CurveElGamalPK, NOfNCurveElGamalSK, NOfNCurveElGamalSh
             ),
         }
 
-        NOfNCurveElGamal { }
+        NOfNCurveElGamal {}
     }
 
     fn generate_keys<R: SecureRng>(
@@ -40,7 +46,9 @@ impl NOfNCryptosystem<'_, CurveElGamalPK, NOfNCurveElGamalSK, NOfNCurveElGamalSh
         rng: &mut GeneralRng<R>,
     ) -> (CurveElGamalPK, Vec<NOfNCurveElGamalSK>) {
         let partial_keys: Vec<NOfNCurveElGamalSK> = (0..key_count_n)
-            .map(|_| NOfNCurveElGamalSK { key: Scalar::random(rng.rng()) })
+            .map(|_| NOfNCurveElGamalSK {
+                key: Scalar::random(rng.rng()),
+            })
             .collect();
 
         let master_key: Scalar = partial_keys.iter().map(|k| k.key).sum();
@@ -55,8 +63,10 @@ impl DecryptionKey<'_, CurveElGamalPK> for NOfNCurveElGamalSK {
     type Ciphertext<'pk> = AssociatedCurveElGamalCiphertext<'pk>;
 
     fn decrypt(&self, associated_ciphertext: &AssociatedCurveElGamalCiphertext) -> Self::Plaintext {
-        NOfNCurveElGamalShare(CurveElGamalCiphertext { c1: self.key * associated_ciphertext.ciphertext.c1,
-                c2: associated_ciphertext.ciphertext.c2 })
+        NOfNCurveElGamalShare(CurveElGamalCiphertext {
+            c1: self.key * associated_ciphertext.ciphertext.c1,
+            c2: associated_ciphertext.ciphertext.c2,
+        })
     }
 }
 
@@ -65,7 +75,10 @@ impl DecryptionShare for NOfNCurveElGamalShare {
     type PublicKey = CurveElGamalPK;
 
     #[allow(clippy::op_ref)]
-    fn combine(decryption_shares: &[Self], _public_key: &Self::PublicKey) -> Result<Self::Plaintext, DecryptionError> {
+    fn combine(
+        decryption_shares: &[Self],
+        _public_key: &Self::PublicKey,
+    ) -> Result<Self::Plaintext, DecryptionError> {
         Ok(decryption_shares[0].0.c2 - &decryption_shares.iter().map(|share| share.0.c1).sum())
     }
 }
@@ -82,7 +95,9 @@ pub struct TOfNCurveElGamalShare {
     c2: RistrettoPoint,
 }
 
-impl TOfNCryptosystem<'_, CurveElGamalPK, TOfNCurveElGamalSK, TOfNCurveElGamalShare> for TOfNCurveElGamal {
+impl TOfNCryptosystem<'_, CurveElGamalPK, TOfNCurveElGamalSK, TOfNCurveElGamalShare>
+    for TOfNCurveElGamal
+{
     fn setup(security_param: &BitsOfSecurity) -> Self {
         match security_param {
             BitsOfSecurity::AES128 => (),
@@ -91,7 +106,7 @@ impl TOfNCryptosystem<'_, CurveElGamalPK, TOfNCurveElGamalSK, TOfNCurveElGamalSh
             ),
         }
 
-        TOfNCurveElGamal { }
+        TOfNCurveElGamal {}
     }
 
     fn generate_keys<R: SecureRng>(
@@ -118,7 +133,12 @@ impl TOfNCryptosystem<'_, CurveElGamalPK, TOfNCurveElGamalSK, TOfNCurveElGamalSh
             })
             .collect();
 
-        (CurveElGamalPK { point: &master_key * &RISTRETTO_BASEPOINT_TABLE }, partial_keys)
+        (
+            CurveElGamalPK {
+                point: &master_key * &RISTRETTO_BASEPOINT_TABLE,
+            },
+            partial_keys,
+        )
     }
 }
 
@@ -145,7 +165,10 @@ impl DecryptionShare for TOfNCurveElGamalShare {
     type Plaintext = RistrettoPoint;
     type PublicKey = CurveElGamalPK;
 
-    fn combine(decryption_shares: &[Self], _public_key: &Self::PublicKey) -> Result<Self::Plaintext, DecryptionError> {
+    fn combine(
+        decryption_shares: &[Self],
+        _public_key: &Self::PublicKey,
+    ) -> Result<Self::Plaintext, DecryptionError> {
         let summed: RistrettoPoint = decryption_shares
             .iter()
             .enumerate()
@@ -164,7 +187,7 @@ impl DecryptionShare for TOfNCurveElGamalShare {
                     b *= Scalar::from(decryption_shares[i_prime].id as u64);
                     b *= (Scalar::from(decryption_shares[i_prime].id as u64)
                         - Scalar::from(decryption_shares[i].id as u64))
-                        .invert();
+                    .invert();
                 }
 
                 b * share.c1
@@ -177,14 +200,18 @@ impl DecryptionShare for TOfNCurveElGamalShare {
 
 #[cfg(test)]
 mod tests {
-    use crate::threshold_cryptosystems::curve_el_gamal::{NOfNCurveElGamal, NOfNCurveElGamalShare, TOfNCurveElGamal, TOfNCurveElGamalShare};
+    use crate::threshold_cryptosystems::curve_el_gamal::{
+        NOfNCurveElGamal, NOfNCurveElGamalShare, TOfNCurveElGamal, TOfNCurveElGamalShare,
+    };
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    use scicrypt_traits::cryptosystems::{EncryptionKey, DecryptionKey};
+    use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
-    use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, NOfNCryptosystem, TOfNCryptosystem};
+    use scicrypt_traits::threshold_cryptosystems::{
+        DecryptionShare, NOfNCryptosystem, TOfNCryptosystem,
+    };
 
     #[test]
     fn test_encrypt_decrypt_3_of_3() {
