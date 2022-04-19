@@ -19,12 +19,7 @@ pub fn paillier_benchmark(c: &mut Criterion) {
 
     // Benchmark encryption
     group.bench_function("paillier_encryption", |b| {
-        b.iter(|| {
-            public_key.encrypt(
-                &Integer::from(black_box(123456789u64)),
-                &mut rng,
-            )
-        })
+        b.iter(|| public_key.encrypt(&Integer::from(black_box(123456789u64)), &mut rng))
     });
 
     // let ciphertext = Paillier::encrypt(&Integer::from(123456789u64), &public_key, &mut rng);
