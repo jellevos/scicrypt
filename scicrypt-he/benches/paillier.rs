@@ -4,10 +4,9 @@ use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criteri
 use rand_core::OsRng;
 use rug::Integer;
 use scicrypt_he::cryptosystems::paillier::Paillier;
-use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::Enrichable;
 
 pub fn paillier_benchmark(c: &mut Criterion) {
     // Ignore noise up to 5%
@@ -15,14 +14,14 @@ pub fn paillier_benchmark(c: &mut Criterion) {
     group.noise_threshold(0.05);
 
     let mut rng = GeneralRng::new(OsRng);
-    let (public_key, secret_key) = Paillier::generate_keys(&BitsOfSecurity::AES128, &mut rng);
+    let paillier = Paillier::setup(&BitsOfSecurity::AES128);
+    let (public_key, secret_key) = paillier.generate_keys(&mut rng);
 
     // Benchmark encryption
     group.bench_function("paillier_encryption", |b| {
         b.iter(|| {
-            Paillier::encrypt(
+            public_key.encrypt(
                 &Integer::from(black_box(123456789u64)),
-                &public_key,
                 &mut rng,
             )
         })
