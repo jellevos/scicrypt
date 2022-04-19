@@ -81,5 +81,7 @@ jobs:
       # Check out the current branch and run benchmark here
       - uses: actions/checkout@v2
       - run: "cargo bench | tee bench_result"
+      # Check if there were no errors
+      - run: "! grep -q error bench_result"
       # Check if there is no regression
       - run: "! grep -q regressed bench_result"

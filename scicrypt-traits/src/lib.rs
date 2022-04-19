@@ -1,6 +1,4 @@
-#![feature(generic_associated_types)]
 #![feature(trait_alias)]
-// This is necessary for now, hopefully we can go back to stable in the future
 #![warn(missing_docs, unused_imports)]
 
 //! _This is a part of **scicrypt**. For more information, head to the
@@ -23,14 +21,6 @@ pub mod threshold_cryptosystems;
 
 /// General notion of secret sharing
 pub mod secret_sharing;
-
-/// Functionality to easily turn a ciphertext into a rich ciphertext
-pub trait Enrichable<'pk, PK, RC> {
-    /// Enriches a ciphertext by associating it with a corresponding public key.
-    fn enrich(self, public_key: &'pk PK) -> RC
-    where
-        Self: Sized;
-}
 
 /// General error that arises when decryption fails, for example because there were not enough
 /// distinct decryption shares to decrypt a threshold ciphertext.
