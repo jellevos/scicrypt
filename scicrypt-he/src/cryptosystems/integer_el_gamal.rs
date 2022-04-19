@@ -64,7 +64,15 @@ pub struct IntegerElGamalSK {
     pub(crate) key: Integer,
 }
 
-impl AsymmetricCryptosystem<'_, IntegerElGamalPK, IntegerElGamalSK> for IntegerElGamal {
+impl<'pk>
+    AsymmetricCryptosystem<
+        'pk,
+        IntegerElGamalPK,
+        IntegerElGamalSK,
+        Integer,
+        AssociatedIntegerElGamalCiphertext<'pk>,
+    > for IntegerElGamal
+{
     /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
     fn setup(security_param: &BitsOfSecurity) -> Self {
         IntegerElGamal {
@@ -111,10 +119,9 @@ impl AsymmetricCryptosystem<'_, IntegerElGamalPK, IntegerElGamalSK> for IntegerE
     }
 }
 
-impl EncryptionKey for IntegerElGamalPK {
-    type Plaintext = Integer;
-    type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
-
+impl<'pk> EncryptionKey<'pk, Integer, AssociatedIntegerElGamalCiphertext<'pk>>
+    for IntegerElGamalPK
+{
     /// Encrypts an integer using the public key.
     /// ```
     /// # use scicrypt_traits::randomness::GeneralRng;
@@ -128,8 +135,8 @@ impl EncryptionKey for IntegerElGamalPK {
     /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
     /// let ciphertext = public_key.encrypt(5, &mut rng);
     /// ```
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(
-        &self,
+    fn encrypt<IntoP: Into<Integer>, R: SecureRng>(
+        &'pk self,
         plaintext: IntoP,
         rng: &mut GeneralRng<R>,
     ) -> AssociatedIntegerElGamalCiphertext {
@@ -145,10 +152,7 @@ impl EncryptionKey for IntegerElGamalPK {
     }
 }
 
-impl DecryptionKey<'_, IntegerElGamalPK> for IntegerElGamalSK {
-    type Plaintext = Integer;
-    type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
-
+impl DecryptionKey<Integer, AssociatedIntegerElGamalCiphertext<'_>> for IntegerElGamalSK {
     /// Decrypts an ElGamal ciphertext using the secret key.
     /// ```
     /// # use scicrypt_traits::randomness::GeneralRng;
@@ -164,10 +168,7 @@ impl DecryptionKey<'_, IntegerElGamalPK> for IntegerElGamalSK {
     /// println!("The decrypted message is {}", secret_key.decrypt(&ciphertext));
     /// // Prints: "The decrypted message is 5".
     /// ```
-    fn decrypt(
-        &self,
-        associated_ciphertext: &AssociatedIntegerElGamalCiphertext,
-    ) -> Self::Plaintext {
+    fn decrypt(&self, associated_ciphertext: &AssociatedIntegerElGamalCiphertext) -> Integer {
         (&associated_ciphertext.ciphertext.c2
             * Integer::from(
                 associated_ciphertext
@@ -225,7 +226,6 @@ mod tests {
     use rug::Integer;
     use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
-    use scicrypt_traits::security::BitsOfSecurity;
 
     #[test]
     fn test_encrypt_decrypt_generator() {

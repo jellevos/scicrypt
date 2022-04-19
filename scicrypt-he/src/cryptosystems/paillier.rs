@@ -1,6 +1,5 @@
 use rug::Integer;
 use scicrypt_numbertheory::{gen_coprime, gen_rsa_modulus};
-//use scicrypt_traits::cryptosystems::{Associable, AssociatedCiphertext, AsymmetricCryptosystem, PublicKey, SecretKey};
 use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
@@ -46,7 +45,10 @@ impl PaillierCiphertext {
     }
 }
 
-impl AsymmetricCryptosystem<'_, PaillierPK, PaillierSK> for Paillier {
+impl<'pk>
+    AsymmetricCryptosystem<'pk, PaillierPK, PaillierSK, Integer, AssociatedPaillierCiphertext<'pk>>
+    for Paillier
+{
     fn setup(security_param: &BitsOfSecurity) -> Self {
         Paillier {
             modulus_size: security_param.to_public_key_bit_length(),
@@ -74,10 +76,7 @@ impl AsymmetricCryptosystem<'_, PaillierPK, PaillierSK> for Paillier {
     }
 }
 
-impl EncryptionKey for PaillierPK {
-    type Plaintext = Integer;
-    type Ciphertext<'pk> = AssociatedPaillierCiphertext<'pk>;
-
+impl<'pk> EncryptionKey<'pk, Integer, AssociatedPaillierCiphertext<'pk>> for PaillierPK {
     /// Encrypts a plaintext integer using the Paillier public key.
     /// ```
     /// # use scicrypt_traits::randomness::GeneralRng;
@@ -91,8 +90,8 @@ impl EncryptionKey for PaillierPK {
     /// # let (public_key, secret_key) = paillier.generate_keys(&mut rng);
     /// let ciphertext = public_key.encrypt(5, &mut rng);
     /// ```
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(
-        &self,
+    fn encrypt<IntoP: Into<Integer>, R: SecureRng>(
+        &'pk self,
         plaintext: IntoP,
         rng: &mut GeneralRng<R>,
     ) -> AssociatedPaillierCiphertext {
@@ -109,10 +108,7 @@ impl EncryptionKey for PaillierPK {
     }
 }
 
-impl DecryptionKey<'_, PaillierPK> for PaillierSK {
-    type Plaintext = Integer;
-    type Ciphertext<'pk> = AssociatedPaillierCiphertext<'pk>;
-
+impl DecryptionKey<Integer, AssociatedPaillierCiphertext<'_>> for PaillierSK {
     /// Decrypts a rich Paillier ciphertext using the secret key.
     /// ```
     /// # use scicrypt_traits::randomness::GeneralRng;
@@ -128,7 +124,7 @@ impl DecryptionKey<'_, PaillierPK> for PaillierSK {
     /// println!("The decrypted message is {}", secret_key.decrypt(&ciphertext));
     /// // Prints: "The decrypted message is 5".
     /// ```
-    fn decrypt(&self, associated_ciphertext: &AssociatedPaillierCiphertext) -> Self::Plaintext {
+    fn decrypt(&self, associated_ciphertext: &AssociatedPaillierCiphertext) -> Integer {
         let n_squared = Integer::from(associated_ciphertext.public_key.n.square_ref());
 
         let mut inner = Integer::from(

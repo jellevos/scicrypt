@@ -25,8 +25,15 @@ pub struct NOfNIntegerElGamalSK {
     key: Integer,
 }
 
-impl NOfNCryptosystem<'_, IntegerElGamalPK, NOfNIntegerElGamalSK, NOfNIntegerElGamalShare>
-    for NOfNIntegerElGamal
+impl<'pk>
+    NOfNCryptosystem<
+        'pk,
+        IntegerElGamalPK,
+        NOfNIntegerElGamalSK,
+        Integer,
+        NOfNIntegerElGamalShare,
+        AssociatedIntegerElGamalCiphertext<'pk>,
+    > for NOfNIntegerElGamal
 {
     /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
     fn setup(security_param: &BitsOfSecurity) -> Self {
@@ -72,14 +79,13 @@ impl NOfNCryptosystem<'_, IntegerElGamalPK, NOfNIntegerElGamalSK, NOfNIntegerElG
 /// Decryption share of N-out-of-N integer-based ElGamal
 pub struct NOfNIntegerElGamalShare(IntegerElGamalCiphertext);
 
-impl DecryptionKey<'_, IntegerElGamalPK> for NOfNIntegerElGamalSK {
-    type Plaintext = NOfNIntegerElGamalShare;
-    type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
-
+impl DecryptionKey<NOfNIntegerElGamalShare, AssociatedIntegerElGamalCiphertext<'_>>
+    for NOfNIntegerElGamalSK
+{
     fn decrypt(
         &self,
         associated_ciphertext: &AssociatedIntegerElGamalCiphertext,
-    ) -> Self::Plaintext {
+    ) -> NOfNIntegerElGamalShare {
         NOfNIntegerElGamalShare(IntegerElGamalCiphertext {
             c1: Integer::from(
                 associated_ciphertext
@@ -133,8 +139,15 @@ pub struct TOfNIntegerElGamalShare {
     c2: Integer,
 }
 
-impl TOfNCryptosystem<'_, IntegerElGamalPK, TOfNIntegerElGamalSK, TOfNIntegerElGamalShare>
-    for TOfNIntegerElGamal
+impl<'pk>
+    TOfNCryptosystem<
+        'pk,
+        IntegerElGamalPK,
+        TOfNIntegerElGamalSK,
+        Integer,
+        TOfNIntegerElGamalShare,
+        AssociatedIntegerElGamalCiphertext<'pk>,
+    > for TOfNIntegerElGamal
 {
     /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
     fn setup(security_param: &BitsOfSecurity) -> Self {
@@ -193,14 +206,13 @@ impl TOfNCryptosystem<'_, IntegerElGamalPK, TOfNIntegerElGamalSK, TOfNIntegerElG
     }
 }
 
-impl DecryptionKey<'_, IntegerElGamalPK> for TOfNIntegerElGamalSK {
-    type Plaintext = TOfNIntegerElGamalShare;
-    type Ciphertext<'pk> = AssociatedIntegerElGamalCiphertext<'pk>;
-
+impl DecryptionKey<TOfNIntegerElGamalShare, AssociatedIntegerElGamalCiphertext<'_>>
+    for TOfNIntegerElGamalSK
+{
     fn decrypt(
         &self,
         associated_ciphertext: &AssociatedIntegerElGamalCiphertext,
-    ) -> Self::Plaintext {
+    ) -> TOfNIntegerElGamalShare {
         TOfNIntegerElGamalShare {
             id: self.id,
             c1: Integer::from(
@@ -269,7 +281,6 @@ mod tests {
     use rug::Integer;
     use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
-    use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{
         DecryptionShare, NOfNCryptosystem, TOfNCryptosystem,
     };

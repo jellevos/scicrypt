@@ -1,5 +1,3 @@
-// This is necessary for now, hopefully we can go back to stable later in 2022
-#![feature(generic_associated_types)]
 #![warn(missing_docs, unused_imports)]
 
 //! _This is a part of **scicrypt**. For more information, head to the

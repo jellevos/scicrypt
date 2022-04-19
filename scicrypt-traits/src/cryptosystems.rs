@@ -9,11 +9,8 @@ use crate::security::BitsOfSecurity;
 /// The struct that implements an `AsymmetricCryptosystem` will hold the general parameters of that
 /// cryptosystem. Depending on the cryptosystem, those parameters could play an important role in
 /// deciding the level of security. As such, each cryptosystem should clearly indicate these.
-pub trait AsymmetricCryptosystem<
-    'pk,
-    PK: 'pk + EncryptionKey<Plaintext = SK::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>,
-    SK: DecryptionKey<'pk, PK>,
->: Clone
+pub trait AsymmetricCryptosystem<'pk, PK: EncryptionKey<'pk, P, C>, SK: DecryptionKey<P, C>, P, C>:
+    Clone
 {
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
@@ -24,41 +21,25 @@ pub trait AsymmetricCryptosystem<
 }
 
 /// The encryption key.
-pub trait EncryptionKey: Sized {
-    /// The type of the plaintexts to be encrypted.
-    type Plaintext;
-    /// The type of the encrypted plaintexts.
-    type Ciphertext<'pk>
-    where
-        Self: 'pk;
-
+pub trait EncryptionKey<'pk, P, C>: Sized {
     /// Encrypt the plaintext using the public key and a cryptographic RNG.
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(
-        &self,
+    fn encrypt<IntoP: Into<P>, R: SecureRng>(
+        &'pk self,
         plaintext: IntoP,
         rng: &mut GeneralRng<R>,
-    ) -> Self::Ciphertext<'_>;
+    ) -> C
+    where
+        C: 'pk;
 }
 
 /// The decryption key.
-pub trait DecryptionKey<'pk, PK: 'pk + EncryptionKey<Ciphertext<'pk> = Self::Ciphertext<'pk>>> {
-    /// The type of the plaintexts to be encrypted.
-    type Plaintext;
-    /// The type of the encrypted plaintexts.
-    type Ciphertext<'p>;
-
+pub trait DecryptionKey<P, C> {
     /// Decrypt the ciphertext using the secret key and its related public key.
-    fn decrypt(&self, associated_ciphertext: &Self::Ciphertext<'pk>) -> Self::Plaintext;
+    fn decrypt(&self, associated_ciphertext: &C) -> P;
 }
 
-// pub trait AssociatedCiphertext<PK: PublicKey<Ciphertext = Self::Ciphertext>>: Sized {
-//     type Ciphertext: Associable<PK, Self>;
-//
-//     fn extract_ciphertext(self) -> Self::Ciphertext;
-// }
-//
-// /// Functionality to easily turn a ciphertext into an associated ciphertext
-// pub trait Associable<PK: PublicKey<Ciphertext = Self>, AC: AssociatedCiphertext<PK, Ciphertext = Self>> {
-//     /// Enriches a ciphertext by associating it with a corresponding public key.
-//     fn associate(self, public_key: &PK) -> AC;
-// }
+/// Functionality to easily turn a ciphertext into an associated ciphertext
+pub trait Associable<'pk, PK: EncryptionKey<'pk, P, AC>, AC: 'pk, P>: Sized {
+    /// Enriches a ciphertext by associating it with a corresponding public key.
+    fn associate(self, public_key: &'pk PK) -> AC;
+}

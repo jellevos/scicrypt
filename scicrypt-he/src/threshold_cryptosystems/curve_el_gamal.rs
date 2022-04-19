@@ -26,8 +26,15 @@ pub struct NOfNCurveElGamalSK {
 /// Decryption share of N-out-of-N curve-based ElGamal
 pub struct NOfNCurveElGamalShare(CurveElGamalCiphertext);
 
-impl NOfNCryptosystem<'_, CurveElGamalPK, NOfNCurveElGamalSK, NOfNCurveElGamalShare>
-    for NOfNCurveElGamal
+impl<'pk>
+    NOfNCryptosystem<
+        'pk,
+        CurveElGamalPK,
+        NOfNCurveElGamalSK,
+        RistrettoPoint,
+        NOfNCurveElGamalShare,
+        AssociatedCurveElGamalCiphertext<'pk>,
+    > for NOfNCurveElGamal
 {
     fn setup(security_param: &BitsOfSecurity) -> Self {
         match security_param {
@@ -58,11 +65,13 @@ impl NOfNCryptosystem<'_, CurveElGamalPK, NOfNCurveElGamalSK, NOfNCurveElGamalSh
     }
 }
 
-impl DecryptionKey<'_, CurveElGamalPK> for NOfNCurveElGamalSK {
-    type Plaintext = NOfNCurveElGamalShare;
-    type Ciphertext<'pk> = AssociatedCurveElGamalCiphertext<'pk>;
-
-    fn decrypt(&self, associated_ciphertext: &AssociatedCurveElGamalCiphertext) -> Self::Plaintext {
+impl DecryptionKey<NOfNCurveElGamalShare, AssociatedCurveElGamalCiphertext<'_>>
+    for NOfNCurveElGamalSK
+{
+    fn decrypt(
+        &self,
+        associated_ciphertext: &AssociatedCurveElGamalCiphertext,
+    ) -> NOfNCurveElGamalShare {
         NOfNCurveElGamalShare(CurveElGamalCiphertext {
             c1: self.key * associated_ciphertext.ciphertext.c1,
             c2: associated_ciphertext.ciphertext.c2,
@@ -95,8 +104,15 @@ pub struct TOfNCurveElGamalShare {
     c2: RistrettoPoint,
 }
 
-impl TOfNCryptosystem<'_, CurveElGamalPK, TOfNCurveElGamalSK, TOfNCurveElGamalShare>
-    for TOfNCurveElGamal
+impl<'pk>
+    TOfNCryptosystem<
+        'pk,
+        CurveElGamalPK,
+        TOfNCurveElGamalSK,
+        RistrettoPoint,
+        TOfNCurveElGamalShare,
+        AssociatedCurveElGamalCiphertext<'pk>,
+    > for TOfNCurveElGamal
 {
     fn setup(security_param: &BitsOfSecurity) -> Self {
         match security_param {
@@ -148,11 +164,13 @@ struct TOfNCurveElGamalSK {
     key: Scalar,
 }
 
-impl DecryptionKey<'_, CurveElGamalPK> for TOfNCurveElGamalSK {
-    type Plaintext = TOfNCurveElGamalShare;
-    type Ciphertext<'pk> = AssociatedCurveElGamalCiphertext<'pk>;
-
-    fn decrypt(&self, associated_ciphertext: &AssociatedCurveElGamalCiphertext) -> Self::Plaintext {
+impl DecryptionKey<TOfNCurveElGamalShare, AssociatedCurveElGamalCiphertext<'_>>
+    for TOfNCurveElGamalSK
+{
+    fn decrypt(
+        &self,
+        associated_ciphertext: &AssociatedCurveElGamalCiphertext,
+    ) -> TOfNCurveElGamalShare {
         TOfNCurveElGamalShare {
             id: self.id,
             c1: self.key * associated_ciphertext.ciphertext.c1,

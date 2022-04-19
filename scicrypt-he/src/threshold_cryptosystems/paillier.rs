@@ -46,8 +46,15 @@ pub struct ThresholdPaillierShare {
     share: Integer,
 }
 
-impl TOfNCryptosystem<'_, ThresholdPaillierPK, ThresholdPaillierSK, ThresholdPaillierShare>
-    for ThresholdPaillier
+impl<'pk>
+    TOfNCryptosystem<
+        'pk,
+        ThresholdPaillierPK,
+        ThresholdPaillierSK,
+        Integer,
+        ThresholdPaillierShare,
+        AssociatedThresholdPaillierCiphertext<'pk>,
+    > for ThresholdPaillier
 {
     fn setup(security_param: &BitsOfSecurity) -> Self {
         ThresholdPaillier {
@@ -121,12 +128,11 @@ impl ThresholdPaillierCiphertext {
     }
 }
 
-impl EncryptionKey for ThresholdPaillierPK {
-    type Plaintext = Integer;
-    type Ciphertext<'pk> = AssociatedThresholdPaillierCiphertext<'pk>;
-
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(
-        &self,
+impl<'pk> EncryptionKey<'pk, Integer, AssociatedThresholdPaillierCiphertext<'pk>>
+    for ThresholdPaillierPK
+{
+    fn encrypt<IntoP: Into<Integer>, R: SecureRng>(
+        &'pk self,
         plaintext: IntoP,
         rng: &mut GeneralRng<R>,
     ) -> AssociatedThresholdPaillierCiphertext
@@ -150,14 +156,13 @@ impl EncryptionKey for ThresholdPaillierPK {
     }
 }
 
-impl DecryptionKey<'_, ThresholdPaillierPK> for ThresholdPaillierSK {
-    type Plaintext = ThresholdPaillierShare;
-    type Ciphertext<'pk> = AssociatedThresholdPaillierCiphertext<'pk>;
-
+impl DecryptionKey<ThresholdPaillierShare, AssociatedThresholdPaillierCiphertext<'_>>
+    for ThresholdPaillierSK
+{
     fn decrypt(
         &self,
         associated_ciphertext: &AssociatedThresholdPaillierCiphertext,
-    ) -> Self::Plaintext {
+    ) -> ThresholdPaillierShare {
         let n_squared = Integer::from(associated_ciphertext.public_key.modulus.square_ref());
         ThresholdPaillierShare {
             id: self.id,
@@ -229,7 +234,6 @@ impl DecryptionShare for ThresholdPaillierShare {
 mod tests {
     use crate::threshold_cryptosystems::paillier::{ThresholdPaillier, ThresholdPaillierShare};
     use rand_core::OsRng;
-    use rug::Integer;
     use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;

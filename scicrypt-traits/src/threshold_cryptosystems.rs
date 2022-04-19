@@ -20,9 +20,11 @@ use crate::DecryptionError;
 /// these.
 pub trait NOfNCryptosystem<
     'pk,
-    PK: 'pk + EncryptionKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>,
-    SK: DecryptionKey<'pk, PK>,
+    PK: EncryptionKey<'pk, P, C>,
+    SK: DecryptionKey<DS, C>,
+    P,
     DS: DecryptionShare,
+    C,
 >: Clone
 {
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
@@ -68,9 +70,11 @@ pub trait DecryptionShare: Sized {
 /// these.
 pub trait TOfNCryptosystem<
     'pk,
-    PK: 'pk + EncryptionKey<Plaintext = DS::Plaintext, Ciphertext<'pk> = SK::Ciphertext<'pk>>,
-    SK: DecryptionKey<'pk, PK>,
+    PK: EncryptionKey<'pk, P, C>,
+    SK: DecryptionKey<DS, C>,
+    P,
     DS: DecryptionShare,
+    C,
 >: Clone
 {
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.

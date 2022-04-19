@@ -44,7 +44,7 @@ impl RsaCiphertext {
     }
 }
 
-impl AsymmetricCryptosystem<'_, RsaPK, RsaSK> for Rsa {
+impl<'pk> AsymmetricCryptosystem<'pk, RsaPK, RsaSK, Integer, AssociatedRsaCiphertext<'pk>> for Rsa {
     fn setup(security_param: &BitsOfSecurity) -> Self {
         Rsa {
             modulus_size: security_param.to_public_key_bit_length(),
@@ -61,12 +61,9 @@ impl AsymmetricCryptosystem<'_, RsaPK, RsaSK> for Rsa {
     }
 }
 
-impl EncryptionKey for RsaPK {
-    type Plaintext = Integer;
-    type Ciphertext<'pk> = AssociatedRsaCiphertext<'pk>;
-
-    fn encrypt<IntoP: Into<Self::Plaintext>, R: SecureRng>(
-        &self,
+impl<'pk> EncryptionKey<'pk, Integer, AssociatedRsaCiphertext<'pk>> for RsaPK {
+    fn encrypt<IntoP: Into<Integer>, R: SecureRng>(
+        &'pk self,
         plaintext: IntoP,
         _rng: &mut GeneralRng<R>,
     ) -> AssociatedRsaCiphertext {
@@ -77,11 +74,8 @@ impl EncryptionKey for RsaPK {
     }
 }
 
-impl DecryptionKey<'_, RsaPK> for RsaSK {
-    type Plaintext = Integer;
-    type Ciphertext<'pk> = AssociatedRsaCiphertext<'pk>;
-
-    fn decrypt(&self, associated_ciphertext: &AssociatedRsaCiphertext) -> Self::Plaintext {
+impl DecryptionKey<Integer, AssociatedRsaCiphertext<'_>> for RsaSK {
+    fn decrypt(&self, associated_ciphertext: &AssociatedRsaCiphertext) -> Integer {
         Integer::from(
             associated_ciphertext
                 .ciphertext
