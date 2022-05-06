@@ -22,7 +22,7 @@ pub struct NOfNIntegerElGamalSK {
     key: Integer,
 }
 
-impl<'pk> NOfNCryptosystem for NOfNIntegerElGamal {
+impl NOfNCryptosystem for NOfNIntegerElGamal {
     type PublicKey = IntegerElGamalPK;
     type SecretKey = NOfNIntegerElGamalSK;
 

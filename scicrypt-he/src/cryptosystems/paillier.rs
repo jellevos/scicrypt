@@ -35,7 +35,7 @@ pub struct PaillierCiphertext {
 
 impl Associable<PaillierPK> for PaillierCiphertext {}
 
-impl<'pk> AsymmetricCryptosystem for Paillier {
+impl AsymmetricCryptosystem for Paillier {
     type PublicKey = PaillierPK;
     type SecretKey = PaillierSK;
 
