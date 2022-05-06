@@ -30,4 +30,5 @@ pub mod secret_sharing;
 #[derive(Debug)]
 pub struct DecryptionError;
 
+/// Homomorphic properties of homomorphic encryption schemes
 pub mod homomorphic;

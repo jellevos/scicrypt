@@ -2,7 +2,6 @@ use crate::cryptosystems::curve_el_gamal::{CurveElGamalCiphertext, CurveElGamalP
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use scicrypt_traits::cryptosystems::DecryptionKey;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -61,7 +60,7 @@ impl NOfNCryptosystem for NOfNCurveElGamal {
 impl PartialDecryptionKey<CurveElGamalPK> for NOfNCurveElGamalSK {
     type DecryptionShare = NOfNCurveElGamalShare;
 
-    fn partial_decrypt_raw(&self, public_key: &CurveElGamalPK, ciphertext: &CurveElGamalCiphertext) -> NOfNCurveElGamalShare {
+    fn partial_decrypt_raw(&self, _public_key: &CurveElGamalPK, ciphertext: &CurveElGamalCiphertext) -> NOfNCurveElGamalShare {
         NOfNCurveElGamalShare(CurveElGamalCiphertext {
             c1: self.key * ciphertext.c1,
             c2: ciphertext.c2,
@@ -203,7 +202,7 @@ mod tests {
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
+    use scicrypt_traits::cryptosystems::EncryptionKey;
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{

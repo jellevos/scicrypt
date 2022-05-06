@@ -5,7 +5,7 @@ use scicrypt_traits::homomorphic::HomomorphicMultiplication;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use std::ops::{Mul, Rem};
+use std::ops::Rem;
 
 /// The RSA cryptosystem.
 #[derive(Copy, Clone)]

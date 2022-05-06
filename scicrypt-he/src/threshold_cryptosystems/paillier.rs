@@ -1,6 +1,6 @@
 use rug::Integer;
 use scicrypt_numbertheory::{gen_coprime, gen_safe_prime};
-use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey, Associable};
+use scicrypt_traits::cryptosystems::{EncryptionKey, Associable};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;

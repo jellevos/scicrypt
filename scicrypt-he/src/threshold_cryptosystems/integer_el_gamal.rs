@@ -1,7 +1,6 @@
 use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 use crate::cryptosystems::integer_el_gamal::{IntegerElGamalCiphertext, IntegerElGamalPK};
 use rug::Integer;
-use scicrypt_traits::cryptosystems::DecryptionKey;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -10,8 +9,6 @@ use scicrypt_traits::threshold_cryptosystems::{
 };
 use scicrypt_traits::DecryptionError;
 use std::ops::Rem;
-
-use super::curve_el_gamal::NOfNCurveElGamalShare;
 
 /// N-out-of-N Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires n out of n parties to
 /// successfully decrypt. For this scheme there exists an efficient distributed key generation protocol.
@@ -261,7 +258,7 @@ mod tests {
     };
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
+    use scicrypt_traits::cryptosystems::EncryptionKey;
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::threshold_cryptosystems::{
         DecryptionShare, NOfNCryptosystem, TOfNCryptosystem, PartialDecryptionKey,

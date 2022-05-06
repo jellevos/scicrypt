@@ -1,4 +1,4 @@
-use crate::cryptosystems::{DecryptionKey, EncryptionKey, AssociatedCiphertext};
+use crate::cryptosystems::{EncryptionKey, AssociatedCiphertext};
 use crate::randomness::GeneralRng;
 use crate::randomness::SecureRng;
 use crate::security::BitsOfSecurity;
@@ -19,7 +19,9 @@ use crate::DecryptionError;
 /// role in deciding the level of security. As such, each cryptosystem should clearly indicate
 /// these.
 pub trait NOfNCryptosystem {
+    /// The public key used to encrypt plaintexts.
     type PublicKey: EncryptionKey;
+    /// The secret key used to partially decrypt ciphertexts.
     type SecretKey: PartialDecryptionKey<Self::PublicKey>;
 
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
@@ -33,12 +35,16 @@ pub trait NOfNCryptosystem {
     ) -> (Self::PublicKey, Vec<Self::SecretKey>);
 }
 
+/// A partial decryption key partially decrypts ciphertexts to return a decryption share. If enough decryption shares of different keys are combined, they output the correct decryption.
 pub trait PartialDecryptionKey<PK: EncryptionKey> {
+    /// The type of the decryption share. If enough decryption shares of different keys are combined, they output the correct decryption.
     type DecryptionShare: DecryptionShare<PK>;
 
+    /// Partially decrypts a ciphertext, returning a valid decryption share.
     fn partial_decrypt<'pk>(&self, ciphertext: &AssociatedCiphertext<'pk, PK::Ciphertext, PK>) -> Self::DecryptionShare {
         self.partial_decrypt_raw(ciphertext.public_key, &ciphertext.ciphertext)
     }
+    /// Partially decrypts a ciphertext, returning a valid decryption share.
     fn partial_decrypt_raw(&self, public_key: &PK, ciphertext: &PK::Ciphertext) -> Self::DecryptionShare;
 }
 
@@ -68,7 +74,9 @@ pub trait DecryptionShare<PK: EncryptionKey>: Sized {
 /// role in deciding the level of security. As such, each cryptosystem should clearly indicate
 /// these.
 pub trait TOfNCryptosystem {
+    /// The public key used to encrypt plaintexts.
     type PublicKey: EncryptionKey;
+    /// The secret key used to partially decrypt ciphertexts.
     type SecretKey: PartialDecryptionKey<Self::PublicKey>;
 
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.

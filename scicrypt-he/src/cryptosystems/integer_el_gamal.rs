@@ -5,7 +5,7 @@ use scicrypt_traits::homomorphic::HomomorphicMultiplication;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use std::ops::{Mul, Rem};
+use std::ops::Rem;
 
 /// Multiplicatively homomorphic ElGamal over a safe prime group where the generator is 4.
 ///

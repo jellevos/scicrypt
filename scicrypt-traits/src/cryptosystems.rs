@@ -11,7 +11,9 @@ use std::fmt::Debug;
 /// cryptosystem. Depending on the cryptosystem, those parameters could play an important role in
 /// deciding the level of security. As such, each cryptosystem should clearly indicate these.
 pub trait AsymmetricCryptosystem {
+    /// The public key, used for encrypting plaintexts.
     type PublicKey: EncryptionKey;
+    /// The secret key, used for decrypting ciphertexts.
     type SecretKey: DecryptionKey<Self::PublicKey>;
 
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
@@ -24,8 +26,13 @@ pub trait AsymmetricCryptosystem {
 
 /// The encryption key.
 pub trait EncryptionKey: Sized + Debug + PartialEq {
+    /// Input is the type used to multiply additive ciphertexts or exponentiate multiplicative ciphertexts.
     type Input;
+
+    /// The type of the plaintext to be encrypted.
     type Plaintext;
+
+    /// The type of an encrypted plaintext, i.e. a ciphertext.
     type Ciphertext: Associable<Self>;
 
     /// Encrypt the plaintext using the public key and a cryptographic RNG and immediately associate it with the public key. 
@@ -49,15 +56,18 @@ pub trait DecryptionKey<PK: EncryptionKey> {
 }
 
 #[derive(PartialEq, Debug)]
+/// An AssociatedCiphertext associates a ciphertext with a reference to the corresponding public key to make homomorphic operations and decrypting more ergonomic.
 pub struct AssociatedCiphertext<'pk, C: Associable<PK>, PK: EncryptionKey<Ciphertext = C>> {
+    /// A potentially homomorphic ciphertext
     pub ciphertext: C,
+    /// The related public key
     pub public_key: &'pk PK
 }
 
 /// Functionality to easily turn a ciphertext into an associated ciphertext
 pub trait Associable<PK: EncryptionKey<Ciphertext = Self>>: Sized {
     /// 'Enriches' a ciphertext by associating it with a corresponding public key. This allows to overlead operators for homomorphic operations.
-    fn associate<'pk>(self, public_key: &'pk PK) -> AssociatedCiphertext<'pk, Self, PK> {
-        AssociatedCiphertext { ciphertext: self, public_key: public_key }
+    fn associate(self, public_key: &PK) -> AssociatedCiphertext<'_, Self, PK> {
+        AssociatedCiphertext { ciphertext: self, public_key }
     }
 }
