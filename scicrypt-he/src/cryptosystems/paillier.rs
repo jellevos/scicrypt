@@ -19,6 +19,7 @@ pub struct Paillier {
 #[derive(PartialEq, Debug)]
 pub struct PaillierPK {
     n: Integer,
+    n_squared: Integer,
     g: Integer,
 }
 
@@ -62,7 +63,9 @@ impl AsymmetricCryptosystem for Paillier {
         let g = &n + Integer::from(1);
         let mu = Integer::from(lambda.invert_ref(&n).unwrap());
 
-        (PaillierPK { n, g }, PaillierSK { lambda, mu })
+        let n_squared = Integer::from(n.square_ref());
+
+        (PaillierPK { n, g, n_squared }, PaillierSK { lambda, mu })
     }
 }
 
@@ -89,14 +92,13 @@ impl EncryptionKey for PaillierPK {
         plaintext: &Integer,
         rng: &mut GeneralRng<R>,
     ) -> PaillierCiphertext {
-        let n_squared = Integer::from(self.n.square_ref());
-        let r = gen_coprime(&n_squared, rng);
+        let r = gen_coprime(&self.n_squared, rng);
 
-        let first = Integer::from(self.g.pow_mod_ref(&plaintext.into(), &n_squared).unwrap());
-        let second = r.secure_pow_mod(&self.n, &n_squared);
+        let first = Integer::from(self.g.pow_mod_ref(&plaintext.into(), &self.n_squared).unwrap());
+        let second = r.secure_pow_mod(&self.n, &self.n_squared);
 
         PaillierCiphertext {
-            c: (first * second).rem(&n_squared),
+            c: (first * second).rem(&self.n_squared),
         }
     }
 }
