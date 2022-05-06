@@ -1,4 +1,4 @@
-use crate::cryptosystems::{DecryptionKey, EncryptionKey};
+use crate::cryptosystems::{AssociatedCiphertext, EncryptionKey};
 use crate::randomness::GeneralRng;
 use crate::randomness::SecureRng;
 use crate::security::BitsOfSecurity;
@@ -18,15 +18,12 @@ use crate::DecryptionError;
 /// of that cryptosystem. Depending on the cryptosystem, those parameters could play an important
 /// role in deciding the level of security. As such, each cryptosystem should clearly indicate
 /// these.
-pub trait NOfNCryptosystem<
-    'pk,
-    PK: EncryptionKey<'pk, P, C>,
-    SK: DecryptionKey<DS, C>,
-    P,
-    DS: DecryptionShare,
-    C,
->: Clone
-{
+pub trait NOfNCryptosystem {
+    /// The public key used to encrypt plaintexts.
+    type PublicKey: EncryptionKey;
+    /// The secret key used to partially decrypt ciphertexts.
+    type SecretKey: PartialDecryptionKey<Self::PublicKey>;
+
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
 
@@ -35,24 +32,39 @@ pub trait NOfNCryptosystem<
         &self,
         key_count_n: usize,
         rng: &mut GeneralRng<R>,
-    ) -> (PK, Vec<SK>);
+    ) -> (Self::PublicKey, Vec<Self::SecretKey>);
+}
+
+/// A partial decryption key partially decrypts ciphertexts to return a decryption share. If enough decryption shares of different keys are combined, they output the correct decryption.
+pub trait PartialDecryptionKey<PK: EncryptionKey> {
+    /// The type of the decryption share. If enough decryption shares of different keys are combined, they output the correct decryption.
+    type DecryptionShare: DecryptionShare<PK>;
+
+    /// Partially decrypts a ciphertext, returning a valid decryption share.
+    fn partial_decrypt<'pk>(
+        &self,
+        ciphertext: &AssociatedCiphertext<'pk, PK::Ciphertext, PK>,
+    ) -> Self::DecryptionShare {
+        self.partial_decrypt_raw(ciphertext.public_key, &ciphertext.ciphertext)
+    }
+    /// Partially decrypts a ciphertext, returning a valid decryption share.
+    fn partial_decrypt_raw(
+        &self,
+        public_key: &PK,
+        ciphertext: &PK::Ciphertext,
+    ) -> Self::DecryptionShare;
 }
 
 /// A `DecryptionShare` is the result of decrypting with a partial key. When enough of these shares
 /// are combined, they reveal the actual decryption.
-pub trait DecryptionShare: Sized {
-    /// The type of the plaintext retrieved when decryption shares are combined.
-    type Plaintext;
-    /// The public key that created the original ciphertexts.
-    type PublicKey;
-
+pub trait DecryptionShare<PK: EncryptionKey>: Sized {
     /// Combine $t$ decryption shares belonging to distinct partial keys to finish decryption. It is
     /// the responsibility of the programmer to supply the right number of decryption shares to
     /// this function.
     fn combine(
         decryption_shares: &[Self],
-        public_key: &Self::PublicKey,
-    ) -> Result<Self::Plaintext, DecryptionError>;
+        public_key: &PK,
+    ) -> Result<PK::Plaintext, DecryptionError>;
 }
 
 /// An asymmetric threshold cryptosystem is a system of methods to encrypt plaintexts into
@@ -68,15 +80,12 @@ pub trait DecryptionShare: Sized {
 /// of that cryptosystem. Depending on the cryptosystem, those parameters could play an important
 /// role in deciding the level of security. As such, each cryptosystem should clearly indicate
 /// these.
-pub trait TOfNCryptosystem<
-    'pk,
-    PK: EncryptionKey<'pk, P, C>,
-    SK: DecryptionKey<DS, C>,
-    P,
-    DS: DecryptionShare,
-    C,
->: Clone
-{
+pub trait TOfNCryptosystem {
+    /// The public key used to encrypt plaintexts.
+    type PublicKey: EncryptionKey;
+    /// The secret key used to partially decrypt ciphertexts.
+    type SecretKey: PartialDecryptionKey<Self::PublicKey>;
+
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
 
@@ -86,5 +95,5 @@ pub trait TOfNCryptosystem<
         threshold_t: usize,
         key_count_n: usize,
         rng: &mut GeneralRng<R>,
-    ) -> (PK, Vec<SK>);
+    ) -> (Self::PublicKey, Vec<Self::SecretKey>);
 }

@@ -1,4 +1,7 @@
 #![feature(trait_alias)]
+// These features are necessary to prevent the operator overloading for AssociatedCiphertext to clash between additive and multiplicative,
+// so we restrict the AssociatedCiphertext to never be a plaintext.
+#![feature(auto_traits, negative_impls)]
 #![warn(missing_docs, unused_imports)]
 
 //! _This is a part of **scicrypt**. For more information, head to the
@@ -26,3 +29,6 @@ pub mod secret_sharing;
 /// distinct decryption shares to decrypt a threshold ciphertext.
 #[derive(Debug)]
 pub struct DecryptionError;
+
+/// Homomorphic properties of homomorphic encryption schemes
+pub mod homomorphic;

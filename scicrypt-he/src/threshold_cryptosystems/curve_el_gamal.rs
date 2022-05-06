@@ -1,13 +1,11 @@
-use crate::cryptosystems::curve_el_gamal::{
-    AssociatedCurveElGamalCiphertext, CurveElGamalCiphertext, CurveElGamalPK,
-};
+use crate::cryptosystems::curve_el_gamal::{CurveElGamalCiphertext, CurveElGamalPK};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::RistrettoPoint;
 use curve25519_dalek::scalar::Scalar;
-use scicrypt_traits::cryptosystems::DecryptionKey;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
+use scicrypt_traits::threshold_cryptosystems::PartialDecryptionKey;
 use scicrypt_traits::threshold_cryptosystems::{
     DecryptionShare, NOfNCryptosystem, TOfNCryptosystem,
 };
@@ -26,16 +24,10 @@ pub struct NOfNCurveElGamalSK {
 /// Decryption share of N-out-of-N curve-based ElGamal
 pub struct NOfNCurveElGamalShare(CurveElGamalCiphertext);
 
-impl<'pk>
-    NOfNCryptosystem<
-        'pk,
-        CurveElGamalPK,
-        NOfNCurveElGamalSK,
-        RistrettoPoint,
-        NOfNCurveElGamalShare,
-        AssociatedCurveElGamalCiphertext<'pk>,
-    > for NOfNCurveElGamal
-{
+impl NOfNCryptosystem for NOfNCurveElGamal {
+    type PublicKey = CurveElGamalPK;
+    type SecretKey = NOfNCurveElGamalSK;
+
     fn setup(security_param: &BitsOfSecurity) -> Self {
         match security_param {
             BitsOfSecurity::AES128 => (),
@@ -65,29 +57,27 @@ impl<'pk>
     }
 }
 
-impl DecryptionKey<NOfNCurveElGamalShare, AssociatedCurveElGamalCiphertext<'_>>
-    for NOfNCurveElGamalSK
-{
-    fn decrypt(
+impl PartialDecryptionKey<CurveElGamalPK> for NOfNCurveElGamalSK {
+    type DecryptionShare = NOfNCurveElGamalShare;
+
+    fn partial_decrypt_raw(
         &self,
-        associated_ciphertext: &AssociatedCurveElGamalCiphertext,
+        _public_key: &CurveElGamalPK,
+        ciphertext: &CurveElGamalCiphertext,
     ) -> NOfNCurveElGamalShare {
         NOfNCurveElGamalShare(CurveElGamalCiphertext {
-            c1: self.key * associated_ciphertext.ciphertext.c1,
-            c2: associated_ciphertext.ciphertext.c2,
+            c1: self.key * ciphertext.c1,
+            c2: ciphertext.c2,
         })
     }
 }
 
-impl DecryptionShare for NOfNCurveElGamalShare {
-    type Plaintext = RistrettoPoint;
-    type PublicKey = CurveElGamalPK;
-
+impl DecryptionShare<CurveElGamalPK> for NOfNCurveElGamalShare {
     #[allow(clippy::op_ref)]
     fn combine(
         decryption_shares: &[Self],
-        _public_key: &Self::PublicKey,
-    ) -> Result<Self::Plaintext, DecryptionError> {
+        _public_key: &CurveElGamalPK,
+    ) -> Result<RistrettoPoint, DecryptionError> {
         Ok(decryption_shares[0].0.c2 - &decryption_shares.iter().map(|share| share.0.c1).sum())
     }
 }
@@ -104,16 +94,10 @@ pub struct TOfNCurveElGamalShare {
     c2: RistrettoPoint,
 }
 
-impl<'pk>
-    TOfNCryptosystem<
-        'pk,
-        CurveElGamalPK,
-        TOfNCurveElGamalSK,
-        RistrettoPoint,
-        TOfNCurveElGamalShare,
-        AssociatedCurveElGamalCiphertext<'pk>,
-    > for TOfNCurveElGamal
-{
+impl TOfNCryptosystem for TOfNCurveElGamal {
+    type PublicKey = CurveElGamalPK;
+    type SecretKey = TOfNCurveElGamalSK;
+
     fn setup(security_param: &BitsOfSecurity) -> Self {
         match security_param {
             BitsOfSecurity::AES128 => (),
@@ -159,34 +143,32 @@ impl<'pk>
 }
 
 /// One of the partial keys, of which t must be used to decrypt successfully.
-struct TOfNCurveElGamalSK {
+pub struct TOfNCurveElGamalSK {
     id: i32,
     key: Scalar,
 }
 
-impl DecryptionKey<TOfNCurveElGamalShare, AssociatedCurveElGamalCiphertext<'_>>
-    for TOfNCurveElGamalSK
-{
-    fn decrypt(
+impl PartialDecryptionKey<CurveElGamalPK> for TOfNCurveElGamalSK {
+    type DecryptionShare = TOfNCurveElGamalShare;
+
+    fn partial_decrypt_raw(
         &self,
-        associated_ciphertext: &AssociatedCurveElGamalCiphertext,
+        _public_key: &CurveElGamalPK,
+        ciphertext: &CurveElGamalCiphertext,
     ) -> TOfNCurveElGamalShare {
         TOfNCurveElGamalShare {
             id: self.id,
-            c1: self.key * associated_ciphertext.ciphertext.c1,
-            c2: associated_ciphertext.ciphertext.c2,
+            c1: self.key * ciphertext.c1,
+            c2: ciphertext.c2,
         }
     }
 }
 
-impl DecryptionShare for TOfNCurveElGamalShare {
-    type Plaintext = RistrettoPoint;
-    type PublicKey = CurveElGamalPK;
-
+impl DecryptionShare<CurveElGamalPK> for TOfNCurveElGamalShare {
     fn combine(
         decryption_shares: &[Self],
-        _public_key: &Self::PublicKey,
-    ) -> Result<Self::Plaintext, DecryptionError> {
+        _public_key: &CurveElGamalPK,
+    ) -> Result<RistrettoPoint, DecryptionError> {
         let summed: RistrettoPoint = decryption_shares
             .iter()
             .enumerate()
@@ -224,11 +206,11 @@ mod tests {
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
-    use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
+    use scicrypt_traits::cryptosystems::EncryptionKey;
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{
-        DecryptionShare, NOfNCryptosystem, TOfNCryptosystem,
+        DecryptionShare, NOfNCryptosystem, PartialDecryptionKey, TOfNCryptosystem,
     };
 
     #[test]
@@ -240,11 +222,11 @@ mod tests {
 
         let plaintext = &Scalar::from(19u64) * &RISTRETTO_BASEPOINT_TABLE;
 
-        let ciphertext = pk.encrypt(plaintext, &mut rng);
+        let ciphertext = pk.encrypt(&plaintext, &mut rng);
 
-        let share_1 = sks[0].decrypt(&ciphertext);
-        let share_2 = sks[1].decrypt(&ciphertext);
-        let share_3 = sks[2].decrypt(&ciphertext);
+        let share_1 = sks[0].partial_decrypt(&ciphertext);
+        let share_2 = sks[1].partial_decrypt(&ciphertext);
+        let share_3 = sks[2].partial_decrypt(&ciphertext);
 
         assert_eq!(
             plaintext,
@@ -261,10 +243,10 @@ mod tests {
 
         let plaintext = &Scalar::from(21u64) * &RISTRETTO_BASEPOINT_TABLE;
 
-        let ciphertext = pk.encrypt(plaintext, &mut rng);
+        let ciphertext = pk.encrypt(&plaintext, &mut rng);
 
-        let share_1 = sks[0].decrypt(&ciphertext);
-        let share_3 = sks[2].decrypt(&ciphertext);
+        let share_1 = sks[0].partial_decrypt(&ciphertext);
+        let share_3 = sks[2].partial_decrypt(&ciphertext);
 
         assert_eq!(
             plaintext,

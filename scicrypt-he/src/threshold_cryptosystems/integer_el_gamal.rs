@@ -1,14 +1,11 @@
 use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
-use crate::cryptosystems::integer_el_gamal::{
-    AssociatedIntegerElGamalCiphertext, IntegerElGamalCiphertext, IntegerElGamalPK,
-};
+use crate::cryptosystems::integer_el_gamal::{IntegerElGamalCiphertext, IntegerElGamalPK};
 use rug::Integer;
-use scicrypt_traits::cryptosystems::DecryptionKey;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::threshold_cryptosystems::{
-    DecryptionShare, NOfNCryptosystem, TOfNCryptosystem,
+    DecryptionShare, NOfNCryptosystem, PartialDecryptionKey, TOfNCryptosystem,
 };
 use scicrypt_traits::DecryptionError;
 use std::ops::Rem;
@@ -25,16 +22,10 @@ pub struct NOfNIntegerElGamalSK {
     key: Integer,
 }
 
-impl<'pk>
-    NOfNCryptosystem<
-        'pk,
-        IntegerElGamalPK,
-        NOfNIntegerElGamalSK,
-        Integer,
-        NOfNIntegerElGamalShare,
-        AssociatedIntegerElGamalCiphertext<'pk>,
-    > for NOfNIntegerElGamal
-{
+impl NOfNCryptosystem for NOfNIntegerElGamal {
+    type PublicKey = IntegerElGamalPK;
+    type SecretKey = NOfNIntegerElGamalSK;
+
     /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
     fn setup(security_param: &BitsOfSecurity) -> Self {
         NOfNIntegerElGamal {
@@ -79,33 +70,30 @@ impl<'pk>
 /// Decryption share of N-out-of-N integer-based ElGamal
 pub struct NOfNIntegerElGamalShare(IntegerElGamalCiphertext);
 
-impl DecryptionKey<NOfNIntegerElGamalShare, AssociatedIntegerElGamalCiphertext<'_>>
-    for NOfNIntegerElGamalSK
-{
-    fn decrypt(
+impl PartialDecryptionKey<IntegerElGamalPK> for NOfNIntegerElGamalSK {
+    type DecryptionShare = NOfNIntegerElGamalShare;
+
+    fn partial_decrypt_raw(
         &self,
-        associated_ciphertext: &AssociatedIntegerElGamalCiphertext,
+        public_key: &IntegerElGamalPK,
+        ciphertext: &IntegerElGamalCiphertext,
     ) -> NOfNIntegerElGamalShare {
         NOfNIntegerElGamalShare(IntegerElGamalCiphertext {
             c1: Integer::from(
-                associated_ciphertext
-                    .ciphertext
+                ciphertext
                     .c1
-                    .secure_pow_mod_ref(&self.key, &associated_ciphertext.public_key.modulus),
+                    .secure_pow_mod_ref(&self.key, &public_key.modulus),
             ),
-            c2: Integer::from(&associated_ciphertext.ciphertext.c2),
+            c2: Integer::from(&ciphertext.c2),
         })
     }
 }
 
-impl DecryptionShare for NOfNIntegerElGamalShare {
-    type Plaintext = Integer;
-    type PublicKey = IntegerElGamalPK;
-
+impl DecryptionShare<IntegerElGamalPK> for NOfNIntegerElGamalShare {
     fn combine(
         decryption_shares: &[Self],
-        public_key: &Self::PublicKey,
-    ) -> Result<Self::Plaintext, DecryptionError> {
+        public_key: &IntegerElGamalPK,
+    ) -> Result<Integer, DecryptionError> {
         Ok((Integer::from(
             &decryption_shares[0].0.c2
                 * &decryption_shares
@@ -139,16 +127,10 @@ pub struct TOfNIntegerElGamalShare {
     c2: Integer,
 }
 
-impl<'pk>
-    TOfNCryptosystem<
-        'pk,
-        IntegerElGamalPK,
-        TOfNIntegerElGamalSK,
-        Integer,
-        TOfNIntegerElGamalShare,
-        AssociatedIntegerElGamalCiphertext<'pk>,
-    > for TOfNIntegerElGamal
-{
+impl TOfNCryptosystem for TOfNIntegerElGamal {
+    type PublicKey = IntegerElGamalPK;
+    type SecretKey = TOfNIntegerElGamalSK;
+
     /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
     fn setup(security_param: &BitsOfSecurity) -> Self {
         TOfNIntegerElGamal {
@@ -206,34 +188,31 @@ impl<'pk>
     }
 }
 
-impl DecryptionKey<TOfNIntegerElGamalShare, AssociatedIntegerElGamalCiphertext<'_>>
-    for TOfNIntegerElGamalSK
-{
-    fn decrypt(
+impl PartialDecryptionKey<IntegerElGamalPK> for TOfNIntegerElGamalSK {
+    type DecryptionShare = TOfNIntegerElGamalShare;
+
+    fn partial_decrypt_raw(
         &self,
-        associated_ciphertext: &AssociatedIntegerElGamalCiphertext,
+        public_key: &IntegerElGamalPK,
+        ciphertext: &IntegerElGamalCiphertext,
     ) -> TOfNIntegerElGamalShare {
         TOfNIntegerElGamalShare {
             id: self.id,
             c1: Integer::from(
-                associated_ciphertext
-                    .ciphertext
+                ciphertext
                     .c1
-                    .secure_pow_mod_ref(&self.key, &associated_ciphertext.public_key.modulus),
+                    .secure_pow_mod_ref(&self.key, &public_key.modulus),
             ),
-            c2: associated_ciphertext.ciphertext.c2.clone(),
+            c2: ciphertext.c2.clone(),
         }
     }
 }
 
-impl DecryptionShare for TOfNIntegerElGamalShare {
-    type Plaintext = Integer;
-    type PublicKey = IntegerElGamalPK;
-
+impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
     fn combine(
         decryption_shares: &[Self],
-        public_key: &Self::PublicKey,
-    ) -> Result<Self::Plaintext, DecryptionError> {
+        public_key: &IntegerElGamalPK,
+    ) -> Result<Integer, DecryptionError> {
         let q = Integer::from(&public_key.modulus >> 1);
 
         let multiplied: Integer = decryption_shares
@@ -279,10 +258,10 @@ mod tests {
     };
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
+    use scicrypt_traits::cryptosystems::EncryptionKey;
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::threshold_cryptosystems::{
-        DecryptionShare, NOfNCryptosystem, TOfNCryptosystem,
+        DecryptionShare, NOfNCryptosystem, PartialDecryptionKey, TOfNCryptosystem,
     };
 
     #[test]
@@ -294,11 +273,11 @@ mod tests {
 
         let plaintext = Integer::from(25);
 
-        let ciphertext = pk.encrypt(Integer::from(&plaintext), &mut rng);
+        let ciphertext = pk.encrypt(&Integer::from(&plaintext), &mut rng);
 
-        let share_1 = sks[0].decrypt(&ciphertext);
-        let share_2 = sks[1].decrypt(&ciphertext);
-        let share_3 = sks[2].decrypt(&ciphertext);
+        let share_1 = sks[0].partial_decrypt(&ciphertext);
+        let share_2 = sks[1].partial_decrypt(&ciphertext);
+        let share_3 = sks[2].partial_decrypt(&ciphertext);
 
         assert_eq!(
             plaintext,
@@ -315,10 +294,10 @@ mod tests {
 
         let plaintext = Integer::from(2100u64);
 
-        let ciphertext = pk.encrypt(Integer::from(&plaintext), &mut rng);
+        let ciphertext = pk.encrypt(&plaintext, &mut rng);
 
-        let share_1 = sks[0].decrypt(&ciphertext);
-        let share_3 = sks[2].decrypt(&ciphertext);
+        let share_1 = sks[0].partial_decrypt(&ciphertext);
+        let share_3 = sks[2].partial_decrypt(&ciphertext);
 
         assert_eq!(
             plaintext,
