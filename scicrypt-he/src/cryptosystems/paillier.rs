@@ -1,6 +1,6 @@
 use rug::Integer;
 use scicrypt_numbertheory::{gen_coprime, gen_rsa_modulus};
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey, Associable};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -13,6 +13,7 @@ pub struct Paillier {
 }
 
 /// Public key for the Paillier cryptosystem.
+#[derive(PartialEq, Debug)]
 pub struct PaillierPK {
     n: Integer,
     g: Integer,
@@ -29,26 +30,12 @@ pub struct PaillierCiphertext {
     c: Integer,
 }
 
-/// Ciphertext of the Paillier cryptosystem, with an associated public key
-pub struct AssociatedPaillierCiphertext<'pk> {
-    ciphertext: PaillierCiphertext,
-    public_key: &'pk PaillierPK,
-}
+impl Associable<PaillierPK> for PaillierCiphertext {}
 
-impl PaillierCiphertext {
-    // Associable<PaillierPK, AssociatedPaillierCiphertext<'_>> for
-    fn associate(self, public_key: &PaillierPK) -> AssociatedPaillierCiphertext {
-        AssociatedPaillierCiphertext {
-            ciphertext: self,
-            public_key,
-        }
-    }
-}
+impl<'pk> AsymmetricCryptosystem for Paillier {
+    type PublicKey = PaillierPK;
+    type SecretKey = PaillierSK;
 
-impl<'pk>
-    AsymmetricCryptosystem<'pk, PaillierPK, PaillierSK, Integer, AssociatedPaillierCiphertext<'pk>>
-    for Paillier
-{
     fn setup(security_param: &BitsOfSecurity) -> Self {
         Paillier {
             modulus_size: security_param.to_public_key_bit_length(),
@@ -76,7 +63,10 @@ impl<'pk>
     }
 }
 
-impl<'pk> EncryptionKey<'pk, Integer, AssociatedPaillierCiphertext<'pk>> for PaillierPK {
+impl EncryptionKey for PaillierPK {
+    type Plaintext = Integer;
+    type Ciphertext = PaillierCiphertext;
+
     /// Encrypts a plaintext integer using the Paillier public key.
     /// ```
     /// # use scicrypt_traits::randomness::GeneralRng;
@@ -90,11 +80,11 @@ impl<'pk> EncryptionKey<'pk, Integer, AssociatedPaillierCiphertext<'pk>> for Pai
     /// # let (public_key, secret_key) = paillier.generate_keys(&mut rng);
     /// let ciphertext = public_key.encrypt(5, &mut rng);
     /// ```
-    fn encrypt<IntoP: Into<Integer>, R: SecureRng>(
-        &'pk self,
-        plaintext: IntoP,
+    fn encrypt_raw<R: SecureRng>(
+        &self,
+        plaintext: &Integer,
         rng: &mut GeneralRng<R>,
-    ) -> AssociatedPaillierCiphertext {
+    ) -> PaillierCiphertext {
         let n_squared = Integer::from(self.n.square_ref());
         let r = gen_coprime(&n_squared, rng);
 
@@ -104,11 +94,10 @@ impl<'pk> EncryptionKey<'pk, Integer, AssociatedPaillierCiphertext<'pk>> for Pai
         PaillierCiphertext {
             c: (first * second).rem(&n_squared),
         }
-        .associate(self)
     }
 }
 
-impl DecryptionKey<Integer, AssociatedPaillierCiphertext<'_>> for PaillierSK {
+impl DecryptionKey<PaillierPK> for PaillierSK {
     /// Decrypts a rich Paillier ciphertext using the secret key.
     /// ```
     /// # use scicrypt_traits::randomness::GeneralRng;
@@ -124,52 +113,51 @@ impl DecryptionKey<Integer, AssociatedPaillierCiphertext<'_>> for PaillierSK {
     /// println!("The decrypted message is {}", secret_key.decrypt(&ciphertext));
     /// // Prints: "The decrypted message is 5".
     /// ```
-    fn decrypt(&self, associated_ciphertext: &AssociatedPaillierCiphertext) -> Integer {
-        let n_squared = Integer::from(associated_ciphertext.public_key.n.square_ref());
+    fn decrypt_raw(&self, public_key: &PaillierPK, ciphertext: &PaillierCiphertext) -> Integer {
+        let n_squared = Integer::from(public_key.n.square_ref());
 
         let mut inner = Integer::from(
-            associated_ciphertext
-                .ciphertext
+            ciphertext
                 .c
                 .secure_pow_mod_ref(&self.lambda, &n_squared),
         );
         inner -= 1;
-        inner /= &associated_ciphertext.public_key.n;
+        inner /= &public_key.n;
         inner *= &self.mu;
 
-        inner.rem(&associated_ciphertext.public_key.n)
+        inner.rem(&public_key.n)
     }
 }
 
-#[allow(clippy::suspicious_arithmetic_impl)]
-impl<'pk> Add for &AssociatedPaillierCiphertext<'pk> {
-    type Output = AssociatedPaillierCiphertext<'pk>;
+// #[allow(clippy::suspicious_arithmetic_impl)]
+// impl<'pk> Add for &AssociatedPaillierCiphertext<'pk> {
+//     type Output = AssociatedPaillierCiphertext<'pk>;
 
-    fn add(self, rhs: Self) -> Self::Output {
-        AssociatedPaillierCiphertext {
-            ciphertext: PaillierCiphertext {
-                c: Integer::from(&self.ciphertext.c * &rhs.ciphertext.c)
-                    .rem(Integer::from(self.public_key.n.square_ref())),
-            },
-            public_key: self.public_key,
-        }
-    }
-}
+//     fn add(self, rhs: Self) -> Self::Output {
+//         AssociatedPaillierCiphertext {
+//             ciphertext: PaillierCiphertext {
+//                 c: Integer::from(&self.ciphertext.c * &rhs.ciphertext.c)
+//                     .rem(Integer::from(self.public_key.n.square_ref())),
+//             },
+//             public_key: self.public_key,
+//         }
+//     }
+// }
 
-impl<'pk> Mul<&Integer> for &AssociatedPaillierCiphertext<'pk> {
-    type Output = AssociatedPaillierCiphertext<'pk>;
+// impl<'pk> Mul<&Integer> for &AssociatedPaillierCiphertext<'pk> {
+//     type Output = AssociatedPaillierCiphertext<'pk>;
 
-    fn mul(self, rhs: &Integer) -> Self::Output {
-        let modulus = Integer::from(self.public_key.n.square_ref());
+//     fn mul(self, rhs: &Integer) -> Self::Output {
+//         let modulus = Integer::from(self.public_key.n.square_ref());
 
-        AssociatedPaillierCiphertext {
-            ciphertext: PaillierCiphertext {
-                c: Integer::from(self.ciphertext.c.pow_mod_ref(rhs, &modulus).unwrap()),
-            },
-            public_key: self.public_key,
-        }
-    }
-}
+//         AssociatedPaillierCiphertext {
+//             ciphertext: PaillierCiphertext {
+//                 c: Integer::from(self.ciphertext.c.pow_mod_ref(rhs, &modulus).unwrap()),
+//             },
+//             public_key: self.public_key,
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -187,7 +175,7 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::Other { pk_bits: 160 });
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(15, &mut rng);
+        let ciphertext = pk.encrypt(&Integer::from(15), &mut rng);
 
         assert_eq!(15, sk.decrypt(&ciphertext));
     }
@@ -199,7 +187,7 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::Other { pk_bits: 160 });
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(7, &mut rng);
+        let ciphertext = pk.encrypt(&Integer::from(7), &mut rng);
         let ciphertext_twice = &ciphertext + &ciphertext;
 
         assert_eq!(Integer::from(14), sk.decrypt(&ciphertext_twice));
@@ -212,7 +200,7 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::Other { pk_bits: 160 });
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(9, &mut rng);
+        let ciphertext = pk.encrypt(&Integer::from(9), &mut rng);
         let ciphertext_twice = &ciphertext * &Integer::from(16);
 
         assert_eq!(144, sk.decrypt(&ciphertext_twice));

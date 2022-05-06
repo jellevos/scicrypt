@@ -1,6 +1,6 @@
 use rug::Integer;
 use scicrypt_numbertheory::gen_rsa_modulus;
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
+use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey, Associable};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -13,6 +13,7 @@ pub struct Rsa {
 }
 
 /// Public key for the RSA cryptosystem.
+#[derive(PartialEq, Debug)]
 pub struct RsaPK {
     n: Integer,
     e: Integer,
@@ -28,23 +29,12 @@ pub struct RsaCiphertext {
     c: Integer,
 }
 
-/// Ciphertext of the RSA cryptosystem, with an associated public key
-pub struct AssociatedRsaCiphertext<'pk> {
-    ciphertext: RsaCiphertext,
-    public_key: &'pk RsaPK,
-}
+impl Associable<RsaPK> for RsaCiphertext {}
 
-impl RsaCiphertext {
-    /// Associate the ciphertext with a public key
-    pub fn associate(self, public_key: &RsaPK) -> AssociatedRsaCiphertext {
-        AssociatedRsaCiphertext {
-            ciphertext: self,
-            public_key,
-        }
-    }
-}
+impl AsymmetricCryptosystem for Rsa {
+    type PublicKey = RsaPK;
+    type SecretKey = RsaSK;
 
-impl<'pk> AsymmetricCryptosystem<'pk, RsaPK, RsaSK, Integer, AssociatedRsaCiphertext<'pk>> for Rsa {
     fn setup(security_param: &BitsOfSecurity) -> Self {
         Rsa {
             modulus_size: security_param.to_public_key_bit_length(),
@@ -61,57 +51,58 @@ impl<'pk> AsymmetricCryptosystem<'pk, RsaPK, RsaSK, Integer, AssociatedRsaCipher
     }
 }
 
-impl<'pk> EncryptionKey<'pk, Integer, AssociatedRsaCiphertext<'pk>> for RsaPK {
-    fn encrypt<IntoP: Into<Integer>, R: SecureRng>(
-        &'pk self,
-        plaintext: IntoP,
+impl EncryptionKey for RsaPK {
+    type Plaintext = Integer;
+    type Ciphertext = RsaCiphertext;
+
+    fn encrypt_raw<R: SecureRng>(
+        &self,
+        plaintext: &Integer,
         _rng: &mut GeneralRng<R>,
-    ) -> AssociatedRsaCiphertext {
+    ) -> RsaCiphertext {
         RsaCiphertext {
-            c: Integer::from(plaintext.into().pow_mod_ref(&self.e, &self.n).unwrap()),
+            c: Integer::from(plaintext.pow_mod_ref(&self.e, &self.n).unwrap()),
         }
-        .associate(self)
     }
 }
 
-impl DecryptionKey<Integer, AssociatedRsaCiphertext<'_>> for RsaSK {
-    fn decrypt(&self, associated_ciphertext: &AssociatedRsaCiphertext) -> Integer {
+impl DecryptionKey<RsaPK> for RsaSK {
+    fn decrypt_raw(&self, public_key: &RsaPK, ciphertext: &RsaCiphertext) -> Integer {
         Integer::from(
-            associated_ciphertext
-                .ciphertext
+            ciphertext
                 .c
-                .secure_pow_mod_ref(&self.d, &associated_ciphertext.public_key.n),
+                .secure_pow_mod_ref(&self.d, &public_key.n),
         )
     }
 }
 
-impl<'pk> Mul for &AssociatedRsaCiphertext<'pk> {
-    type Output = AssociatedRsaCiphertext<'pk>;
+// impl<'pk> Mul for &AssociatedRsaCiphertext<'pk> {
+//     type Output = AssociatedRsaCiphertext<'pk>;
 
-    fn mul(self, rhs: Self) -> Self::Output {
-        AssociatedRsaCiphertext {
-            ciphertext: RsaCiphertext {
-                c: Integer::from(&self.ciphertext.c * &rhs.ciphertext.c).rem(&self.public_key.n),
-            },
-            public_key: self.public_key,
-        }
-    }
-}
+//     fn mul(self, rhs: Self) -> Self::Output {
+//         AssociatedRsaCiphertext {
+//             ciphertext: RsaCiphertext {
+//                 c: Integer::from(&self.ciphertext.c * &rhs.ciphertext.c).rem(&self.public_key.n),
+//             },
+//             public_key: self.public_key,
+//         }
+//     }
+// }
 
-impl<'pk> AssociatedRsaCiphertext<'pk> {
-    /// Computes the ciphertext corresponding to the plaintext raised to a scalar power.
-    pub fn pow(&self, rhs: &Integer) -> AssociatedRsaCiphertext {
-        RsaCiphertext {
-            c: Integer::from(
-                self.ciphertext
-                    .c
-                    .pow_mod_ref(rhs, &self.public_key.n)
-                    .unwrap(),
-            ),
-        }
-        .associate(self.public_key)
-    }
-}
+// impl<'pk> AssociatedRsaCiphertext<'pk> {
+//     /// Computes the ciphertext corresponding to the plaintext raised to a scalar power.
+//     pub fn pow(&self, rhs: &Integer) -> AssociatedRsaCiphertext {
+//         RsaCiphertext {
+//             c: Integer::from(
+//                 self.ciphertext
+//                     .c
+//                     .pow_mod_ref(rhs, &self.public_key.n)
+//                     .unwrap(),
+//             ),
+//         }
+//         .associate(self.public_key)
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -129,7 +120,7 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::Other { pk_bits: 160 });
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(15, &mut rng);
+        let ciphertext = pk.encrypt(&Integer::from(15), &mut rng);
 
         assert_eq!(15, sk.decrypt(&ciphertext));
     }
@@ -141,7 +132,7 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::Other { pk_bits: 160 });
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(7, &mut rng);
+        let ciphertext = pk.encrypt(&Integer::from(7), &mut rng);
         let ciphertext_twice = &ciphertext * &ciphertext;
 
         assert_eq!(49, sk.decrypt(&ciphertext_twice));
@@ -154,7 +145,7 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::Other { pk_bits: 160 });
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(9, &mut rng);
+        let ciphertext = pk.encrypt(&Integer::from(9), &mut rng);
         let ciphertext_twice = ciphertext.pow(&Integer::from(4));
 
         assert_eq!(Integer::from(6561), sk.decrypt(&ciphertext_twice));

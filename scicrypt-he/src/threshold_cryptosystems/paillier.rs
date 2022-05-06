@@ -1,10 +1,10 @@
 use rug::Integer;
 use scicrypt_numbertheory::{gen_coprime, gen_safe_prime};
-use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
+use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey, Associable};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, TOfNCryptosystem};
+use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, TOfNCryptosystem, PartialDecryptionKey};
 use scicrypt_traits::DecryptionError;
 use std::ops::Rem;
 
@@ -16,6 +16,7 @@ pub struct ThresholdPaillier {
 }
 
 /// The public key for encryption.
+#[derive(PartialEq, Debug)]
 pub struct ThresholdPaillierPK {
     generator: Integer,
     modulus: Integer,
@@ -34,11 +35,7 @@ pub struct ThresholdPaillierCiphertext {
     c: Integer,
 }
 
-/// A ciphertext for T-out-of-N paillier with an associated public key
-pub struct AssociatedThresholdPaillierCiphertext<'pk> {
-    ciphertext: ThresholdPaillierCiphertext,
-    public_key: &'pk ThresholdPaillierPK,
-}
+impl Associable<ThresholdPaillierPK> for ThresholdPaillierCiphertext {}
 
 /// A partially decrypted ciphertext, of which t must be combined to decrypt successfully.
 pub struct ThresholdPaillierShare {
@@ -46,16 +43,10 @@ pub struct ThresholdPaillierShare {
     share: Integer,
 }
 
-impl<'pk>
-    TOfNCryptosystem<
-        'pk,
-        ThresholdPaillierPK,
-        ThresholdPaillierSK,
-        Integer,
-        ThresholdPaillierShare,
-        AssociatedThresholdPaillierCiphertext<'pk>,
-    > for ThresholdPaillier
-{
+impl TOfNCryptosystem for ThresholdPaillier {
+    type PublicKey = ThresholdPaillierPK;
+    type SecretKey = ThresholdPaillierSK;
+
     fn setup(security_param: &BitsOfSecurity) -> Self {
         ThresholdPaillier {
             modulus_size: security_param.to_public_key_bit_length(),
@@ -115,27 +106,15 @@ impl<'pk>
     }
 }
 
-impl ThresholdPaillierCiphertext {
-    /// Associates the ciphertext with a public key
-    pub fn associate(
-        self,
-        public_key: &ThresholdPaillierPK,
-    ) -> AssociatedThresholdPaillierCiphertext {
-        AssociatedThresholdPaillierCiphertext {
-            ciphertext: self,
-            public_key,
-        }
-    }
-}
+impl EncryptionKey for ThresholdPaillierPK {
+    type Plaintext = Integer;
+    type Ciphertext = ThresholdPaillierCiphertext;
 
-impl<'pk> EncryptionKey<'pk, Integer, AssociatedThresholdPaillierCiphertext<'pk>>
-    for ThresholdPaillierPK
-{
-    fn encrypt<IntoP: Into<Integer>, R: SecureRng>(
-        &'pk self,
-        plaintext: IntoP,
+    fn encrypt_raw<R: SecureRng>(
+        &self,
+        plaintext: &Integer,
         rng: &mut GeneralRng<R>,
-    ) -> AssociatedThresholdPaillierCiphertext
+    ) -> ThresholdPaillierCiphertext
     where
         Self: Sized,
     {
@@ -152,36 +131,33 @@ impl<'pk> EncryptionKey<'pk, Integer, AssociatedThresholdPaillierCiphertext<'pk>
         ThresholdPaillierCiphertext {
             c: (first * second).rem(&n_squared),
         }
-        .associate(self)
     }
 }
 
-impl DecryptionKey<ThresholdPaillierShare, AssociatedThresholdPaillierCiphertext<'_>>
-    for ThresholdPaillierSK
-{
-    fn decrypt(
+impl PartialDecryptionKey<ThresholdPaillierPK> for ThresholdPaillierSK {
+    type DecryptionShare = ThresholdPaillierShare;
+
+    fn partial_decrypt_raw(
         &self,
-        associated_ciphertext: &AssociatedThresholdPaillierCiphertext,
+        public_key: &ThresholdPaillierPK,
+        ciphertext: &ThresholdPaillierCiphertext,
     ) -> ThresholdPaillierShare {
-        let n_squared = Integer::from(associated_ciphertext.public_key.modulus.square_ref());
+        let n_squared = Integer::from(public_key.modulus.square_ref());
         ThresholdPaillierShare {
             id: self.id,
-            share: Integer::from(associated_ciphertext.ciphertext.c.secure_pow_mod_ref(
-                &(Integer::from(2) * &associated_ciphertext.public_key.delta * &self.key),
+            share: Integer::from(ciphertext.c.secure_pow_mod_ref(
+                &(Integer::from(2) * &public_key.delta * &self.key),
                 &n_squared,
             )),
         }
     }
 }
 
-impl DecryptionShare for ThresholdPaillierShare {
-    type Plaintext = Integer;
-    type PublicKey = ThresholdPaillierPK;
-
+impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
     fn combine(
         decryption_shares: &[Self],
-        public_key: &Self::PublicKey,
-    ) -> Result<Self::Plaintext, DecryptionError> {
+        public_key: &ThresholdPaillierPK,
+    ) -> Result<Integer, DecryptionError> {
         let lambdas: Vec<Integer> = (0..decryption_shares.len())
             .map(|i| {
                 let mut lambda = Integer::from(&public_key.delta);
@@ -234,10 +210,11 @@ impl DecryptionShare for ThresholdPaillierShare {
 mod tests {
     use crate::threshold_cryptosystems::paillier::{ThresholdPaillier, ThresholdPaillierShare};
     use rand_core::OsRng;
+    use rug::Integer;
     use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
-    use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, TOfNCryptosystem};
+    use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, TOfNCryptosystem, PartialDecryptionKey};
 
     #[test]
     fn test_encrypt_decrypt_2_of_3() {
@@ -246,13 +223,13 @@ mod tests {
         let paillier = ThresholdPaillier::setup(&BitsOfSecurity::Other { pk_bits: 160 });
         let (pk, sks) = paillier.generate_keys(2, 3, &mut rng);
 
-        let ciphertext = pk.encrypt(19, &mut rng);
+        let ciphertext = pk.encrypt(&Integer::from(19), &mut rng);
 
-        let share_1 = sks[0].decrypt(&ciphertext);
-        let share_3 = sks[2].decrypt(&ciphertext);
+        let share_1 = sks[0].partial_decrypt(&ciphertext);
+        let share_3 = sks[2].partial_decrypt(&ciphertext);
 
         assert_eq!(
-            19,
+            Integer::from(19),
             ThresholdPaillierShare::combine(&[share_1, share_3], &pk).unwrap()
         );
     }
