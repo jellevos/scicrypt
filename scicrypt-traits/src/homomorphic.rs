@@ -59,7 +59,6 @@ pub trait HomomorphicMultiplication: EncryptionKey {
     fn pow(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext;
 }
 
-// TODO: This leads to problems because PK::Plaintext can be AssociatedCiphertext<'pk, C, PK>
 impl<'pk, C: Associable<PK>, PK: EncryptionKey<Ciphertext = C> + HomomorphicMultiplication> Mul
     for AssociatedCiphertext<'pk, C, PK>
 {

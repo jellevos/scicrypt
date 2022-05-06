@@ -30,7 +30,7 @@ pub struct PaillierSK {
 
 /// Ciphertext of the Paillier cryptosystem, which is additively homomorphic.
 pub struct PaillierCiphertext {
-    c: Integer,
+    pub(crate) c: Integer,
 }
 
 impl Associable<PaillierPK> for PaillierCiphertext {}
