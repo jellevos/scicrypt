@@ -691,7 +691,7 @@ dependencies = [
 
 [[package]]
 name = "scicrypt-he"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "criterion",
  "curve25519-dalek",
@@ -703,7 +703,7 @@ dependencies = [
 
 [[package]]
 name = "scicrypt-numbertheory"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "criterion",
  "glass_pumpkin",
@@ -717,7 +717,7 @@ dependencies = [
 
 [[package]]
 name = "scicrypt-traits"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "rand_core",
  "rug",
