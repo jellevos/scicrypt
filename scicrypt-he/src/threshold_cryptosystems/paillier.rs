@@ -107,6 +107,7 @@ impl TOfNCryptosystem for ThresholdPaillier {
 }
 
 impl EncryptionKey for ThresholdPaillierPK {
+    type Input = Integer;
     type Plaintext = Integer;
     type Ciphertext = ThresholdPaillierCiphertext;
 
@@ -206,12 +207,14 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
     }
 }
 
+// TODO: Implement homomorphism / simply use standard PaillierCiphertexts
+
 #[cfg(test)]
 mod tests {
     use crate::threshold_cryptosystems::paillier::{ThresholdPaillier, ThresholdPaillierShare};
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{DecryptionKey, EncryptionKey};
+    use scicrypt_traits::cryptosystems::EncryptionKey;
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, TOfNCryptosystem, PartialDecryptionKey};

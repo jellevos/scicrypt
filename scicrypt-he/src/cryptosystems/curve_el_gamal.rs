@@ -4,6 +4,7 @@ use curve25519_dalek::scalar::Scalar;
 use scicrypt_traits::cryptosystems::{
     Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
 };
+use scicrypt_traits::homomorphic::HomomorphicAddition;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -82,6 +83,7 @@ impl AsymmetricCryptosystem for CurveElGamal {
 }
 
 impl EncryptionKey for CurveElGamalPK {
+    type Input = Scalar;
     type Plaintext = RistrettoPoint;
     type Ciphertext = CurveElGamalCiphertext;
 
@@ -117,6 +119,7 @@ impl PartialEq for PrecomputedCurveElGamalPK {
 }
 
 impl EncryptionKey for PrecomputedCurveElGamalPK {
+    type Input = Scalar;
     type Plaintext = RistrettoPoint;
     type Ciphertext = CurveElGamalCiphertext;
 
@@ -147,55 +150,37 @@ impl DecryptionKey<PrecomputedCurveElGamalPK> for CurveElGamalSK {
     }
 }
 
-// impl<'pk> Add for &AssociatedCurveElGamalCiphertext<'pk> {
-//     type Output = AssociatedCurveElGamalCiphertext<'pk>;
+impl HomomorphicAddition for CurveElGamalPK {
+    fn add(&self, ciphertext_a: Self::Ciphertext, ciphertext_b: Self::Ciphertext) -> Self::Ciphertext {
+        CurveElGamalCiphertext {
+            c1: ciphertext_a.c1 + ciphertext_b.c1,
+            c2: ciphertext_a.c2 + ciphertext_b.c2,
+        }
+    }
 
-//     /// Homomorphic operation between two ElGamal ciphertexts.
-//     fn add(self, rhs: Self) -> Self::Output {
-//         CurveElGamalCiphertext {
-//             c1: self.ciphertext.c1 + rhs.ciphertext.c1,
-//             c2: self.ciphertext.c2 + rhs.ciphertext.c2,
-//         }
-//         .associate(self.public_key)
-//     }
-// }
+    fn mul(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
+        CurveElGamalCiphertext {
+            c1: ciphertext.c1 * input,
+            c2: ciphertext.c2 * input,
+        }
+    }
+}
 
-// impl<'pk> Add for &AssociatedPrecomputedCurveElGamalCiphertext<'pk> {
-//     type Output = AssociatedPrecomputedCurveElGamalCiphertext<'pk>;
+impl HomomorphicAddition for PrecomputedCurveElGamalPK {
+    fn add(&self, ciphertext_a: Self::Ciphertext, ciphertext_b: Self::Ciphertext) -> Self::Ciphertext {
+        CurveElGamalCiphertext {
+            c1: ciphertext_a.c1 + ciphertext_b.c1,
+            c2: ciphertext_a.c2 + ciphertext_b.c2,
+        }
+    }
 
-//     /// Homomorphic operation between two ElGamal ciphertexts.
-//     fn add(self, rhs: Self) -> Self::Output {
-//         CurveElGamalCiphertext {
-//             c1: self.ciphertext.c1 + rhs.ciphertext.c1,
-//             c2: self.ciphertext.c2 + rhs.ciphertext.c2,
-//         }
-//         .associate(self.public_key)
-//     }
-// }
-
-// impl<'pk> Mul<&Scalar> for &AssociatedCurveElGamalCiphertext<'pk> {
-//     type Output = AssociatedCurveElGamalCiphertext<'pk>;
-
-//     fn mul(self, rhs: &Scalar) -> Self::Output {
-//         CurveElGamalCiphertext {
-//             c1: self.ciphertext.c1 * rhs,
-//             c2: self.ciphertext.c2 * rhs,
-//         }
-//         .associate(self.public_key)
-//     }
-// }
-
-// impl<'pk> Mul<&Scalar> for &AssociatedPrecomputedCurveElGamalCiphertext<'pk> {
-//     type Output = AssociatedPrecomputedCurveElGamalCiphertext<'pk>;
-
-//     fn mul(self, rhs: &Scalar) -> Self::Output {
-//         CurveElGamalCiphertext {
-//             c1: self.ciphertext.c1 * rhs,
-//             c2: self.ciphertext.c2 * rhs,
-//         }
-//         .associate(self.public_key)
-//     }
-// }
+    fn mul(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
+        CurveElGamalCiphertext {
+            c1: ciphertext.c1 * input,
+            c2: ciphertext.c2 * input,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -238,8 +223,9 @@ mod tests {
         let el_gamal = CurveElGamal::setup(&Default::default());
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&RISTRETTO_BASEPOINT_POINT, &mut rng);
-        let ciphertext_twice = &ciphertext + &ciphertext;
+        let ciphertext_a = pk.encrypt(&RISTRETTO_BASEPOINT_POINT, &mut rng);
+        let ciphertext_b = pk.encrypt(&RISTRETTO_BASEPOINT_POINT, &mut rng);
+        let ciphertext_twice = ciphertext_a + ciphertext_b;
 
         assert_eq!(
             &Scalar::from(2u64) * &RISTRETTO_BASEPOINT_POINT,
@@ -255,7 +241,7 @@ mod tests {
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&RISTRETTO_BASEPOINT_POINT, &mut rng);
-        let ciphertext_thrice = &ciphertext * &Scalar::from(3u64);
+        let ciphertext_thrice = ciphertext * Scalar::from(3u64);
 
         assert_eq!(
             &Scalar::from(3u64) * &RISTRETTO_BASEPOINT_POINT,

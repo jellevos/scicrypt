@@ -24,6 +24,7 @@ pub trait AsymmetricCryptosystem {
 
 /// The encryption key.
 pub trait EncryptionKey: Sized + Debug + PartialEq {
+    type Input;
     type Plaintext;
     type Ciphertext: Associable<Self>;
 
