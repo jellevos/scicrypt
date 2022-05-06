@@ -10,6 +10,8 @@ use scicrypt_traits::threshold_cryptosystems::{
 use scicrypt_traits::DecryptionError;
 use std::ops::Rem;
 
+use crate::cryptosystems::paillier::PaillierCiphertext;
+
 /// Threshold Paillier cryptosystem: Extension of Paillier that requires t out of n parties to
 /// successfully decrypt.
 #[derive(Copy, Clone)]
@@ -31,13 +33,6 @@ pub struct ThresholdPaillierSK {
     id: i32,
     key: Integer,
 }
-
-/// A randomized ciphertext created using the public key.
-pub struct ThresholdPaillierCiphertext {
-    c: Integer,
-}
-
-impl Associable<ThresholdPaillierPK> for ThresholdPaillierCiphertext {}
 
 /// A partially decrypted ciphertext, of which t must be combined to decrypt successfully.
 pub struct ThresholdPaillierShare {
@@ -108,16 +103,18 @@ impl TOfNCryptosystem for ThresholdPaillier {
     }
 }
 
+impl Associable<ThresholdPaillierPK> for PaillierCiphertext {}
+
 impl EncryptionKey for ThresholdPaillierPK {
     type Input = Integer;
     type Plaintext = Integer;
-    type Ciphertext = ThresholdPaillierCiphertext;
+    type Ciphertext = PaillierCiphertext;
 
     fn encrypt_raw<R: SecureRng>(
         &self,
         plaintext: &Integer,
         rng: &mut GeneralRng<R>,
-    ) -> ThresholdPaillierCiphertext
+    ) -> PaillierCiphertext
     where
         Self: Sized,
     {
@@ -131,7 +128,7 @@ impl EncryptionKey for ThresholdPaillierPK {
         );
         let second = r.secure_pow_mod(&self.modulus, &n_squared);
 
-        ThresholdPaillierCiphertext {
+        PaillierCiphertext {
             c: (first * second).rem(&n_squared),
         }
     }
@@ -143,7 +140,7 @@ impl PartialDecryptionKey<ThresholdPaillierPK> for ThresholdPaillierSK {
     fn partial_decrypt_raw(
         &self,
         public_key: &ThresholdPaillierPK,
-        ciphertext: &ThresholdPaillierCiphertext,
+        ciphertext: &PaillierCiphertext,
     ) -> ThresholdPaillierShare {
         let n_squared = Integer::from(public_key.modulus.square_ref());
         ThresholdPaillierShare {
@@ -208,8 +205,6 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
         )
     }
 }
-
-// TODO: Implement homomorphism / simply use standard PaillierCiphertexts
 
 #[cfg(test)]
 mod tests {
