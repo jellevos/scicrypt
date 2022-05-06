@@ -1,5 +1,5 @@
 use rug::Integer;
-use scicrypt_numbertheory::{gen_coprime, gen_rsa_modulus};
+use scicrypt_numbertheory::gen_rsa_modulus;
 use scicrypt_traits::cryptosystems::{
     Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
 };
@@ -92,9 +92,15 @@ impl EncryptionKey for PaillierPK {
         plaintext: &Integer,
         rng: &mut GeneralRng<R>,
     ) -> PaillierCiphertext {
-        let r = gen_coprime(&self.n_squared, rng);
+        // r must be coprime with n_squared but this only fails with probability 2^(1 - n_in_bits)
+        // 0 also only occurs with extremely low probability, so we can simply sample randomly s.t. 0 < r < n
+        let r = Integer::from(self.n.random_below_ref(&mut rng.rug_rng()));
 
-        let first = Integer::from(self.g.pow_mod_ref(&plaintext.into(), &self.n_squared).unwrap());
+        let first = Integer::from(
+            self.g
+                .pow_mod_ref(&plaintext, &self.n_squared)
+                .unwrap(),
+        );
         let second = r.secure_pow_mod(&self.n, &self.n_squared);
 
         PaillierCiphertext {
