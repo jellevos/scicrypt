@@ -138,19 +138,31 @@ impl EncryptionKey for PrecomputedCurveElGamalPK {
 
 // TODO: These double definitions can be made into one generic if associated ciphertexts have a trait
 impl DecryptionKey<CurveElGamalPK> for CurveElGamalSK {
-    fn decrypt_raw(&self, _public_key: &CurveElGamalPK, ciphertext: &CurveElGamalCiphertext) -> RistrettoPoint {
+    fn decrypt_raw(
+        &self,
+        _public_key: &CurveElGamalPK,
+        ciphertext: &CurveElGamalCiphertext,
+    ) -> RistrettoPoint {
         self.decrypt_directly(ciphertext)
     }
 }
 
 impl DecryptionKey<PrecomputedCurveElGamalPK> for CurveElGamalSK {
-    fn decrypt_raw(&self, _public_key: &PrecomputedCurveElGamalPK, ciphertext: &CurveElGamalCiphertext) -> RistrettoPoint {
+    fn decrypt_raw(
+        &self,
+        _public_key: &PrecomputedCurveElGamalPK,
+        ciphertext: &CurveElGamalCiphertext,
+    ) -> RistrettoPoint {
         self.decrypt_directly(ciphertext)
     }
 }
 
 impl HomomorphicAddition for CurveElGamalPK {
-    fn add(&self, ciphertext_a: Self::Ciphertext, ciphertext_b: Self::Ciphertext) -> Self::Ciphertext {
+    fn add(
+        &self,
+        ciphertext_a: Self::Ciphertext,
+        ciphertext_b: Self::Ciphertext,
+    ) -> Self::Ciphertext {
         CurveElGamalCiphertext {
             c1: ciphertext_a.c1 + ciphertext_b.c1,
             c2: ciphertext_a.c2 + ciphertext_b.c2,
@@ -166,7 +178,11 @@ impl HomomorphicAddition for CurveElGamalPK {
 }
 
 impl HomomorphicAddition for PrecomputedCurveElGamalPK {
-    fn add(&self, ciphertext_a: Self::Ciphertext, ciphertext_b: Self::Ciphertext) -> Self::Ciphertext {
+    fn add(
+        &self,
+        ciphertext_a: Self::Ciphertext,
+        ciphertext_b: Self::Ciphertext,
+    ) -> Self::Ciphertext {
         CurveElGamalCiphertext {
             c1: ciphertext_a.c1 + ciphertext_b.c1,
             c2: ciphertext_a.c2 + ciphertext_b.c2,

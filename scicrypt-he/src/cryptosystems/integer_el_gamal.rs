@@ -1,6 +1,8 @@
 use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 use rug::Integer;
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey, Associable};
+use scicrypt_traits::cryptosystems::{
+    Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
+};
 use scicrypt_traits::homomorphic::HomomorphicMultiplication;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
@@ -152,7 +154,11 @@ impl DecryptionKey<IntegerElGamalPK> for IntegerElGamalSK {
     /// println!("The decrypted message is {}", secret_key.decrypt(&ciphertext));
     /// // Prints: "The decrypted message is 5".
     /// ```
-    fn decrypt_raw(&self, public_key: &IntegerElGamalPK, ciphertext: &IntegerElGamalCiphertext) -> Integer {
+    fn decrypt_raw(
+        &self,
+        public_key: &IntegerElGamalPK,
+        ciphertext: &IntegerElGamalCiphertext,
+    ) -> Integer {
         (&ciphertext.c2
             * Integer::from(
                 ciphertext
@@ -166,29 +172,21 @@ impl DecryptionKey<IntegerElGamalPK> for IntegerElGamalSK {
 }
 
 impl HomomorphicMultiplication for IntegerElGamalPK {
-    fn mul(&self, ciphertext_a: Self::Ciphertext, ciphertext_b: Self::Ciphertext) -> Self::Ciphertext {
+    fn mul(
+        &self,
+        ciphertext_a: Self::Ciphertext,
+        ciphertext_b: Self::Ciphertext,
+    ) -> Self::Ciphertext {
         IntegerElGamalCiphertext {
-            c1: Integer::from(&ciphertext_a.c1 * &ciphertext_b.c1)
-                .rem(&self.modulus),
-            c2: Integer::from(&ciphertext_a.c2 * &ciphertext_b.c2)
-                .rem(&self.modulus)
+            c1: Integer::from(&ciphertext_a.c1 * &ciphertext_b.c1).rem(&self.modulus),
+            c2: Integer::from(&ciphertext_a.c2 * &ciphertext_b.c2).rem(&self.modulus),
         }
     }
 
     fn pow(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
         IntegerElGamalCiphertext {
-            c1: Integer::from(
-                ciphertext
-                    .c1
-                    .pow_mod_ref(&input, &self.modulus)
-                    .unwrap(),
-            ),
-            c2: Integer::from(
-                ciphertext
-                    .c2
-                    .pow_mod_ref(&input, &self.modulus)
-                    .unwrap(),
-            ),
+            c1: Integer::from(ciphertext.c1.pow_mod_ref(&input, &self.modulus).unwrap()),
+            c2: Integer::from(ciphertext.c2.pow_mod_ref(&input, &self.modulus).unwrap()),
         }
     }
 }

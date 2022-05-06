@@ -1,4 +1,4 @@
-use crate::cryptosystems::{EncryptionKey, AssociatedCiphertext};
+use crate::cryptosystems::{AssociatedCiphertext, EncryptionKey};
 use crate::randomness::GeneralRng;
 use crate::randomness::SecureRng;
 use crate::security::BitsOfSecurity;
@@ -41,11 +41,18 @@ pub trait PartialDecryptionKey<PK: EncryptionKey> {
     type DecryptionShare: DecryptionShare<PK>;
 
     /// Partially decrypts a ciphertext, returning a valid decryption share.
-    fn partial_decrypt<'pk>(&self, ciphertext: &AssociatedCiphertext<'pk, PK::Ciphertext, PK>) -> Self::DecryptionShare {
+    fn partial_decrypt<'pk>(
+        &self,
+        ciphertext: &AssociatedCiphertext<'pk, PK::Ciphertext, PK>,
+    ) -> Self::DecryptionShare {
         self.partial_decrypt_raw(ciphertext.public_key, &ciphertext.ciphertext)
     }
     /// Partially decrypts a ciphertext, returning a valid decryption share.
-    fn partial_decrypt_raw(&self, public_key: &PK, ciphertext: &PK::Ciphertext) -> Self::DecryptionShare;
+    fn partial_decrypt_raw(
+        &self,
+        public_key: &PK,
+        ciphertext: &PK::Ciphertext,
+    ) -> Self::DecryptionShare;
 }
 
 /// A `DecryptionShare` is the result of decrypting with a partial key. When enough of these shares

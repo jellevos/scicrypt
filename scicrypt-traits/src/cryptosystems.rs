@@ -21,7 +21,10 @@ pub trait AsymmetricCryptosystem {
 
     /// Generate a public and private key pair using a cryptographic RNG. The level of security is
     /// determined by the computational `security_parameter`.
-    fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (Self::PublicKey, Self::SecretKey);
+    fn generate_keys<R: SecureRng>(
+        &self,
+        rng: &mut GeneralRng<R>,
+    ) -> (Self::PublicKey, Self::SecretKey);
 }
 
 /// The encryption key.
@@ -35,19 +38,30 @@ pub trait EncryptionKey: Sized + Debug + PartialEq {
     /// The type of an encrypted plaintext, i.e. a ciphertext.
     type Ciphertext: Associable<Self>;
 
-    /// Encrypt the plaintext using the public key and a cryptographic RNG and immediately associate it with the public key. 
-    fn encrypt<'pk, R: SecureRng>(&'pk self, plaintext: &Self::Plaintext, rng: &mut GeneralRng<R>) -> AssociatedCiphertext<'pk, Self::Ciphertext, Self> {
+    /// Encrypt the plaintext using the public key and a cryptographic RNG and immediately associate it with the public key.
+    fn encrypt<'pk, R: SecureRng>(
+        &'pk self,
+        plaintext: &Self::Plaintext,
+        rng: &mut GeneralRng<R>,
+    ) -> AssociatedCiphertext<'pk, Self::Ciphertext, Self> {
         self.encrypt_raw(plaintext, rng).associate(self)
     }
 
     /// Encrypt the plaintext using the public key and a cryptographic RNG.
-    fn encrypt_raw<R: SecureRng>(&self, plaintext: &Self::Plaintext, rng: &mut GeneralRng<R>) -> Self::Ciphertext;
+    fn encrypt_raw<R: SecureRng>(
+        &self,
+        plaintext: &Self::Plaintext,
+        rng: &mut GeneralRng<R>,
+    ) -> Self::Ciphertext;
 }
 
 /// The decryption key.
 pub trait DecryptionKey<PK: EncryptionKey> {
-    /// Decrypt the associated ciphertext using the secret key. 
-    fn decrypt<'pk>(&self, ciphertext: &AssociatedCiphertext<'pk, PK::Ciphertext, PK>) -> PK::Plaintext {
+    /// Decrypt the associated ciphertext using the secret key.
+    fn decrypt<'pk>(
+        &self,
+        ciphertext: &AssociatedCiphertext<'pk, PK::Ciphertext, PK>,
+    ) -> PK::Plaintext {
         self.decrypt_raw(ciphertext.public_key, &ciphertext.ciphertext)
     }
 
@@ -61,13 +75,16 @@ pub struct AssociatedCiphertext<'pk, C: Associable<PK>, PK: EncryptionKey<Cipher
     /// A potentially homomorphic ciphertext
     pub ciphertext: C,
     /// The related public key
-    pub public_key: &'pk PK
+    pub public_key: &'pk PK,
 }
 
 /// Functionality to easily turn a ciphertext into an associated ciphertext
 pub trait Associable<PK: EncryptionKey<Ciphertext = Self>>: Sized {
     /// 'Enriches' a ciphertext by associating it with a corresponding public key. This allows to overlead operators for homomorphic operations.
     fn associate(self, public_key: &PK) -> AssociatedCiphertext<'_, Self, PK> {
-        AssociatedCiphertext { ciphertext: self, public_key }
+        AssociatedCiphertext {
+            ciphertext: self,
+            public_key,
+        }
     }
 }

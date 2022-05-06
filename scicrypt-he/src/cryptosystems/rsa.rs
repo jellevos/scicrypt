@@ -1,6 +1,8 @@
 use rug::Integer;
 use scicrypt_numbertheory::gen_rsa_modulus;
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey, Associable};
+use scicrypt_traits::cryptosystems::{
+    Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
+};
 use scicrypt_traits::homomorphic::HomomorphicMultiplication;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
@@ -70,16 +72,16 @@ impl EncryptionKey for RsaPK {
 
 impl DecryptionKey<RsaPK> for RsaSK {
     fn decrypt_raw(&self, public_key: &RsaPK, ciphertext: &RsaCiphertext) -> Integer {
-        Integer::from(
-            ciphertext
-                .c
-                .secure_pow_mod_ref(&self.d, &public_key.n),
-        )
+        Integer::from(ciphertext.c.secure_pow_mod_ref(&self.d, &public_key.n))
     }
 }
 
 impl HomomorphicMultiplication for RsaPK {
-    fn mul(&self, ciphertext_a: Self::Ciphertext, ciphertext_b: Self::Ciphertext) -> Self::Ciphertext {
+    fn mul(
+        &self,
+        ciphertext_a: Self::Ciphertext,
+        ciphertext_b: Self::Ciphertext,
+    ) -> Self::Ciphertext {
         RsaCiphertext {
             c: Integer::from(&ciphertext_a.c * &ciphertext_b.c).rem(&self.n),
         }
@@ -87,12 +89,7 @@ impl HomomorphicMultiplication for RsaPK {
 
     fn pow(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
         RsaCiphertext {
-            c: Integer::from(
-                ciphertext
-                    .c
-                    .pow_mod_ref(&input, &self.n)
-                    .unwrap(),
-            ),
+            c: Integer::from(ciphertext.c.pow_mod_ref(&input, &self.n).unwrap()),
         }
     }
 }

@@ -1,10 +1,12 @@
 use rug::Integer;
 use scicrypt_numbertheory::{gen_coprime, gen_safe_prime};
-use scicrypt_traits::cryptosystems::{EncryptionKey, Associable};
+use scicrypt_traits::cryptosystems::{Associable, EncryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, TOfNCryptosystem, PartialDecryptionKey};
+use scicrypt_traits::threshold_cryptosystems::{
+    DecryptionShare, PartialDecryptionKey, TOfNCryptosystem,
+};
 use scicrypt_traits::DecryptionError;
 use std::ops::Rem;
 
@@ -217,7 +219,9 @@ mod tests {
     use scicrypt_traits::cryptosystems::EncryptionKey;
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
-    use scicrypt_traits::threshold_cryptosystems::{DecryptionShare, TOfNCryptosystem, PartialDecryptionKey};
+    use scicrypt_traits::threshold_cryptosystems::{
+        DecryptionShare, PartialDecryptionKey, TOfNCryptosystem,
+    };
 
     #[test]
     fn test_encrypt_decrypt_2_of_3() {

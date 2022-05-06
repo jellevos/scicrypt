@@ -60,7 +60,11 @@ impl NOfNCryptosystem for NOfNCurveElGamal {
 impl PartialDecryptionKey<CurveElGamalPK> for NOfNCurveElGamalSK {
     type DecryptionShare = NOfNCurveElGamalShare;
 
-    fn partial_decrypt_raw(&self, _public_key: &CurveElGamalPK, ciphertext: &CurveElGamalCiphertext) -> NOfNCurveElGamalShare {
+    fn partial_decrypt_raw(
+        &self,
+        _public_key: &CurveElGamalPK,
+        ciphertext: &CurveElGamalCiphertext,
+    ) -> NOfNCurveElGamalShare {
         NOfNCurveElGamalShare(CurveElGamalCiphertext {
             c1: self.key * ciphertext.c1,
             c2: ciphertext.c2,
@@ -206,7 +210,7 @@ mod tests {
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{
-        DecryptionShare, NOfNCryptosystem, TOfNCryptosystem, PartialDecryptionKey,
+        DecryptionShare, NOfNCryptosystem, PartialDecryptionKey, TOfNCryptosystem,
     };
 
     #[test]

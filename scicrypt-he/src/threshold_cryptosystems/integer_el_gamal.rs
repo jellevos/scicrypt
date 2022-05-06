@@ -5,7 +5,7 @@ use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use scicrypt_traits::threshold_cryptosystems::{
-    DecryptionShare, NOfNCryptosystem, TOfNCryptosystem, PartialDecryptionKey,
+    DecryptionShare, NOfNCryptosystem, PartialDecryptionKey, TOfNCryptosystem,
 };
 use scicrypt_traits::DecryptionError;
 use std::ops::Rem;
@@ -261,7 +261,7 @@ mod tests {
     use scicrypt_traits::cryptosystems::EncryptionKey;
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::threshold_cryptosystems::{
-        DecryptionShare, NOfNCryptosystem, TOfNCryptosystem, PartialDecryptionKey,
+        DecryptionShare, NOfNCryptosystem, PartialDecryptionKey, TOfNCryptosystem,
     };
 
     #[test]

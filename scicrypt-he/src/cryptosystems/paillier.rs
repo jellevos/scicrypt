@@ -1,11 +1,13 @@
 use rug::Integer;
 use scicrypt_numbertheory::{gen_coprime, gen_rsa_modulus};
-use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey, Associable};
+use scicrypt_traits::cryptosystems::{
+    Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
+};
 use scicrypt_traits::homomorphic::HomomorphicAddition;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use std::ops::{Rem};
+use std::ops::Rem;
 
 /// The Paillier cryptosystem.
 #[derive(Copy, Clone)]
@@ -118,11 +120,7 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
     fn decrypt_raw(&self, public_key: &PaillierPK, ciphertext: &PaillierCiphertext) -> Integer {
         let n_squared = Integer::from(public_key.n.square_ref());
 
-        let mut inner = Integer::from(
-            ciphertext
-                .c
-                .secure_pow_mod_ref(&self.lambda, &n_squared),
-        );
+        let mut inner = Integer::from(ciphertext.c.secure_pow_mod_ref(&self.lambda, &n_squared));
         inner -= 1;
         inner /= &public_key.n;
         inner *= &self.mu;
@@ -132,7 +130,11 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
 }
 
 impl HomomorphicAddition for PaillierPK {
-    fn add(&self, ciphertext_a: Self::Ciphertext, ciphertext_b: Self::Ciphertext) -> Self::Ciphertext {
+    fn add(
+        &self,
+        ciphertext_a: Self::Ciphertext,
+        ciphertext_b: Self::Ciphertext,
+    ) -> Self::Ciphertext {
         PaillierCiphertext {
             c: Integer::from(&ciphertext_a.c * &ciphertext_b.c)
                 .rem(Integer::from(self.n.square_ref())),
