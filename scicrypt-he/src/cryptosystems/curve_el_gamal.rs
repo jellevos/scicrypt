@@ -136,7 +136,6 @@ impl EncryptionKey for PrecomputedCurveElGamalPK {
     }
 }
 
-// TODO: These double definitions can be made into one generic if associated ciphertexts have a trait
 impl DecryptionKey<CurveElGamalPK> for CurveElGamalSK {
     fn decrypt_raw(
         &self,
