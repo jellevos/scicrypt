@@ -58,7 +58,7 @@ impl AsymmetricCryptosystem for Paillier {
     /// let (public_key, secret_key) = paillier.generate_keys(&mut rng);
     /// ```
     fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (PaillierPK, PaillierSK) {
-        let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
+        let (n, lambda, _, _) = gen_rsa_modulus(self.modulus_size, rng);
 
         let g = &n + Integer::from(1);
         let mu = Integer::from(lambda.invert_ref(&n).unwrap());
@@ -142,7 +142,12 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
         // 0 also only occurs with extremely low probability, so we can simply sample randomly s.t. 0 < r < n
         let r = Integer::from(public_key.n.random_below_ref(&mut rng.rug_rng()));
 
-        let first = Integer::from(public_key.g.pow_mod_ref(plaintext, &public_key.n_squared).unwrap());
+        let first = Integer::from(
+            public_key
+                .g
+                .pow_mod_ref(plaintext, &public_key.n_squared)
+                .unwrap(),
+        );
         let second = r.secure_pow_mod(&public_key.n, &public_key.n_squared);
 
         PaillierCiphertext {
