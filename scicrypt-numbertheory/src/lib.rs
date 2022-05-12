@@ -6,6 +6,9 @@
 //! Number theoretic functions, particularly suited for cryptography. Functions include extremely
 //! fast (safe) prime generation.
 
+/// BigIntegers (that can be positive and negative) with constant-time arithmetic.
+pub mod bigint;
+
 mod primes;
 
 use crate::primes::FIRST_PRIMES;

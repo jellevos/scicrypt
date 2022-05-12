@@ -707,6 +707,7 @@ version = "0.6.0"
 dependencies = [
  "criterion",
  "glass_pumpkin",
+ "gmp-mpfr-sys",
  "openssl",
  "primal",
  "rand",
