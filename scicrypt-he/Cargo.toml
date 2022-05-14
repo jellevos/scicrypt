@@ -26,5 +26,5 @@ criterion = "0.3.3"
 rustdoc-args = [ "--html-in-header", "katex-header.html" ]
 
 [[bench]]
-name = "paillier"
+name = "bench"
 harness = false
