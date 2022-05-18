@@ -7,7 +7,8 @@ use std::{
     ptr::null_mut,
 };
 
-use gmp_mpfr_sys::gmp::{self, mpz_t};
+use gmp_mpfr_sys::{gmp::{self, mpz_t}};
+use scicrypt_traits::randomness::{SecureRng, GeneralRng};
 
 const ALIGN: usize = 128;
 const GMP_NUMB_BITS: u64 = 64;
@@ -55,6 +56,23 @@ impl BigInteger {
         }
     }
 
+    /// Generates a random number with `bits` bits. `bits` should be a multiple of 8.
+    pub fn random<R: SecureRng>(bits: u64, rng: &mut GeneralRng<R>) -> Self {
+        unsafe {
+            let mut number = BigInteger::zero(bits);
+            let limbs = gmp::mpz_limbs_write(&mut number.inner, bits.div_ceil(GMP_NUMB_BITS) as i64);
+    
+            for i in 0isize..bits.div_ceil(GMP_NUMB_BITS) as isize {
+                let mut bytes = [0; 8];
+                rng.rng().fill_bytes(&mut bytes);
+                limbs.offset(i).write(u64::from_be_bytes(bytes));
+            }
+
+            number.inner.size = bits.div_ceil(GMP_NUMB_BITS) as i32;
+            number
+        }
+    }
+
     /// Creates a BigInteger with value 0. All arithmetic operations are constant-time with regards to the integer's size `bits`.
     pub fn zero(bits: u64) -> Self {
         unsafe {
@@ -63,7 +81,7 @@ impl BigInteger {
             let z = z.assume_init();
             BigInteger {
                 inner: z,
-                supposed_size: (bits / GMP_NUMB_BITS) as i64,
+                supposed_size: bits.div_ceil(GMP_NUMB_BITS) as i64,
             }
         }
     }
@@ -71,14 +89,9 @@ impl BigInteger {
     /// Creates a BigInteger with `value`. All arithmetic operations are constant-time with regards to the integer's size `bits`.
     pub fn new(value: u64, bits: u64) -> Self {
         unsafe {
-            let mut z = MaybeUninit::uninit();
-            gmp::mpz_init2(z.as_mut_ptr(), bits);
-            let mut z = z.assume_init();
-            gmp::mpz_set_ui(&mut z, value);
-            BigInteger {
-                inner: z,
-                supposed_size: (bits / GMP_NUMB_BITS) as i64,
-            }
+            let mut integer = BigInteger::zero(bits);
+            gmp::mpz_set_ui(&mut integer.inner, value);
+            integer
         }
     }
 
@@ -246,12 +259,36 @@ impl PartialEq for BigInteger {
 
 #[cfg(test)]
 mod tests {
+    use rand_core::OsRng;
+    use scicrypt_traits::randomness::GeneralRng;
+
+    use crate::bigint::GMP_NUMB_BITS;
+
     use super::BigInteger;
 
     #[test]
     fn test_zero() {
         let integer = BigInteger::zero(1024);
         assert!(integer.is_zero());
+    }
+
+    #[test]
+    fn test_random_not_same() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let a = BigInteger::random(64, &mut rng);
+        let b = BigInteger::random(64, &mut rng);
+        
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn test_random_length_1024() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let a = BigInteger::random(1024, &mut rng);
+        
+        assert_eq!(a.inner.size, 1024 / GMP_NUMB_BITS as i32);
     }
 
     #[test]

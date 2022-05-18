@@ -1,3 +1,4 @@
+#![feature(int_roundings)]
 #![warn(missing_docs, unused_imports)]
 
 //! _This is a part of **scicrypt**. For more information, head to the
