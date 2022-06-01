@@ -3,11 +3,11 @@ use std::{
     ffi::{CStr, CString},
     fmt::Display,
     mem::MaybeUninit,
-    ops::{AddAssign, Mul},
+    ops::{AddAssign, Mul, RemAssign, Shr, ShrAssign, Sub},
     ptr::null_mut,
 };
 
-use gmp_mpfr_sys::{gmp::{self, mpz_t}};
+use gmp_mpfr_sys::{gmp::{self, mpz_t, mpz_add_ui, mpz_sub_ui, mpz_lcm}};
 use scicrypt_traits::randomness::{SecureRng, GeneralRng};
 
 const ALIGN: usize = 128;
@@ -120,21 +120,27 @@ impl BigInteger {
         unsafe { gmp::mpz_get_ui(&self.inner) }
     }
 
-    /// Compute `self` to the power `exponent` modulo `modulus`. The computation is constant in run time with regards to `self` and `exponent`, but variable with the size of `modulus`. The actual size of the modulus cannot be smaller than the supposed size of the other operands.
+    // TODO: Currently leaks the size of `self`
+    /// Compute `self` to the power `exponent` modulo `modulus`. The computation is constant in run time with regards to `self` and `exponent`, but it leaks the actual size of `modulus`. The modulus cannot be smaller than the other operands.
     pub fn pow_mod(&self, exponent: &BigInteger, modulus: &BigInteger) -> BigInteger {
         // The actual size of the modulus cannot be smaller than the supposed size of the other operands.
         assert!(self.supposed_size <= modulus.inner.size as i64);
         assert!(exponent.supposed_size <= modulus.inner.size as i64);
 
         let mut result = BigInteger::init(modulus.supposed_size);
+        println!("{} {:?}", self, self);
 
         // TODO: Make supposed_size in bits so we can also have small bit counts e.g. RSA's value e
 
         let enb = exponent.supposed_size as u64 * GMP_NUMB_BITS;
 
         unsafe {
+            // let scratch_size =
+            //     gmp::mpn_sec_powm_itch(self.supposed_size, enb, modulus.inner.size as i64) as usize
+            //         * GMP_NUMB_BITS as usize
+            //         / 8;
             let scratch_size =
-                gmp::mpn_sec_powm_itch(self.supposed_size, enb, modulus.inner.size as i64) as usize
+                gmp::mpn_sec_powm_itch(self.inner.size as i64, enb, modulus.inner.size as i64) as usize
                     * GMP_NUMB_BITS as usize
                     / 8;
 
@@ -158,10 +164,20 @@ impl BigInteger {
             let scratch_layout = Layout::from_size_align(scratch_size, ALIGN).unwrap();
             let scratch = std::alloc::alloc(scratch_layout);
 
+            // gmp::mpn_sec_powm(
+            //     result.inner.d.as_mut(),
+            //     self.inner.d.as_ptr(),
+            //     self.supposed_size,
+            //     exponent.inner.d.as_ptr(),
+            //     enb,
+            //     modulus.inner.d.as_ptr(),
+            //     modulus.inner.size as i64,
+            //     scratch as *mut u64,
+            // );
             gmp::mpn_sec_powm(
                 result.inner.d.as_mut(),
                 self.inner.d.as_ptr(),
-                self.supposed_size,
+                self.inner.size as i64,
                 exponent.inner.d.as_ptr(),
                 enb,
                 modulus.inner.d.as_ptr(),
@@ -175,6 +191,42 @@ impl BigInteger {
             result.normalize();
             result
         }
+    }
+
+    pub fn set_bit(&mut self, bit_index: u64) {
+        unsafe {
+            gmp::mpz_setbit(&mut self.inner, bit_index);
+        }
+    }
+
+    /// Computes self modulo a u64 number. This function is not constant-time.
+    pub fn mod_u(&self, modulus: u64) -> u64 {
+        unsafe {
+            gmp::mpz_fdiv_ui(&self.inner, modulus)
+        }
+    }
+
+    /// Returns true when this number is prime. This function is not constant-time. Internally it uses Baille-PSW.
+    pub fn is_probably_prime(&self) -> bool {
+        unsafe {
+            gmp::mpz_probab_prime_p(&self.inner, 25) > 0
+        }
+    }
+
+    pub fn invert() {
+        todo!()
+    }
+
+    // Computes the least common multiple between self and other. This function is not constant-time.
+    pub fn lcm(&self, other: &BigInteger) -> BigInteger {
+        let mut result = BigInteger::init(self.supposed_size);
+
+        unsafe {
+            mpz_lcm(&mut result.inner, &self.inner, &other.inner);
+        }
+
+        result.normalize();
+        result
     }
 }
 
@@ -196,6 +248,28 @@ impl AddAssign for BigInteger {
                 self.supposed_size,
             );
         }
+    }
+}
+
+impl AddAssign<u64> for BigInteger {
+    fn add_assign(&mut self, rhs: u64) {
+        unsafe {
+            mpz_add_ui(&mut self.inner, &self.inner, rhs);
+        }
+    }
+}
+
+impl Sub<u64> for &BigInteger {
+    type Output = BigInteger;
+
+    fn sub(self, rhs: u64) -> Self::Output {
+        let mut result = BigInteger::init(self.supposed_size);
+
+        unsafe {
+            mpz_sub_ui(&mut result.inner, &result.inner, rhs);
+        }
+
+        result
     }
 }
 
@@ -251,8 +325,46 @@ impl Mul for &BigInteger {
     }
 }
 
+impl RemAssign for BigInteger {
+    fn rem_assign(&mut self, rhs: Self) {
+        todo!()
+    }
+}
+
+/// Not a constant-time function: Reveals the actual size of self.
+impl ShrAssign<u32> for BigInteger {
+    fn shr_assign(&mut self, rhs: u32) {
+        assert!(1 <= rhs);
+        assert!(rhs as u64 <= GMP_NUMB_BITS - 1);
+
+        unsafe {
+            gmp::mpn_rshift(self.inner.d.as_mut(), self.inner.d.as_ptr(), self.inner.size as i64, rhs);
+        }
+    }
+}
+
+/// Not a constant-time function: Reveals the actual size of self.
+impl Shr<u32> for &BigInteger {
+    type Output = BigInteger;
+
+    fn shr(self, rhs: u32) -> Self::Output {
+        assert!(1 <= rhs);
+        assert!(rhs as u64 <= GMP_NUMB_BITS - 1);
+
+        let mut result = BigInteger::init(self.supposed_size);
+
+        unsafe {
+            gmp::mpn_rshift(result.inner.d.as_mut(), self.inner.d.as_ptr(), self.inner.size as i64, rhs);
+        }
+
+        result.inner.size = self.inner.size;
+        result
+    }
+}
+
 impl PartialEq for BigInteger {
     fn eq(&self, other: &Self) -> bool {
+        println!("{} =?= {}", self, other);
         unsafe { gmp::mpz_cmp(&self.inner, &other.inner) == 0 }
     }
 }
@@ -308,6 +420,15 @@ mod tests {
     }
 
     #[test]
+    fn test_shift_right_assign() {
+        // TODO: Sometimes fails when run in conjunction!
+        let mut a = BigInteger::new(129, 128);
+        a >>= 3;
+
+        assert_eq!(16, a.get_u64());
+    }
+
+    #[test]
     fn test_mul_equal_size() {
         let a = BigInteger::new(23, 128);
         let b = BigInteger::new(14, 128);
@@ -340,6 +461,7 @@ mod tests {
 
     #[test]
     fn test_powmod() {
+        // TODO: Sometimes fails when run in conjunction!
         let b = BigInteger::new(105, 1024);
         let e = BigInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
         let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
