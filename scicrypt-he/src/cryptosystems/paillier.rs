@@ -53,7 +53,7 @@ impl AsymmetricCryptosystem for Paillier {
     /// # use scicrypt_traits::cryptosystems::AsymmetricCryptosystem;
     /// # use rand_core::OsRng;
     /// let mut rng = GeneralRng::new(OsRng);
-    /// let paillier = Paillier::setup(&BitsOfSecurity::Other {pk_bits: 160});
+    /// let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
     /// let (public_key, secret_key) = paillier.generate_keys(&mut rng);
     /// ```
     fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (PaillierPK, PaillierSK) {
@@ -80,7 +80,7 @@ impl EncryptionKey for PaillierPK {
     /// # use rug::Integer;
     /// # use rand_core::OsRng;
     /// # let mut rng = GeneralRng::new(OsRng);
-    /// # let paillier = Paillier::setup(&BitsOfSecurity::Other {pk_bits: 160});
+    /// # let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
     /// # let (public_key, secret_key) = paillier.generate_keys(&mut rng);
     /// let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
     /// ```
@@ -111,7 +111,7 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
     /// # use rug::Integer;
     /// # use rand_core::OsRng;
     /// # let mut rng = GeneralRng::new(OsRng);
-    /// # let paillier = Paillier::setup(&BitsOfSecurity::Other {pk_bits: 160});
+    /// # let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
     /// # let (public_key, secret_key) = paillier.generate_keys(&mut rng);
     /// # let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
     /// println!("The decrypted message is {}", secret_key.decrypt(&ciphertext));
@@ -163,7 +163,7 @@ mod tests {
     fn test_encrypt_decrypt() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let paillier = Paillier::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&Integer::from(15), &mut rng);
@@ -175,7 +175,7 @@ mod tests {
     fn test_homomorphic_add() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let paillier = Paillier::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
         let ciphertext_a = pk.encrypt(&Integer::from(7), &mut rng);
@@ -189,7 +189,7 @@ mod tests {
     fn test_homomorphic_scalar_mul() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let paillier = Paillier::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&Integer::from(9), &mut rng);

@@ -222,7 +222,7 @@ mod tests {
     fn test_encrypt_decrypt_2_of_3() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let paillier = ThresholdPaillier::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let paillier = ThresholdPaillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sks) = paillier.generate_keys(2, 3, &mut rng);
 
         let ciphertext = pk.encrypt(&Integer::from(19), &mut rng);

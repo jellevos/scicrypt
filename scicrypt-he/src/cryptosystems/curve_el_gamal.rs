@@ -58,7 +58,9 @@ impl AsymmetricCryptosystem for CurveElGamal {
 
     fn setup(security_param: &BitsOfSecurity) -> Self {
         match security_param {
-            BitsOfSecurity::AES128 => (),
+            BitsOfSecurity::AES128
+            | BitsOfSecurity::ToyParameters
+            | BitsOfSecurity::Custom { pk_bits: 128 } => (),
             _ => panic!(
                 "Currently only the Ristretto group is supported with security level AES128."
             ),
