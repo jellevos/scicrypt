@@ -20,7 +20,7 @@ pub struct ThresholdPaillier {
 }
 
 /// The public key for encryption.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct ThresholdPaillierPK {
     generator: Integer,
     modulus: Integer,

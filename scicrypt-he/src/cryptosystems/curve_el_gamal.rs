@@ -17,7 +17,7 @@ pub struct CurveElGamal;
 
 /// ElGamal ciphertext containing curve points. The addition operator on the ciphertext is
 /// reflected as the curve operation on the associated plaintext.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CurveElGamalCiphertext {
     pub(crate) c1: RistrettoPoint,
     pub(crate) c2: RistrettoPoint,
@@ -27,7 +27,7 @@ impl Associable<CurveElGamalPK> for CurveElGamalCiphertext {}
 impl Associable<PrecomputedCurveElGamalPK> for CurveElGamalCiphertext {}
 
 /// Encryption key for curve-based ElGamal
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct CurveElGamalPK {
     pub(crate) point: RistrettoPoint,
 }

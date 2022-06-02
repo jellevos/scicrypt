@@ -16,7 +16,7 @@ pub struct Paillier {
 }
 
 /// Public key for the Paillier cryptosystem.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct PaillierPK {
     n: Integer,
     g: Integer,

@@ -16,7 +16,7 @@ pub struct Rsa {
 }
 
 /// Public key for the RSA cryptosystem.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct RsaPK {
     n: Integer,
     e: Integer,
