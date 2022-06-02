@@ -7,7 +7,7 @@ use std::{
     ptr::null_mut,
 };
 
-use gmp_mpfr_sys::{gmp::{self, mpz_t, mpz_add_ui, mpz_sub_ui, mpz_lcm}};
+use gmp_mpfr_sys::{gmp::{self, mpz_t, mpz_add_ui, mpz_sub_ui, mpz_lcm, mpz_set}};
 use scicrypt_traits::randomness::{SecureRng, GeneralRng};
 
 const ALIGN: usize = 128;
@@ -120,25 +120,19 @@ impl BigInteger {
         unsafe { gmp::mpz_get_ui(&self.inner) }
     }
 
-    // TODO: Currently leaks the size of `self`
-    /// Compute `self` to the power `exponent` modulo `modulus`. The computation is constant in run time with regards to `self` and `exponent`, but it leaks the actual size of `modulus`. The modulus cannot be smaller than the other operands.
+    /// Compute `self` to the power `exponent` modulo `modulus`. The computation is constant in run time with regards to the `exponent`, but it leaks the actual size of `self` and `modulus`. An easy way to protect the size of `self` is by adding `modulus` to it. The modulus cannot be smaller than the other operands.
     pub fn pow_mod(&self, exponent: &BigInteger, modulus: &BigInteger) -> BigInteger {
         // The actual size of the modulus cannot be smaller than the supposed size of the other operands.
         assert!(self.supposed_size <= modulus.inner.size as i64);
         assert!(exponent.supposed_size <= modulus.inner.size as i64);
 
         let mut result = BigInteger::init(modulus.supposed_size);
-        println!("{} {:?}", self, self);
 
         // TODO: Make supposed_size in bits so we can also have small bit counts e.g. RSA's value e
 
         let enb = exponent.supposed_size as u64 * GMP_NUMB_BITS;
 
         unsafe {
-            // let scratch_size =
-            //     gmp::mpn_sec_powm_itch(self.supposed_size, enb, modulus.inner.size as i64) as usize
-            //         * GMP_NUMB_BITS as usize
-            //         / 8;
             let scratch_size =
                 gmp::mpn_sec_powm_itch(self.inner.size as i64, enb, modulus.inner.size as i64) as usize
                     * GMP_NUMB_BITS as usize
@@ -164,16 +158,6 @@ impl BigInteger {
             let scratch_layout = Layout::from_size_align(scratch_size, ALIGN).unwrap();
             let scratch = std::alloc::alloc(scratch_layout);
 
-            // gmp::mpn_sec_powm(
-            //     result.inner.d.as_mut(),
-            //     self.inner.d.as_ptr(),
-            //     self.supposed_size,
-            //     exponent.inner.d.as_ptr(),
-            //     enb,
-            //     modulus.inner.d.as_ptr(),
-            //     modulus.inner.size as i64,
-            //     scratch as *mut u64,
-            // );
             gmp::mpn_sec_powm(
                 result.inner.d.as_mut(),
                 self.inner.d.as_ptr(),
@@ -213,8 +197,62 @@ impl BigInteger {
         }
     }
 
-    pub fn invert() {
-        todo!()
+    /// Computes `self^-1 mod modulus`, taking ownership of `self`. Returns None if no inverse exists. `modulus` must be odd.
+    pub fn invert(mut self, modulus: &BigInteger) -> Option<BigInteger> {
+        //assert_eq!(self.supposed_size, modulus.supposed_size);
+        //self.supposed_size = modulus.inner.size as i64;
+
+        let mut result = BigInteger::init(modulus.supposed_size);
+
+        unsafe {
+            let scratch_size = gmp::mpn_sec_invert_itch(self.supposed_size)
+                as usize
+                * GMP_NUMB_BITS as usize
+                / 8;
+
+            if scratch_size == 0 {
+                let is_valid = gmp::mpn_sec_invert(
+                    result.inner.d.as_mut(),
+                    self.inner.d.as_ptr(),
+                    modulus.inner.d.as_ptr(),
+                    modulus.supposed_size,
+                    (self.supposed_size + modulus.supposed_size) as u64 * GMP_NUMB_BITS,
+                    null_mut(),
+                );
+
+                // Check if an inverse exists
+                if is_valid == 0 {
+                    return None;
+                }
+
+                result.inner.size = modulus.inner.size;
+                result.normalize();
+                return Some(result);
+            }
+
+            let scratch_layout = Layout::from_size_align(scratch_size, ALIGN).unwrap();
+            let scratch = std::alloc::alloc(scratch_layout);
+
+            let is_valid = gmp::mpn_sec_invert(
+                result.inner.d.as_mut(),
+                self.inner.d.as_ptr(),
+                modulus.inner.d.as_ptr(),
+                modulus.supposed_size,
+                (self.supposed_size + modulus.supposed_size) as u64 * GMP_NUMB_BITS,
+                scratch as *mut u64,
+            );
+
+            std::alloc::dealloc(scratch, scratch_layout);
+
+            // Check if an inverse exists
+            if is_valid == 0 {
+                return None;
+            }
+
+            result.inner.size = modulus.inner.size;
+            result.normalize();
+            return Some(result);
+        }
     }
 
     // Computes the least common multiple between self and other. This function is not constant-time.
@@ -238,8 +276,8 @@ impl Drop for BigInteger {
     }
 }
 
-impl AddAssign for BigInteger {
-    fn add_assign(&mut self, rhs: Self) {
+impl AddAssign<&BigInteger> for BigInteger {
+    fn add_assign(&mut self, rhs: &Self) {
         unsafe {
             gmp::mpn_add_n(
                 self.inner.d.as_mut(),
@@ -325,9 +363,44 @@ impl Mul for &BigInteger {
     }
 }
 
-impl RemAssign for BigInteger {
-    fn rem_assign(&mut self, rhs: Self) {
-        todo!()
+impl RemAssign<&BigInteger> for BigInteger {
+    fn rem_assign(&mut self, rhs: &Self) {
+        unsafe {
+            let scratch_size = gmp::mpn_sec_div_r_itch(self.supposed_size, rhs.supposed_size)
+                as usize
+                * GMP_NUMB_BITS as usize
+                / 8;
+
+            if scratch_size == 0 {
+                gmp::mpn_sec_div_r(
+                    self.inner.d.as_mut(),
+                    self.supposed_size,
+                    rhs.inner.d.as_ptr(),
+                    rhs.supposed_size,
+                    null_mut(),
+                );
+
+                self.inner.size = rhs.inner.size;
+                self.supposed_size = rhs.supposed_size;
+                return;
+            }
+
+            let scratch_layout = Layout::from_size_align(scratch_size, ALIGN).unwrap();
+            let scratch = std::alloc::alloc(scratch_layout);
+
+            gmp::mpn_sec_div_r(
+                self.inner.d.as_mut(),
+                self.supposed_size,
+                rhs.inner.d.as_ptr(),
+                rhs.supposed_size,
+                scratch as *mut u64,
+            );
+
+            std::alloc::dealloc(scratch, scratch_layout);
+
+            self.inner.size = rhs.inner.size;
+            self.supposed_size = rhs.supposed_size;
+        }
     }
 }
 
@@ -366,6 +439,18 @@ impl PartialEq for BigInteger {
     fn eq(&self, other: &Self) -> bool {
         println!("{} =?= {}", self, other);
         unsafe { gmp::mpz_cmp(&self.inner, &other.inner) == 0 }
+    }
+}
+
+impl Clone for BigInteger {
+    fn clone(&self) -> Self {
+        let mut result = BigInteger::init(self.supposed_size);
+        
+        unsafe {
+            mpz_set(&mut result.inner, &self.inner);
+        }
+
+        result
     }
 }
 
@@ -410,11 +495,22 @@ mod tests {
     }
 
     #[test]
+    fn test_clone() {
+        let mut a = BigInteger::new(15, 128);
+        let b = a.clone();
+
+        a += &b;
+
+        assert_eq!(30, a.get_u64()); 
+        assert_eq!(15, b.get_u64());
+    }
+
+    #[test]
     fn test_add_assign() {
         let mut a = BigInteger::new(123, 128);
         let b = BigInteger::new(256, 128);
 
-        a += b;
+        a += &b;
 
         assert_eq!(379, a.get_u64());
     }
@@ -426,6 +522,16 @@ mod tests {
         a >>= 3;
 
         assert_eq!(16, a.get_u64());
+    }
+
+    #[test]
+    fn test_modulo() {
+        let mut a = BigInteger::new(23, 128);
+        let m = BigInteger::new(14, 128);
+
+        a %= &m;
+
+        assert_eq!(9, a.get_u64());
     }
 
     #[test]
@@ -461,7 +567,6 @@ mod tests {
 
     #[test]
     fn test_powmod() {
-        // TODO: Sometimes fails when run in conjunction!
         let b = BigInteger::new(105, 1024);
         let e = BigInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
         let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
@@ -480,11 +585,39 @@ mod tests {
 
         let res = b.pow_mod(&e, &m);
 
-        unsafe {
-            println!("{:?}", res.inner.d.as_ptr().offset(0));
-        }
-
         assert_eq!(9, res.get_u64());
+    }
+
+    #[test]
+    fn test_invert() {
+        let a = BigInteger::new(105, 1024);
+        let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+
+        let res = a.invert(&m);
+
+        // TODO: Check if this is indeed ok
+        let expected = BigInteger::from_string("84061432772340049689808300572413804491980902452673572181446234118442836235303840047558458585418773732980835189507058483169654138942329892232060616703594495557549972465137451136838296148977835528603609908967192656850056541089466756048898473852013665061464617240039941352711244487425431931673569255971479254798".to_string(), 10, 1024);
+        assert_eq!(res.unwrap(), expected);
+    }
+
+    #[test]
+    fn test_invert_small() {
+        let a = BigInteger::new(3, 64);
+        let m = BigInteger::new(13, 64);
+
+        let res = a.invert(&m);
+
+        assert_eq!(9, res.unwrap().get_u64());
+    }
+
+    #[test]
+    fn test_no_inverse_small() {
+        let a = BigInteger::new(14, 64);
+        let m = BigInteger::new(49, 64);
+
+        let res = a.invert(&m);
+
+        assert!(res.is_none());
     }
 
     #[test]

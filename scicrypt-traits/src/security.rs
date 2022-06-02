@@ -19,14 +19,14 @@ pub enum BitsOfSecurity {
     /// public key modulus. Note that any number lower than 1024 is considered extremely insecure.
     Other {
         /// The number of bits in a public key (factoring) modulus.
-        pk_bits: u32,
+        pk_bits: u64,
     },
 }
 
 impl BitsOfSecurity {
     /// Returns the required modulus size for a given symmetric security level in the asymmetric
     /// setting.
-    pub fn to_public_key_bit_length(&self) -> u32 {
+    pub fn to_public_key_bit_length(&self) -> u64 {
         match self {
             Self::AES80 => 1024,
             Self::AES112 => 2048,
