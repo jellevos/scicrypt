@@ -16,7 +16,7 @@ pub struct Rsa {
 }
 
 /// Public key for the RSA cryptosystem.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct RsaPK {
     n: Integer,
     e: Integer,
@@ -107,7 +107,7 @@ mod tests {
     fn test_encrypt_decrypt_generator() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let rsa = Rsa::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&Integer::from(15), &mut rng);
@@ -119,7 +119,7 @@ mod tests {
     fn test_homomorphic_mul() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let rsa = Rsa::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
         let ciphertext_a = pk.encrypt(&Integer::from(7), &mut rng);
@@ -133,7 +133,7 @@ mod tests {
     fn test_homomorphic_scalar_pow() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let rsa = Rsa::setup(&BitsOfSecurity::Other { pk_bits: 160 });
+        let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&Integer::from(9), &mut rng);

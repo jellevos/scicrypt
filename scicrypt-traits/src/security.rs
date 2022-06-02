@@ -17,10 +17,12 @@ pub enum BitsOfSecurity {
     AES256,
     /// Security that is equivalent to a number of bits `pk_bits` in accordance to the size of a
     /// public key modulus. Note that any number lower than 1024 is considered extremely insecure.
-    Other {
+    Custom {
         /// The number of bits in a public key (factoring) modulus.
         pk_bits: u32,
     },
+    /// Completely insecure parameters that are only useful for testing due to their speed.
+    ToyParameters,
 }
 
 impl BitsOfSecurity {
@@ -33,7 +35,8 @@ impl BitsOfSecurity {
             Self::AES128 => 3072,
             Self::AES192 => 7680,
             Self::AES256 => 15360,
-            Self::Other { pk_bits } => *pk_bits,
+            Self::Custom { pk_bits } => *pk_bits,
+            Self::ToyParameters => 160,
         }
     }
 }

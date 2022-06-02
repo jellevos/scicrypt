@@ -35,7 +35,7 @@ pub struct IntegerElGamal {
 }
 
 /// Public key containing the ElGamal encryption key and the modulus of the group.
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 pub struct IntegerElGamalPK {
     pub(crate) h: Integer,
     pub(crate) modulus: Integer,
