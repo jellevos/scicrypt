@@ -107,20 +107,20 @@ pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) ->
 }
 
 /// Generates a uniformly random RSA modulus, which is the product of two safe primes $p$ and $q$.
-/// This method returns both the modulus and $\lambda$, which is the least common multiple of
+/// This method returns the modulus, $\lambda$, $p$, and $q$. $\lambda$ is the least common multiple of
 /// $p - 1$ and $q - 1$.
 pub fn gen_rsa_modulus<R: SecureRng>(
     bit_length: u32,
     rng: &mut GeneralRng<R>,
-) -> (Integer, Integer) {
+) -> (Integer, Integer, Integer, Integer) {
     let p = gen_safe_prime(bit_length / 2, rng);
     let q = gen_safe_prime(bit_length / 2, rng);
 
     let n = Integer::from(&p * &q);
 
-    let lambda: Integer = (p - Integer::from(1)).lcm(&(q - Integer::from(1)));
+    let lambda: Integer = (&p - Integer::from(1)).lcm(&(&q - Integer::from(1)));
 
-    (n, lambda)
+    (n, lambda, p, q)
 }
 
 /// Generates a uniformly random coprime $x$ to the `other` integer $y$. This means that

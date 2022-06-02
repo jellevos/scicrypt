@@ -22,9 +22,55 @@ pub struct RsaPK {
     e: Integer,
 }
 
-/// Decryption key for RSA
-pub struct RsaSK {
+/// Precomputed decryption key for RSA
+pub struct PrecomputedRsaSK {
+    p: Integer,
+    q: Integer,
     d: Integer,
+    d_p: Integer,
+    d_q: Integer,
+    q_inv: Integer,
+}
+
+impl PrecomputedRsaSK {
+    /// Creates a new precomputed secret key using p, q, and d
+    pub fn new(p: Integer, q: Integer, d: Integer) -> Self {
+        let d_p = Integer::from(&d).rem(Integer::from(&p - 1));
+        let d_q = Integer::from(&d).rem(Integer::from(&q - 1));
+        let q_inv = Integer::from(q.invert_ref(&p).unwrap());
+
+        PrecomputedRsaSK {
+            p,
+            q,
+            d,
+            d_p,
+            d_q,
+            q_inv,
+        }
+    }
+
+    /// Compresses the precomputed secret key to a smaller format without precomputations
+    pub fn compress(self) -> CompressedRsaSK {
+        CompressedRsaSK {
+            p: self.p,
+            q: self.q,
+            d: self.d,
+        }
+    }
+}
+
+/// Small secret key for RSA, which is less fast than a `PrecomputedRsaSK`.
+pub struct CompressedRsaSK {
+    p: Integer,
+    q: Integer,
+    d: Integer,
+}
+
+impl CompressedRsaSK {
+    /// Creates a `PrecomputedRsaSK` from this key.
+    pub fn precompute(self) -> PrecomputedRsaSK {
+        PrecomputedRsaSK::new(self.p, self.q, self.d)
+    }
 }
 
 /// Ciphertext of the RSA cryptosystem, which is multiplicatively homomorphic.
@@ -36,7 +82,7 @@ impl Associable<RsaPK> for RsaCiphertext {}
 
 impl AsymmetricCryptosystem for Rsa {
     type PublicKey = RsaPK;
-    type SecretKey = RsaSK;
+    type SecretKey = PrecomputedRsaSK;
 
     fn setup(security_param: &BitsOfSecurity) -> Self {
         Rsa {
@@ -44,13 +90,13 @@ impl AsymmetricCryptosystem for Rsa {
         }
     }
 
-    fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (RsaPK, RsaSK) {
-        let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
+    fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (RsaPK, PrecomputedRsaSK) {
+        let (n, lambda, p, q) = gen_rsa_modulus(self.modulus_size, rng);
 
         let e = Integer::from(65537);
         let d = Integer::from(e.invert_ref(&lambda).unwrap());
 
-        (RsaPK { n, e }, RsaSK { d })
+        (RsaPK { n, e }, PrecomputedRsaSK::new(p, q, d))
     }
 }
 
@@ -70,9 +116,23 @@ impl EncryptionKey for RsaPK {
     }
 }
 
-impl DecryptionKey<RsaPK> for RsaSK {
+impl DecryptionKey<RsaPK> for CompressedRsaSK {
     fn decrypt_raw(&self, public_key: &RsaPK, ciphertext: &RsaCiphertext) -> Integer {
         Integer::from(ciphertext.c.secure_pow_mod_ref(&self.d, &public_key.n))
+    }
+}
+
+impl DecryptionKey<RsaPK> for PrecomputedRsaSK {
+    fn decrypt_raw(
+        &self,
+        _public_key: &RsaPK,
+        ciphertext: &<RsaPK as EncryptionKey>::Ciphertext,
+    ) -> <RsaPK as EncryptionKey>::Plaintext {
+        let m_p = Integer::from(ciphertext.c.secure_pow_mod_ref(&self.d_p, &self.p));
+        let m_q = Integer::from(ciphertext.c.secure_pow_mod_ref(&self.d_q, &self.q));
+        let h = (&self.q_inv * (m_p - &m_q)).rem(&self.p);
+
+        m_q + h * &self.q
     }
 }
 

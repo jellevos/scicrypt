@@ -1,5 +1,5 @@
 use rug::Integer;
-use scicrypt_numbertheory::{gen_coprime, gen_rsa_modulus};
+use scicrypt_numbertheory::gen_rsa_modulus;
 use scicrypt_traits::cryptosystems::{
     Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
 };
@@ -19,6 +19,7 @@ pub struct Paillier {
 #[derive(PartialEq, Eq, Debug)]
 pub struct PaillierPK {
     n: Integer,
+    n_squared: Integer,
     g: Integer,
 }
 
@@ -57,12 +58,14 @@ impl AsymmetricCryptosystem for Paillier {
     /// let (public_key, secret_key) = paillier.generate_keys(&mut rng);
     /// ```
     fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (PaillierPK, PaillierSK) {
-        let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
+        let (n, lambda, _, _) = gen_rsa_modulus(self.modulus_size, rng);
 
         let g = &n + Integer::from(1);
         let mu = Integer::from(lambda.invert_ref(&n).unwrap());
 
-        (PaillierPK { n, g }, PaillierSK { lambda, mu })
+        let n_squared = Integer::from(n.square_ref());
+
+        (PaillierPK { n, g, n_squared }, PaillierSK { lambda, mu })
     }
 }
 
@@ -89,14 +92,15 @@ impl EncryptionKey for PaillierPK {
         plaintext: &Integer,
         rng: &mut GeneralRng<R>,
     ) -> PaillierCiphertext {
-        let n_squared = Integer::from(self.n.square_ref());
-        let r = gen_coprime(&n_squared, rng);
+        // r must be coprime with n_squared but this only fails with probability 2^(1 - n_in_bits)
+        // 0 also only occurs with extremely low probability, so we can simply sample randomly s.t. 0 < r < n
+        let r = Integer::from(self.n.random_below_ref(&mut rng.rug_rng()));
 
-        let first = Integer::from(self.g.pow_mod_ref(&plaintext.into(), &n_squared).unwrap());
-        let second = r.secure_pow_mod(&self.n, &n_squared);
+        let first = Integer::from(self.g.pow_mod_ref(plaintext, &self.n_squared).unwrap());
+        let second = r.secure_pow_mod(&self.n, &self.n_squared);
 
         PaillierCiphertext {
-            c: (first * second).rem(&n_squared),
+            c: (first * second).rem(&self.n_squared),
         }
     }
 }
@@ -126,6 +130,29 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
         inner *= &self.mu;
 
         inner.rem(&public_key.n)
+    }
+
+    fn encrypt_fast_raw<R: SecureRng>(
+        &self,
+        public_key: &PaillierPK,
+        plaintext: &<PaillierPK as EncryptionKey>::Plaintext,
+        rng: &mut GeneralRng<R>,
+    ) -> PaillierCiphertext {
+        // r must be coprime with n_squared but this only fails with probability 2^(1 - n_in_bits)
+        // 0 also only occurs with extremely low probability, so we can simply sample randomly s.t. 0 < r < n
+        let r = Integer::from(public_key.n.random_below_ref(&mut rng.rug_rng()));
+
+        let first = Integer::from(
+            public_key
+                .g
+                .pow_mod_ref(plaintext, &public_key.n_squared)
+                .unwrap(),
+        );
+        let second = r.secure_pow_mod(&public_key.n, &public_key.n_squared);
+
+        PaillierCiphertext {
+            c: (first * second).rem(&public_key.n_squared),
+        }
     }
 }
 

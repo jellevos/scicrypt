@@ -67,6 +67,29 @@ pub trait DecryptionKey<PK: EncryptionKey> {
 
     /// Decrypt the ciphertext using the secret key and its related public key.
     fn decrypt_raw(&self, public_key: &PK, ciphertext: &PK::Ciphertext) -> PK::Plaintext;
+
+    /// Uses both the secret material from the decryption key and the encryption key to encrypt faster than with only the encryption key.
+    /// This method is always implemented, but it defaults to simply encrypting without the secret key.
+    fn encrypt_fast<'pk, R: SecureRng>(
+        &'pk self,
+        public_key: &'pk PK,
+        plaintext: &PK::Plaintext,
+        rng: &mut GeneralRng<R>,
+    ) -> AssociatedCiphertext<'pk, PK::Ciphertext, PK> {
+        self.encrypt_fast_raw(public_key, plaintext, rng)
+            .associate(public_key)
+    }
+
+    /// Uses both the secret material from the decryption key and the encryption key to encrypt faster than with only the encryption key.
+    /// This method is always implemented, but it defaults to simply encrypting without the secret key.
+    fn encrypt_fast_raw<R: SecureRng>(
+        &self,
+        public_key: &PK,
+        plaintext: &PK::Plaintext,
+        rng: &mut GeneralRng<R>,
+    ) -> PK::Ciphertext {
+        public_key.encrypt_raw(plaintext, rng)
+    }
 }
 
 #[derive(PartialEq, Debug)]
