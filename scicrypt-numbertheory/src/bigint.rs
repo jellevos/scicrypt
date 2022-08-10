@@ -4,7 +4,7 @@ use std::{
     fmt::Display,
     mem::MaybeUninit,
     ops::{AddAssign, Mul, RemAssign, Shr, ShrAssign, Sub},
-    ptr::null_mut,
+    ptr::null_mut, cmp::max,
 };
 
 use gmp_mpfr_sys::{gmp::{self, mpz_t, mpz_add_ui, mpz_sub_ui, mpz_lcm, mpz_set}};
@@ -205,7 +205,7 @@ impl BigInteger {
         let mut result = BigInteger::init(modulus.supposed_size);
 
         unsafe {
-            let scratch_size = gmp::mpn_sec_invert_itch(self.supposed_size)
+            let scratch_size = gmp::mpn_sec_invert_itch(modulus.supposed_size)
                 as usize
                 * GMP_NUMB_BITS as usize
                 / 8;
@@ -278,14 +278,20 @@ impl Drop for BigInteger {
 
 impl AddAssign<&BigInteger> for BigInteger {
     fn add_assign(&mut self, rhs: &Self) {
+        let n = max(self.supposed_size, rhs.supposed_size);
+
         unsafe {
             gmp::mpn_add_n(
                 self.inner.d.as_mut(),
                 self.inner.d.as_ptr(),
                 rhs.inner.d.as_ptr(),
-                self.supposed_size,
+                n,
             );
         }
+
+        self.inner.size = n as i32;
+        self.normalize();
+        self.supposed_size = n;
     }
 }
 
@@ -516,6 +522,17 @@ mod tests {
     }
 
     #[test]
+    fn test_add_assign_small_a() {
+        let mut a = BigInteger::new(12, 64);
+        let b = BigInteger::from_string("393530540239137101151".to_string(), 10, 128);
+
+        a += &b;
+
+        let expected = BigInteger::from_string("393530540239137101163".to_string(), 10, 128);
+        assert_eq!(expected, a);
+    }
+
+    #[test]
     fn test_shift_right_assign() {
         // TODO: Sometimes fails when run in conjunction!
         let mut a = BigInteger::new(129, 128);
@@ -598,6 +615,25 @@ mod tests {
         // TODO: Check if this is indeed ok
         let expected = BigInteger::from_string("84061432772340049689808300572413804491980902452673572181446234118442836235303840047558458585418773732980835189507058483169654138942329892232060616703594495557549972465137451136838296148977835528603609908967192656850056541089466756048898473852013665061464617240039941352711244487425431931673569255971479254798".to_string(), 10, 1024);
         assert_eq!(res.unwrap(), expected);
+    }
+
+    #[test]
+    fn test_invert_small_a() {
+        let mut a = BigInteger::new(105, 64);
+        let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+
+        println!("{} {:?}", a, a);
+        println!("{} {:?}", m, m);
+        a += &m;
+        println!("{} {:?}", a, a);
+        println!("{} {:?}", m, m);
+
+        let mut res = a.invert(&m).unwrap();
+        res %= &m;
+
+        // TODO: Check if this is indeed ok
+        let expected = BigInteger::from_string("84061432772340049689808300572413804491980902452673572181446234118442836235303840047558458585418773732980835189507058483169654138942329892232060616703594495557549972465137451136838296148977835528603609908967192656850056541089466756048898473852013665061464617240039941352711244487425431931673569255971479254798".to_string(), 10, 1024);
+        assert_eq!(res, expected);
     }
 
     #[test]
