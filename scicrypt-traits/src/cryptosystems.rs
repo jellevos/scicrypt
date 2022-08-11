@@ -69,7 +69,7 @@ pub trait DecryptionKey<PK: EncryptionKey> {
     fn decrypt_raw(&self, public_key: &PK, ciphertext: &PK::Ciphertext) -> PK::Plaintext;
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 /// An AssociatedCiphertext associates a ciphertext with a reference to the corresponding public key to make homomorphic operations and decrypting more ergonomic.
 pub struct AssociatedCiphertext<'pk, C: Associable<PK>, PK: EncryptionKey<Ciphertext = C>> {
     /// A potentially homomorphic ciphertext
@@ -90,7 +90,7 @@ pub trait Associable<PK: EncryptionKey<Ciphertext = Self>>: Sized {
 }
 
 /// The Verification key.
-pub trait VerKey {
+pub trait VerificationKey {
     /// The type of the plaintext to be signed.
     type Plaintext;
 
@@ -102,7 +102,7 @@ pub trait VerKey {
 }
 
 /// The Signing key.
-pub trait SignKey<VK: VerKey> {
+pub trait SigningKey<VK: VerificationKey> {
     /// Sign the plaintext message using the (secret) Signing key.
     fn sign<R: SecureRng>(
         &self,

@@ -1,7 +1,7 @@
 use rug::Integer;
 use scicrypt_numbertheory::gen_rsa_modulus;
 use scicrypt_traits::cryptosystems::{
-    Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey, SignKey, VerKey,
+    Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey, SigningKey, VerificationKey,
 };
 use scicrypt_traits::homomorphic::HomomorphicMultiplication;
 use scicrypt_traits::randomness::GeneralRng;
@@ -98,7 +98,7 @@ pub struct RsaSignature {
     s: Integer,
 }
 
-impl VerKey for RsaPK {
+impl VerificationKey for RsaPK {
     type Plaintext = Integer;
     type Signature = RsaSignature;
 
@@ -107,10 +107,10 @@ impl VerKey for RsaPK {
     }
 }
 
-impl SignKey<RsaPK> for RsaSK {
+impl SigningKey<RsaPK> for RsaSK {
     fn sign<R: SecureRng>(
         &self,
-        plaintext: &<RsaPK as VerKey>::Plaintext,
+        plaintext: &<RsaPK as VerificationKey>::Plaintext,
         public_key: &RsaPK,
         _rng: &mut GeneralRng<R>,
     ) -> RsaSignature {
@@ -126,7 +126,7 @@ mod tests {
     use rand_core::OsRng;
     use rug::Integer;
     use scicrypt_traits::cryptosystems::{
-        AsymmetricCryptosystem, DecryptionKey, EncryptionKey, SignKey, VerKey,
+        AsymmetricCryptosystem, DecryptionKey, EncryptionKey, SigningKey, VerificationKey,
     };
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
