@@ -12,9 +12,9 @@ use std::fmt::Debug;
 /// deciding the level of security. As such, each cryptosystem should clearly indicate these.
 pub trait AsymmetricCryptosystem {
     /// The public key, used for encrypting plaintexts.
-    type PublicKey: EncryptionKey;
+    type PublicKey;
     /// The secret key, used for decrypting ciphertexts.
-    type SecretKey: DecryptionKey<Self::PublicKey>;
+    type SecretKey;
 
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
@@ -69,7 +69,7 @@ pub trait DecryptionKey<PK: EncryptionKey> {
     fn decrypt_raw(&self, public_key: &PK, ciphertext: &PK::Ciphertext) -> PK::Plaintext;
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Eq, Debug)]
 /// An AssociatedCiphertext associates a ciphertext with a reference to the corresponding public key to make homomorphic operations and decrypting more ergonomic.
 pub struct AssociatedCiphertext<'pk, C: Associable<PK>, PK: EncryptionKey<Ciphertext = C>> {
     /// A potentially homomorphic ciphertext
@@ -87,4 +87,27 @@ pub trait Associable<PK: EncryptionKey<Ciphertext = Self>>: Sized {
             public_key,
         }
     }
+}
+
+/// The Verification key.
+pub trait VerificationKey {
+    /// The type of the plaintext to be signed.
+    type Plaintext;
+
+    /// The type of a signature.
+    type Signature;
+
+    /// Verify the Signature on the plaintext message using the (public) Verification key.
+    fn verify(&self, signature: &Self::Signature, plaintext: &Self::Plaintext) -> bool;
+}
+
+/// The Signing key.
+pub trait SigningKey<VK: VerificationKey> {
+    /// Sign the plaintext message using the (secret) Signing key.
+    fn sign<R: SecureRng>(
+        &self,
+        plaintext: &VK::Plaintext,
+        public_key: &VK,
+        rng: &mut GeneralRng<R>,
+    ) -> VK::Signature;
 }

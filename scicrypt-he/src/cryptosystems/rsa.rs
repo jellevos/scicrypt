@@ -1,7 +1,7 @@
 use rug::Integer;
 use scicrypt_numbertheory::gen_rsa_modulus;
 use scicrypt_traits::cryptosystems::{
-    Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
+    Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey, SigningKey, VerificationKey,
 };
 use scicrypt_traits::homomorphic::HomomorphicMultiplication;
 use scicrypt_traits::randomness::GeneralRng;
@@ -93,13 +93,41 @@ impl HomomorphicMultiplication for RsaPK {
         }
     }
 }
+/// Signature of the RSA cryptosystem
+pub struct RsaSignature {
+    s: Integer,
+}
+
+impl VerificationKey for RsaPK {
+    type Plaintext = Integer;
+    type Signature = RsaSignature;
+
+    fn verify(&self, signature: &Self::Signature, plaintext: &Self::Plaintext) -> bool {
+        return &Integer::from(signature.s.pow_mod_ref(&self.e, &self.n).unwrap()) == plaintext;
+    }
+}
+
+impl SigningKey<RsaPK> for RsaSK {
+    fn sign<R: SecureRng>(
+        &self,
+        plaintext: &<RsaPK as VerificationKey>::Plaintext,
+        public_key: &RsaPK,
+        _rng: &mut GeneralRng<R>,
+    ) -> RsaSignature {
+        RsaSignature {
+            s: Integer::from(plaintext.pow_mod_ref(&self.d, &public_key.n).unwrap()),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
     use crate::cryptosystems::rsa::Rsa;
     use rand_core::OsRng;
     use rug::Integer;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
+    use scicrypt_traits::cryptosystems::{
+        AsymmetricCryptosystem, DecryptionKey, EncryptionKey, SigningKey, VerificationKey,
+    };
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
 
@@ -140,5 +168,31 @@ mod tests {
         let ciphertext_twice = ciphertext.pow(Integer::from(4));
 
         assert_eq!(Integer::from(6561), sk.decrypt(&ciphertext_twice));
+    }
+
+    #[test]
+    fn test_signature_verification() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
+        let (pk, sk) = rsa.generate_keys(&mut rng);
+        let plaintext = Integer::from(10);
+
+        let signature = sk.sign(&plaintext, &pk, &mut rng);
+
+        assert!(pk.verify(&signature, &plaintext));
+    }
+
+    #[test]
+    fn test_signature_verification_incorrect() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
+        let (pk, sk) = rsa.generate_keys(&mut rng);
+        let plaintext = Integer::from(10);
+
+        let signature = sk.sign(&plaintext, &pk, &mut rng);
+
+        assert!(!pk.verify(&signature, &Integer::from(11)));
     }
 }
