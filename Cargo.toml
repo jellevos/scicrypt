@@ -1,2 +1,2 @@
 [workspace]
-members = ["scicrypt", "scicrypt-traits", "scicrypt-numbertheory", "scicrypt-he"]
+members = ["scicrypt", "scicrypt-traits", "scicrypt-numbertheory", "scicrypt-he", "scicrypt-bigint"]

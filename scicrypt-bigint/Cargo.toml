@@ -1,0 +1,16 @@
+[package]
+name = "scicrypt-bigint"
+description = "A scicrypt crate implementing constant-time bigints for modular integers"
+version = "0.6.0"
+authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
+edition = "2018"
+license = "MIT"
+homepage = "https://crates.io/crates/scicrypt-bigint"
+repository = "https://github.com/jellevos/scicrypt"
+readme = "README.md"
+
+[dependencies]
+gmp-mpfr-sys = { version = "1.4", default-features = false }
+
+[package.metadata.docs.rs]
+rustdoc-args = [ "--html-in-header", "katex-header.html" ]

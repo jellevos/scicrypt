@@ -690,6 +690,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "scicrypt-bigint"
+version = "0.6.0"
+dependencies = [
+ "gmp-mpfr-sys",
+]
+
+[[package]]
 name = "scicrypt-he"
 version = "0.6.0"
 dependencies = [
