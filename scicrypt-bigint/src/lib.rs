@@ -1,6 +1,6 @@
 #![feature(int_roundings)]
 #![feature(test)]
-use std::{ops::{AddAssign, Mul}, cmp::max, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug}, ptr::null_mut, alloc::Layout};
+use std::{ops::{AddAssign, Mul, RemAssign, Rem}, cmp::{max, min}, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug}, ptr::null_mut, alloc::Layout};
 
 use gmp_mpfr_sys::gmp::{mpz_t, self};
 
@@ -170,6 +170,8 @@ impl BigInteger {
 
         debug_assert_eq!(modulus.size_in_bits.div_ceil(GMP_NUMB_BITS as i64) as i32, modulus.value.size, "the modulus' size in bits must match its actual size");
         //debug_assert_eq!(modulus.size_in_bits as i32, modulus.value.size * GMP_NUMB_BITS as i32, "the modulus' size in bits must be tight with its actual size");
+        debug_assert_eq!(modulus.size_in_bits, self.size_in_bits, "the modulus must have the same size as self");
+
 
         let mut result = BigInteger::init(modulus.value.size);
 
@@ -298,12 +300,69 @@ impl Mul for &BigInteger {
     }
 }
 
-/// Note that equality checks are not in constant time
+/// Note that equality checks are not in constant time. This function only considers the number of limbs of the number with the fewest limbs.
 impl PartialEq for BigInteger {
     fn eq(&self, other: &Self) -> bool {
-        let n = max(self.value.size, other.value.size);
+        let n = min(self.value.size, other.value.size);
         
         unsafe { gmp::mpn_cmp(self.value.d.as_ptr(), other.value.d.as_ptr(), n as i64) == 0 }
+    }
+}
+
+impl Eq for BigInteger {
+    
+}
+
+impl RemAssign<&BigInteger> for BigInteger {
+    fn rem_assign(&mut self, rhs: &Self) {
+        debug_assert_eq!(self.size_in_bits.div_ceil(GMP_NUMB_BITS as i64) as i32, self.value.size, "the operands' size in bits must match their actual size");
+        debug_assert_eq!(rhs.size_in_bits.div_ceil(GMP_NUMB_BITS as i64) as i32, rhs.value.size, "the operands' size in bits must match their actual size");
+
+        unsafe {
+            let scratch_size = gmp::mpn_sec_div_r_itch(self.value.size as i64, rhs.value.size as i64)
+                as usize
+                * GMP_NUMB_BITS as usize
+                / 8;
+
+            if scratch_size == 0 {
+                gmp::mpn_sec_div_r(
+                    self.value.d.as_mut(),
+                    self.value.size as i64,
+                    rhs.value.d.as_ptr(),
+                    rhs.value.size as i64,
+                    null_mut(),
+                );
+
+                self.value.size = rhs.value.size;
+                self.size_in_bits = rhs.size_in_bits;
+                return;
+            }
+
+            let scratch_layout = Layout::from_size_align(scratch_size, ALIGN).unwrap();
+            let scratch = std::alloc::alloc(scratch_layout);
+
+            gmp::mpn_sec_div_r(
+                self.value.d.as_mut(),
+                self.value.size as i64,
+                rhs.value.d.as_ptr(),
+                rhs.value.size as i64,
+                scratch as *mut u64,
+            );
+
+            std::alloc::dealloc(scratch, scratch_layout);
+
+            self.value.size = rhs.value.size;
+            self.size_in_bits = rhs.size_in_bits;
+        }
+    }
+}
+
+impl Rem<&BigInteger> for BigInteger {
+    type Output = BigInteger;
+
+    fn rem(mut self, rhs: &BigInteger) -> Self::Output {
+        self %= rhs;
+        self
     }
 }
 
@@ -442,25 +501,6 @@ mod tests {
         assert_eq!(res.unwrap(), expected);
     }
 
-    // #[test]
-    // fn test_invert_small_a() {
-    //     let mut a = BigInteger::from(105);
-    //     let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
-
-    //     println!("{} {:?}", a, a);
-    //     println!("{} {:?}", m, m);
-    //     a += &m;
-    //     println!("{} {:?}", a, a);
-    //     println!("{} {:?}", m, m);
-
-    //     let mut res = a.invert(&m).unwrap();
-    //     res %= &m;
-
-    //     // TODO: Check if this is indeed ok
-    //     let expected = BigInteger::from_string("84061432772340049689808300572413804491980902452673572181446234118442836235303840047558458585418773732980835189507058483169654138942329892232060616703594495557549972465137451136838296148977835528603609908967192656850056541089466756048898473852013665061464617240039941352711244487425431931673569255971479254798".to_string(), 10, 1024);
-    //     assert_eq!(res, expected);
-    // }
-
     #[test]
     fn test_invert_small() {
         let a = BigInteger::from(3);
@@ -479,6 +519,23 @@ mod tests {
         let res = a.invert(&m);
 
         assert!(res.is_none());
+    }
+
+    #[test]
+    fn test_modulo_assign() {
+        let mut a = BigInteger::new(23, 64);
+        let m = BigInteger::new(14, 64);
+
+        a %= &m;
+        assert_eq!(BigInteger::from(9), a);
+    }
+
+    #[test]
+    fn test_modulo() {
+        let a = BigInteger::new(23, 64);
+        let m = BigInteger::new(14, 64);
+
+        assert_eq!(BigInteger::from(9), a % &m);
     }
 }
 
