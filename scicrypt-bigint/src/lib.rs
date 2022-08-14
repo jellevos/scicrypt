@@ -94,13 +94,15 @@ impl BigInteger {
         self.value.size == 0
     }
 
-    /// Compute `self` to the power `exponent` modulo `modulus`. The computation is constant in run time with regards to the `exponent`, but it leaks the actual size of `self` and `modulus`. An easy way to protect the size of `self` is by adding `modulus` to it. The modulus cannot be smaller than the other operands.
+    /// Compute `self` to the power `exponent` modulo `modulus`. The computation takes time that scales with the specified size of the `exponent` and `modulus`.
     pub fn pow_mod(&self, exponent: &BigInteger, modulus: &BigInteger) -> BigInteger {
         debug_assert!(!self.is_zero(), "the base must be larger than 0");
         debug_assert!(!modulus.is_zero(), "the modulus must be larger than 0");
         // TODO: debug_assert!() that the modulus is ODD
         // TODO: debug_assert!() that the exponent's bitsize is smaller than its size_in_bits
         debug_assert!(exponent.size_in_bits > 0, "the exponent must be larger than 0");
+
+        // TODO: Probably we should also assert that the modulus does not contain less limbs than the other operands
 
         let mut result = BigInteger::init(modulus.value.size);
 

@@ -1,6 +1,6 @@
 [package]
 name = "scicrypt-bigint"
-description = "A scicrypt crate implementing constant-time bigints for modular integers"
+description = "A scicrypt crate implementing *mostly* constant-time bigints for modular integers"
 version = "0.6.0"
 authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
 edition = "2018"
