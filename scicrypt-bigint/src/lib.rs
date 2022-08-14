@@ -1,4 +1,5 @@
 #![feature(int_roundings)]
+#![feature(test)]
 use std::{ops::AddAssign, cmp::max, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug}, ptr::null_mut, alloc::Layout};
 
 use gmp_mpfr_sys::gmp::{mpz_t, self};
@@ -89,15 +90,6 @@ impl BigInteger {
         // TODO: debug_assert!() that the exponent's bitsize is smaller than its size_in_bits
         debug_assert!(exponent.size_in_bits > 0, "the exponent must be larger than 0");
 
-        // TODO: Following the docs, it seems that the base can be larger than the modulus (so not reduced), verify this
-
-        // // The actual size of the modulus cannot be smaller than the supposed size of the other operands.
-        // assert!(self.supposed_size <= modulus.inner.size as i64);
-        // assert!(exponent.supposed_size <= modulus.inner.size as i64);
-
-        // Add the modulus to the base to prevent a timing side-channel, this will cancel out during the operation
-        let masked_base: BigInteger = self + modulus;
-
         let mut result = BigInteger::init(modulus.value.size);
 
         let enb = exponent.size_in_bits as u64;
@@ -121,7 +113,6 @@ impl BigInteger {
                 );
 
                 result.value.size = modulus.value.size;
-                //result.normalize();
                 return result;
             }
 
@@ -142,7 +133,6 @@ impl BigInteger {
             std::alloc::dealloc(scratch, scratch_layout);
 
             result.value.size = modulus.value.size;
-            // result.normalize();
             result
         }
     }
@@ -161,7 +151,7 @@ impl AddAssign<&BigInteger> for BigInteger {
             );
 
             self.value.size = n + carry as i32;
-            self.size_in_bits += carry as i64;
+            self.size_in_bits = max(self.size_in_bits, rhs.size_in_bits) + carry as i64;
         }
     }
 }
@@ -169,6 +159,19 @@ impl AddAssign<&BigInteger> for BigInteger {
 impl PartialEq for BigInteger {
     fn eq(&self, other: &Self) -> bool {
         unsafe { gmp::mpz_cmp(&self.value, &other.value) == 0 }
+    }
+}
+
+impl Clone for BigInteger {
+    fn clone(&self) -> Self {
+        let mut result = BigInteger::init(self.value.size);
+        
+        unsafe {
+            gmp::mpz_set(&mut result.value, &self.value);
+        }
+
+        result.size_in_bits = self.size_in_bits;
+        result
     }
 }
 
@@ -224,4 +227,85 @@ mod tests {
         let expected = BigInteger::from_string("75449268817968422679819900589734348654486644392551728445064418436053449491480437746932914650717830240874061893534937751643365068436165993034818308531811356620889371580247889632561792360083344802209721380578912179116118493677119654295291184624591629851342172735975592027041999972633543293770666292467255672690".to_string(), 10, 1024);
         assert_eq!(res, expected);
     }
+
+    #[test]
+    fn test_powmod_mini() {
+        let b = BigInteger::from_string("3".to_string(), 10, 8);
+        let e = BigInteger::from_string("7".to_string(), 10, 8);
+        let m = BigInteger::from_string("11".to_string(), 10, 8);
+
+        let res = b.pow_mod(&e, &m);
+
+        // TODO: Validate this number
+        let expected = BigInteger::from_string("9".to_string(), 10, 1024);
+        assert_eq!(res, expected);
+    }
+
+    #[test]
+    fn test_powmod_mini_plusmod() {
+        let b = BigInteger::from_string("14".to_string(), 10, 8);
+        let e = BigInteger::from_string("7".to_string(), 10, 8);
+        let m = BigInteger::from_string("11".to_string(), 10, 8);
+
+        let res = b.pow_mod(&e, &m);
+
+        // TODO: Validate this number
+        let expected = BigInteger::from_string("9".to_string(), 10, 1024);
+        assert_eq!(res, expected);
+    }
+}
+
+extern crate test;
+use test::Bencher;
+
+#[bench]
+fn bench_powmod_small_base(bench: &mut Bencher) {
+    let b = BigInteger::from_string("105".to_string(), 10, 7);
+    let e = BigInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
+    let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+
+    bench.iter(|| {
+        // Use `test::black_box` to prevent compiler optimizations from disregarding
+        // Unused values
+        test::black_box(b.pow_mod(&e, &m));
+    });
+}
+
+#[bench]
+fn bench_powmod_large_base(bench: &mut Bencher) {
+    let b = BigInteger::from_string("10539499294995885839929294349858893482048503424233434382948939585380202480248428858035020202848894983349030959432221114892829832832820310342164784362849732894729586478637897481742109741907489237586753826748420497102914324234241221888888487774774646263775738582835875726672378181992949120102959881821".to_string(), 10, 1024);
+    let e = BigInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
+    let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+
+    bench.iter(|| {
+        // Use `test::black_box` to prevent compiler optimizations from disregarding
+        // Unused values
+        test::black_box(b.pow_mod(&e, &m));
+    });
+}
+
+#[bench]
+fn bench_powmod_large_exp(bench: &mut Bencher) {
+    let b = BigInteger::from_string("10539499294995885839929294349858893482048503424233434382948939585380202480248428858035020202848894983349030959432221114892829832832820310342164784362849732894729586478637897481742109741907489237586753826748420497102914324234241221888888487774774646263775738582835875726672378181992949120102959881821".to_string(), 10, 7);
+    let e = BigInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
+    let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+
+    bench.iter(|| {
+        // Use `test::black_box` to prevent compiler optimizations from disregarding
+        // Unused values
+        test::black_box(b.pow_mod(&e, &m));
+    });
+}
+
+#[bench]
+fn bench_powmod_small_exp(bench: &mut Bencher) {
+    let b = BigInteger::from_string("10539499294995885839929294349858893482048503424233434382948939585380202480248428858035020202848894983349030959432221114892829832832820310342164784362849732894729586478637897481742109741907489237586753826748420497102914324234241221888888487774774646263775738582835875726672378181992949120102959881821".to_string(), 10, 1024);
+    let e = BigInteger::from_string("105".to_string(), 10, 1024);
+    let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+
+    bench.iter(|| {
+        // Use `test::black_box` to prevent compiler optimizations from disregarding
+        // Unused values
+        test::black_box(b.pow_mod(&e, &m));
+    });
 }
