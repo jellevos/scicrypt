@@ -23,13 +23,25 @@ impl Display for BigInteger {
     }
 }
 
+impl From<u64> for BigInteger {
+    fn from(integer: u64) -> Self {
+        let mut res = BigInteger::zero(64);
+
+        unsafe {
+            gmp::mpz_set_ui(&mut res.value, integer);
+        }
+
+        res
+    }
+}
+
 impl Debug for BigInteger {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} <{} bits>", self, self.size_in_bits)
     }
 }
 
-struct BigInteger {
+pub struct BigInteger {
     value: mpz_t,
     size_in_bits: i64
 }
@@ -156,6 +168,7 @@ impl AddAssign<&BigInteger> for BigInteger {
     }
 }
 
+/// Note that equality checks are not in constant time
 impl PartialEq for BigInteger {
     fn eq(&self, other: &Self) -> bool {
         unsafe { gmp::mpz_cmp(&self.value, &other.value) == 0 }
