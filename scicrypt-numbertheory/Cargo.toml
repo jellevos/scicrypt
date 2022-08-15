@@ -14,6 +14,7 @@ bench = false  # Disable default bench (we use criterion)
 
 [dependencies]
 scicrypt-traits = { version = "0.6.0", path = "../scicrypt-traits" }
+scicrypt-bigint = { version = "0.6.0", path = "../scicrypt-bigint" }
 rug = "1.13"
 rand_core = "0.6"
 

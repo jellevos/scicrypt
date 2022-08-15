@@ -9,3 +9,8 @@ Exceptions:
 - Initializing from strings using `from_string`
 - Equality checks (`PartialEq`)
 - Computing `lcm` 
+- `random`
+- `mod_u`
+- `set_bit` and `clear_bit`
+- `is_probably_prime`
+- Right shifts

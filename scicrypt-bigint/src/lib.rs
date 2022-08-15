@@ -1,6 +1,6 @@
 #![feature(int_roundings)]
 #![feature(test)]
-use std::{ops::{AddAssign, Mul, RemAssign, Rem}, cmp::{max, min}, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug}, ptr::null_mut, alloc::Layout};
+use std::{ops::{AddAssign, Mul, RemAssign, Rem, Add, ShrAssign, Shr}, cmp::{max, min}, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug}, ptr::null_mut, alloc::Layout};
 
 use gmp_mpfr_sys::gmp::{mpz_t, self};
 
@@ -96,6 +96,51 @@ impl BigInteger {
                 value: z,
                 size_in_bits
             }
+        }
+    }
+
+    /// Generates a random number with `bits` bits. `bits` should be a multiple of 8.
+    pub fn random<R: SecureRng>(bits: i64, rng: &mut GeneralRng<R>) -> Self {
+        debug_assert!((bits % 8) == 0, "`bits` should be a multiple of 8");
+
+        unsafe {
+            let mut number = BigInteger::zero(bits);
+            let limbs = gmp::mpz_limbs_write(&mut number.value, bits.div_ceil(GMP_NUMB_BITS as i64));
+    
+            for i in 0isize..bits.div_ceil(GMP_NUMB_BITS as i64) as isize {
+                let mut bytes = [0; 8];
+                rng.rng().fill_bytes(&mut bytes);
+                limbs.offset(i).write(u64::from_be_bytes(bytes));
+            }
+
+            number.value.size = bits.div_ceil(GMP_NUMB_BITS as i64) as i32;
+            number
+        }
+    }
+
+    pub fn set_bit(&mut self, bit_index: u64) {
+        unsafe {
+            gmp::mpz_setbit(&mut self.value, bit_index);
+        }
+    }
+
+    pub fn clear_bit(&mut self, bit_index: u64) {
+        unsafe {
+            gmp::mpz_clrbit(&mut self.value, bit_index);
+        }
+    }
+
+    /// Computes self modulo a u64 number. This function is not constant-time.
+    pub fn mod_u(&self, modulus: u64) -> u64 {
+        unsafe {
+            gmp::mpz_fdiv_ui(&self.value, modulus)
+        }
+    }
+
+    /// Returns true when this number is prime. This function is not constant-time. Internally it uses Baille-PSW.
+    pub fn is_probably_prime(&self) -> bool {
+        unsafe {
+            gmp::mpz_probab_prime_p(&self.value, 25) > 0
         }
     }
 
@@ -225,6 +270,17 @@ impl BigInteger {
             return Some(result);
         }
     }
+
+    // Computes the least common multiple between self and other. This function is not constant-time.
+    pub fn lcm(&self, other: &BigInteger) -> BigInteger {
+        let mut result = BigInteger::init(self.value.size);
+
+        unsafe {
+            gmp::mpz_lcm(&mut result.value, &self.value, &other.value);
+        }
+
+        result
+    }
 }
 
 impl AddAssign<&BigInteger> for BigInteger {
@@ -242,6 +298,15 @@ impl AddAssign<&BigInteger> for BigInteger {
             self.value.size = n + carry as i32;
             self.size_in_bits = max(self.size_in_bits, rhs.size_in_bits) + carry as i64;
         }
+    }
+}
+
+impl Add<&BigInteger> for BigInteger {
+    type Output = BigInteger;
+
+    fn add(mut self, rhs: &Self) -> Self::Output {
+        self += rhs;
+        self
     }
 }
 
@@ -366,6 +431,37 @@ impl Rem<&BigInteger> for BigInteger {
     }
 }
 
+/// Not a constant-time function: Reveals the actual size of self.
+impl ShrAssign<u32> for BigInteger {
+    fn shr_assign(&mut self, rhs: u32) {
+        assert!(1 <= rhs);
+        assert!(rhs as u64 <= GMP_NUMB_BITS - 1);
+
+        unsafe {
+            gmp::mpn_rshift(self.value.d.as_mut(), self.value.d.as_ptr(), self.value.size as i64, rhs);
+        }
+    }
+}
+
+/// Not a constant-time function: Reveals the actual size of self.
+impl Shr<u32> for &BigInteger {
+    type Output = BigInteger;
+
+    fn shr(self, rhs: u32) -> Self::Output {
+        assert!(1 <= rhs);
+        assert!(rhs as u64 <= GMP_NUMB_BITS - 1);
+
+        let mut result = BigInteger::init(self.value.size);
+
+        unsafe {
+            gmp::mpn_rshift(result.value.d.as_mut(), self.value.d.as_ptr(), self.value.size as i64, rhs);
+        }
+
+        result.value.size = self.value.size;
+        result
+    }
+}
+
 impl Clone for BigInteger {
     fn clone(&self) -> Self {
         let mut result = BigInteger::init(self.value.size);
@@ -382,7 +478,29 @@ impl Clone for BigInteger {
 
 #[cfg(test)]
 mod tests {
-    use crate::BigInteger;
+    use rand::rngs::OsRng;
+    use scicrypt_traits::randomness::GeneralRng;
+
+    use crate::{BigInteger, GMP_NUMB_BITS};
+
+    #[test]
+    fn test_random_not_same() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let a = BigInteger::random(64, &mut rng);
+        let b = BigInteger::random(64, &mut rng);
+        
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn test_random_length_1024() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let a = BigInteger::random(1024, &mut rng);
+        
+        assert_eq!(a.value.size, 1024 / GMP_NUMB_BITS as i32);
+    }
 
     #[test]
     fn test_addition() {
@@ -393,6 +511,15 @@ mod tests {
 
         assert_eq!(BigInteger::from_string("5378288885604998150111573291864".to_string(), 10, 103), x);
         assert_eq!(x.size_in_bits, 103);
+    }
+
+    #[test]
+    fn test_shift_right_assign() {
+        // TODO: Sometimes fails when run in conjunction!
+        let mut a = BigInteger::new(129, 128);
+        a >>= 3;
+
+        assert_eq!(BigInteger::from(16), a);
     }
 
     #[test]
@@ -540,6 +667,7 @@ mod tests {
 }
 
 extern crate test;
+use scicrypt_traits::randomness::{SecureRng, GeneralRng};
 use test::Bencher;
 
 #[bench]
