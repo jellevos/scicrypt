@@ -1,8 +1,8 @@
-use std::{ops::Mul, ptr::null_mut, alloc::Layout};
+use std::ops::Mul;
 
 use gmp_mpfr_sys::gmp;
 
-use crate::{BigInteger, GMP_NUMB_BITS, ALIGN};
+use crate::{BigInteger, GMP_NUMB_BITS, scratch::Scratch};
 
 impl Mul for &BigInteger {
     type Output = BigInteger;
@@ -20,26 +20,9 @@ impl Mul for &BigInteger {
         unsafe {
             let scratch_size = gmp::mpn_sec_mul_itch(self.value.size as i64, rhs.value.size as i64)
                 as usize
-                * GMP_NUMB_BITS as usize
-                / 8;
-
-            if scratch_size == 0 {
-                gmp::mpn_sec_mul(
-                    result.value.d.as_mut(),
-                    self.value.d.as_ptr(),
-                    self.value.size as i64,
-                    rhs.value.d.as_ptr(),
-                    rhs.value.size as i64,
-                    null_mut(),
-                );
-
-                result.value.size = self.value.size + rhs.value.size;
-                result.size_in_bits = self.size_in_bits + rhs.size_in_bits;
-                return result;
-            }
-
-            let scratch_layout = Layout::from_size_align(scratch_size, ALIGN).unwrap();
-            let scratch = std::alloc::alloc(scratch_layout);
+                * GMP_NUMB_BITS as usize;
+            
+            let mut scratch = Scratch::new(scratch_size);
 
             gmp::mpn_sec_mul(
                 result.value.d.as_mut(),
@@ -47,10 +30,8 @@ impl Mul for &BigInteger {
                 self.value.size as i64,
                 rhs.value.d.as_ptr(),
                 rhs.value.size as i64,
-                scratch as *mut u64,
+                scratch.as_mut(),
             );
-
-            std::alloc::dealloc(scratch, scratch_layout);
 
             result.value.size = self.value.size + rhs.value.size;
             result.size_in_bits = self.size_in_bits + rhs.size_in_bits;

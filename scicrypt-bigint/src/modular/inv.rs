@@ -1,8 +1,6 @@
-use std::{ptr::null_mut, alloc::Layout};
-
 use gmp_mpfr_sys::gmp;
 
-use crate::{BigInteger, GMP_NUMB_BITS, ALIGN};
+use crate::{BigInteger, GMP_NUMB_BITS, scratch::Scratch};
 
 impl BigInteger {
     /// Computes `self^-1 mod modulus`, taking ownership of `self`. Returns None if no inverse exists. `modulus` must be odd.
@@ -29,31 +27,9 @@ impl BigInteger {
         unsafe {
             let scratch_size = gmp::mpn_sec_invert_itch(modulus.value.size as i64)
                 as usize
-                * GMP_NUMB_BITS as usize
-                / 8;
+                * GMP_NUMB_BITS as usize;
 
-            if scratch_size == 0 {
-                let is_valid = gmp::mpn_sec_invert(
-                    result.value.d.as_mut(),
-                    self.value.d.as_ptr(),
-                    modulus.value.d.as_ptr(),
-                    modulus.value.size as i64,
-                    (self.size_in_bits + modulus.size_in_bits) as u64,
-                    null_mut(),
-                );
-
-                // Check if an inverse exists
-                if is_valid == 0 {
-                    return None;
-                }
-
-                result.value.size = modulus.value.size;
-                result.size_in_bits = modulus.size_in_bits;
-                return Some(result);
-            }
-
-            let scratch_layout = Layout::from_size_align(scratch_size, ALIGN).unwrap();
-            let scratch = std::alloc::alloc(scratch_layout);
+            let mut scratch = Scratch::new(scratch_size);
 
             let is_valid = gmp::mpn_sec_invert(
                 result.value.d.as_mut(),
@@ -61,10 +37,8 @@ impl BigInteger {
                 modulus.value.d.as_ptr(),
                 modulus.value.size as i64,
                 (self.size_in_bits + modulus.size_in_bits) as u64,
-                scratch as *mut u64,
+                scratch.as_mut(),
             );
-
-            std::alloc::dealloc(scratch, scratch_layout);
 
             // Check if an inverse exists
             if is_valid == 0 {

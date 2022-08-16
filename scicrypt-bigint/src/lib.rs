@@ -1,5 +1,7 @@
 #![feature(int_roundings)]
 #![feature(test)]
+mod scratch;
+
 mod arithmetic;
 mod binary;
 mod modular;
@@ -8,7 +10,6 @@ use std::{cmp::min, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug
 
 use gmp_mpfr_sys::gmp::{mpz_t, self};
 
-const ALIGN: usize = 128;
 const GMP_NUMB_BITS: u64 = 64;
 
 impl Display for BigInteger {

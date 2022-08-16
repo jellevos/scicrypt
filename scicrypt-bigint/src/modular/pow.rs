@@ -1,8 +1,6 @@
-use std::{ptr::null_mut, alloc::Layout};
-
 use gmp_mpfr_sys::gmp;
 
-use crate::{BigInteger, GMP_NUMB_BITS, ALIGN};
+use crate::{BigInteger, GMP_NUMB_BITS, scratch::Scratch};
 
 impl BigInteger {
     /// Compute `self` to the power `exponent` modulo an odd `modulus`. The computation takes time that scales with the specified size of the `exponent` and `modulus`.
@@ -24,27 +22,9 @@ impl BigInteger {
         unsafe {
             let scratch_size =
                 gmp::mpn_sec_powm_itch(self.value.size as i64, enb, modulus.value.size as i64) as usize
-                    * GMP_NUMB_BITS as usize
-                    / 8;
+                    * GMP_NUMB_BITS as usize;
 
-            if scratch_size == 0 {
-                gmp::mpn_sec_powm(
-                    result.value.d.as_mut(),
-                    self.value.d.as_ptr(),
-                    self.value.size as i64,
-                    exponent.value.d.as_ptr(),
-                    enb,
-                    modulus.value.d.as_ptr(),
-                    modulus.value.size as i64,
-                    null_mut(),
-                );
-
-                result.value.size = modulus.value.size;
-                return result;
-            }
-
-            let scratch_layout = Layout::from_size_align(scratch_size, ALIGN).unwrap();
-            let scratch = std::alloc::alloc(scratch_layout);
+            let mut scratch = Scratch::new(scratch_size);
 
             gmp::mpn_sec_powm(
                 result.value.d.as_mut(),
@@ -54,10 +34,8 @@ impl BigInteger {
                 enb,
                 modulus.value.d.as_ptr(),
                 modulus.value.size as i64,
-                scratch as *mut u64,
+                scratch.as_mut(),
             );
-
-            std::alloc::dealloc(scratch, scratch_layout);
 
             result.value.size = modulus.value.size;
             result
