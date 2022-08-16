@@ -15,8 +15,6 @@ use scicrypt_bigint::BigInteger;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 
-const REPS: u32 = 25;
-
 /// Generates a uniformly random prime number of a given bit length. So, the number contains
 /// `bit_length` bits, of which the first and the last bit are always 1.
 pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> BigInteger {
@@ -34,7 +32,7 @@ pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> BigI
 
         let mut delta = 0;
         let max_delta = u64::MAX - FIRST_PRIMES.last().unwrap();
-        candidate = 'sieve: loop {
+        candidate += &'sieve: loop {
             for i in 1..prime_count {
                 if (mods[i] + delta) % FIRST_PRIMES[i] == 0 {
                     // For candidate x and prime p, if x % p = 0 then x is not prime
@@ -50,7 +48,7 @@ pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> BigI
             }
 
             // If we have passed all prime_count first primes, then we are fairly certain this is a prime!
-            break BigInteger::from(delta) + &candidate;
+            break BigInteger::from(delta);
         };
 
         // Ensure that we have a prime with a stronger primality test
@@ -77,7 +75,7 @@ pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) ->
 
         let mut delta = 0;
         let max_delta = u64::MAX - FIRST_PRIMES[prime_count - 1];
-        candidate = 'sieve: loop {
+        candidate += &'sieve: loop {
             for i in 1..prime_count {
                 if (mods[i] + delta) % FIRST_PRIMES[i] <= 1 {
                     // For candidate x and prime p, if x % p = 0 then x is not prime
@@ -93,7 +91,7 @@ pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) ->
             }
 
             // If we have passed all prime_count first primes, then we are fairly certain this is a prime!
-            break BigInteger::from(delta) + &candidate;
+            break BigInteger::from(delta);
         };
 
         // Ensure that we have a prime with a stronger primality test

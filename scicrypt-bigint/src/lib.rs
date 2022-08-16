@@ -210,6 +210,7 @@ impl BigInteger {
 
     /// Computes `self^-1 mod modulus`, taking ownership of `self`. Returns None if no inverse exists. `modulus` must be odd.
     pub fn invert(self, modulus: &BigInteger) -> Option<BigInteger> {
+        // TODO: Verify that the input must be smaller than the modulus (is this indeed true?)
         //assert_eq!(self.supposed_size, modulus.supposed_size);
         //self.supposed_size = modulus.inner.size as i64;
 
@@ -217,6 +218,14 @@ impl BigInteger {
         //debug_assert_eq!(modulus.size_in_bits as i32, modulus.value.size * GMP_NUMB_BITS as i32, "the modulus' size in bits must be tight with its actual size");
         debug_assert_eq!(modulus.size_in_bits, self.size_in_bits, "the modulus must have the same size as self");
 
+        // FIXME: This is not constant-time
+        //debug_assert_eq!(modulus.value.size, self.value.size, "the modulus must have the same actual size as self");
+        // if self.value.size != modulus.value.size {
+        //     self += modulus;
+        // }
+        debug_assert_eq!(modulus.value.size, self.value.size, "the modulus must have the same actual size as self");
+
+        //self += modulus;
 
         let mut result = BigInteger::init(modulus.value.size);
 
@@ -271,6 +280,82 @@ impl BigInteger {
         }
     }
 
+    // /// Computes `self^-1 mod modulus`, taking ownership of `self`. Returns None if no inverse exists. `modulus` must be odd.
+    // pub fn invert(mut self, modulus: &BigInteger) -> Option<BigInteger> {
+    //     //assert_eq!(self.supposed_size, modulus.supposed_size);
+    //     //self.supposed_size = modulus.inner.size as i64;
+
+    //     debug_assert_eq!(modulus.size_in_bits.div_ceil(GMP_NUMB_BITS as i64) as i32, modulus.value.size, "the modulus' size in bits must match its actual size");
+    //     //debug_assert_eq!(modulus.size_in_bits as i32, modulus.value.size * GMP_NUMB_BITS as i32, "the modulus' size in bits must be tight with its actual size");
+    //     debug_assert_eq!(modulus.size_in_bits, self.size_in_bits, "the modulus must have the same size as self");
+
+    //     dbg!(&self);
+    //     dbg!(&modulus);
+    //     // FIXME: This is not constant-time
+    //     //debug_assert_eq!(modulus.value.size, self.value.size, "the modulus must have the same actual size as self");
+    //     if self.value.size != modulus.value.size {
+    //         self += modulus;
+    //     }
+    //     debug_assert_eq!(modulus.value.size, self.value.size, "the modulus must have the same actual size as self");
+
+    //     //self += modulus;
+
+    //     //let mut result = BigInteger::init(modulus.value.size);
+
+    //     unsafe {
+    //         let scratch_size = gmp::mpn_sec_invert_itch(modulus.value.size as i64)
+    //             as usize
+    //             * GMP_NUMB_BITS as usize
+    //             / 8;
+    //         dbg!(scratch_size);
+
+    //         if scratch_size == 0 {
+    //             let is_valid = gmp::mpn_sec_invert(
+    //                 self.value.d.as_mut(),
+    //                 self.value.d.as_ptr(),
+    //                 modulus.value.d.as_ptr(),
+    //                 modulus.value.size as i64,
+    //                 (self.size_in_bits + modulus.size_in_bits) as u64,
+    //                 null_mut(),
+    //             );
+
+    //             // Check if an inverse exists
+    //             if is_valid == 0 {
+    //                 return None;
+    //             }
+
+    //             // TODO: This can probably be removed
+    //             self.value.size = modulus.value.size;
+    //             self.size_in_bits = modulus.size_in_bits;
+    //             return Some(self);
+    //         }
+
+    //         let scratch_layout = Layout::from_size_align(scratch_size, ALIGN).unwrap();
+    //         let scratch = std::alloc::alloc(scratch_layout);
+
+    //         let is_valid = gmp::mpn_sec_invert(
+    //             self.value.d.as_mut(),
+    //             self.value.d.as_ptr(),
+    //             modulus.value.d.as_ptr(),
+    //             modulus.value.size as i64,
+    //             (self.size_in_bits + modulus.size_in_bits) as u64,
+    //             scratch as *mut u64,
+    //         );
+
+    //         std::alloc::dealloc(scratch, scratch_layout);
+
+    //         // Check if an inverse exists
+    //         if is_valid == 0 {
+    //             return None;
+    //         }
+
+    //         // TODO: This can probably be removed
+    //         self.value.size = modulus.value.size;
+    //         self.size_in_bits = modulus.size_in_bits;
+    //         return Some(self);
+    //     }
+    // }
+
     // Computes the least common multiple between self and other. This function is not constant-time.
     pub fn lcm(&self, other: &BigInteger) -> BigInteger {
         let mut result = BigInteger::init(self.value.size);
@@ -285,7 +370,11 @@ impl BigInteger {
 
 impl AddAssign<&BigInteger> for BigInteger {
     fn add_assign(&mut self, rhs: &Self) {
-        let n = max(self.value.size, rhs.value.size);
+        let n = min(self.value.size, rhs.value.size);
+
+        if n == 0 {
+            return;
+        }
 
         unsafe {
             let carry = gmp::mpn_add_n(
@@ -295,7 +384,9 @@ impl AddAssign<&BigInteger> for BigInteger {
                 n as i64,
             );
 
-            self.value.size = n + carry as i32;
+            let largest_size = max(self.value.size, rhs.value.size) as i32;
+
+            self.value.size = largest_size + carry as i32;
             self.size_in_bits = max(self.size_in_bits, rhs.size_in_bits) + carry as i64;
         }
     }
@@ -616,15 +707,28 @@ mod tests {
         assert_eq!(res, expected);
     }
 
+    // #[test]
+    // fn test_invert_small_a() {
+    //     let mut a = BigInteger::from_string("105".to_string(), 10, 1024);
+    //     let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+
+    //     a += &m;
+    //     let res = a.invert(&m);
+
+    //     // TODO: Check if this is indeed ok
+    //     let expected = BigInteger::from_string("84061432772340049689808300572413804491980902452673572181446234118442836235303840047558458585418773732980835189507058483169654138942329892232060616703594495557549972465137451136838296148977835528603609908967192656850056541089466756048898473852013665061464617240039941352711244487425431931673569255971479254798".to_string(), 10, 1024);
+    //     assert_eq!(res.unwrap(), expected);
+    // }
+
     #[test]
     fn test_invert() {
-        let a = BigInteger::from_string("105".to_string(), 10, 1024);
+        let a = BigInteger::from_string("5892358416859326896589748197812740739507917092740973905700591759793209771117197329023975932757523759072735959723097537209079532975039297099714397901428947253853027537265853823285397084380934928703270590758520818187287349487329243789243783249743289423789918417987091287932757258397104397295856325791091077".to_string(), 10, 1024);
         let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
 
         let res = a.invert(&m);
 
         // TODO: Check if this is indeed ok
-        let expected = BigInteger::from_string("84061432772340049689808300572413804491980902452673572181446234118442836235303840047558458585418773732980835189507058483169654138942329892232060616703594495557549972465137451136838296148977835528603609908967192656850056541089466756048898473852013665061464617240039941352711244487425431931673569255971479254798".to_string(), 10, 1024);
+        let expected = BigInteger::from_string("123739905086158212270843051527441649600807330749471895683394889028867514801710371562360352272055594352035190616471030275978939424413601977497555131069474726813170115491482106601865630839838144362329125370518957163898801175903502017426241817312333816497160685389024867847545777202327273987093691380956370608950".to_string(), 10, 1024);
         assert_eq!(res.unwrap(), expected);
     }
 
