@@ -7,7 +7,6 @@ use scicrypt_traits::homomorphic::HomomorphicAddition;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use std::ops::Rem;
 
 /// The Paillier cryptosystem.
 #[derive(Copy, Clone)]

@@ -8,7 +8,7 @@ mod modular;
 
 use std::{cmp::min, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug}, ptr::null_mut};
 
-use gmp_mpfr_sys::gmp::{mpz_t, self};
+use gmp_mpfr_sys::gmp::{mpz_t, self, mpz_fac_ui};
 
 const GMP_NUMB_BITS: u64 = 64;
 
@@ -168,6 +168,17 @@ impl BigInteger {
         }
 
         result
+    }
+
+    pub fn factorial(n: u64) -> Self {
+        let mut res = BigInteger::init(0);
+
+        unsafe {
+            mpz_fac_ui(&mut res.value, n);
+        }
+
+        res.size_in_bits = (res.value.size * GMP_NUMB_BITS as i32) as i64;
+        res
     }
 }
 

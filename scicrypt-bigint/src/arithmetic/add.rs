@@ -1,4 +1,4 @@
-use std::{ops::{AddAssign, Add}, cmp::{min, max}};
+use std::{ops::{AddAssign, Add}, cmp::{min, max}, iter::Sum};
 
 use gmp_mpfr_sys::gmp;
 
@@ -38,3 +38,9 @@ impl Add<&BigInteger> for BigInteger {
 }
 
 // TODO: Also implement addition with u64 using `mpn_sec_add_1`
+
+impl<'a> Sum<&'a BigInteger> for BigInteger {
+    fn sum<I: Iterator<Item = &'a BigInteger>>(iter: I) -> Self {
+        todo!()
+    }
+}

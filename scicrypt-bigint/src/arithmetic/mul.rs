@@ -1,4 +1,4 @@
-use std::ops::Mul;
+use std::{ops::Mul, iter::Product};
 
 use gmp_mpfr_sys::gmp;
 
@@ -44,5 +44,11 @@ impl BigInteger {
     pub fn square(&self) -> BigInteger {
         // TODO: Switch to more efficient squaring function
         self * self
+    }
+}
+
+impl<'a> Product<&'a BigInteger> for BigInteger {
+    fn product<I: Iterator<Item = &'a BigInteger>>(iter: I) -> Self {
+        todo!()
     }
 }
