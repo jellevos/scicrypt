@@ -1,5 +1,5 @@
-use rug::Integer;
-use scicrypt_numbertheory::{gen_coprime, gen_rsa_modulus};
+use scicrypt_bigint::BigInteger;
+use scicrypt_numbertheory::gen_rsa_modulus;
 use scicrypt_traits::cryptosystems::{
     Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
 };
@@ -18,19 +18,19 @@ pub struct Paillier {
 /// Public key for the Paillier cryptosystem.
 #[derive(PartialEq, Eq, Debug)]
 pub struct PaillierPK {
-    n: Integer,
-    g: Integer,
+    n: BigInteger,
+    g: BigInteger,
 }
 
 /// Decryption key for the Paillier cryptosystem.
 pub struct PaillierSK {
-    lambda: Integer,
-    mu: Integer,
+    lambda: BigInteger,
+    mu: BigInteger,
 }
 
 /// Ciphertext of the Paillier cryptosystem, which is additively homomorphic.
 pub struct PaillierCiphertext {
-    pub(crate) c: Integer,
+    pub(crate) c: BigInteger,
 }
 
 impl Associable<PaillierPK> for PaillierCiphertext {}
@@ -59,16 +59,16 @@ impl AsymmetricCryptosystem for Paillier {
     fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (PaillierPK, PaillierSK) {
         let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
 
-        let g = &n + Integer::from(1);
-        let mu = Integer::from(lambda.invert_ref(&n).unwrap());
+        let g = BigInteger::from(1) + &n;
+        let mu = lambda.clone().invert(&n).unwrap();
 
         (PaillierPK { n, g }, PaillierSK { lambda, mu })
     }
 }
 
 impl EncryptionKey for PaillierPK {
-    type Input = Integer;
-    type Plaintext = Integer;
+    type Input = BigInteger;
+    type Plaintext = BigInteger;
     type Ciphertext = PaillierCiphertext;
 
     /// Encrypts a plaintext integer using the Paillier public key.
@@ -86,17 +86,17 @@ impl EncryptionKey for PaillierPK {
     /// ```
     fn encrypt_raw<R: SecureRng>(
         &self,
-        plaintext: &Integer,
+        plaintext: &BigInteger,
         rng: &mut GeneralRng<R>,
     ) -> PaillierCiphertext {
-        let n_squared = Integer::from(self.n.square_ref());
-        let r = gen_coprime(&n_squared, rng);
+        let n_squared = self.n.square();
+        let r = BigInteger::random_below(&n_squared, rng);
 
-        let first = Integer::from(self.g.pow_mod_ref(&plaintext.into(), &n_squared).unwrap());
-        let second = r.secure_pow_mod(&self.n, &n_squared);
+        let first = self.g.pow_mod(&plaintext, &n_squared);
+        let second = r.pow_mod(&self.n, &n_squared);
 
         PaillierCiphertext {
-            c: (first * second).rem(&n_squared),
+            c: (&first * &second) % &n_squared,
         }
     }
 }
@@ -117,15 +117,15 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
     /// println!("The decrypted message is {}", secret_key.decrypt(&ciphertext));
     /// // Prints: "The decrypted message is 5".
     /// ```
-    fn decrypt_raw(&self, public_key: &PaillierPK, ciphertext: &PaillierCiphertext) -> Integer {
-        let n_squared = Integer::from(public_key.n.square_ref());
+    fn decrypt_raw(&self, public_key: &PaillierPK, ciphertext: &PaillierCiphertext) -> BigInteger {
+        let n_squared = public_key.n.square();
 
-        let mut inner = Integer::from(ciphertext.c.secure_pow_mod_ref(&self.lambda, &n_squared));
-        inner -= 1;
+        let mut inner = ciphertext.c.pow_mod(&self.lambda, &n_squared);
+        inner -= &BigInteger::from(1);
         inner /= &public_key.n;
-        inner *= &self.mu;
+        inner = &inner * &self.mu;
 
-        inner.rem(&public_key.n)
+        inner % &public_key.n
     }
 }
 
@@ -136,16 +136,15 @@ impl HomomorphicAddition for PaillierPK {
         ciphertext_b: Self::Ciphertext,
     ) -> Self::Ciphertext {
         PaillierCiphertext {
-            c: Integer::from(&ciphertext_a.c * &ciphertext_b.c)
-                .rem(Integer::from(self.n.square_ref())),
+            c: (&ciphertext_a.c * &ciphertext_b.c) % &self.n.square(),
         }
     }
 
     fn mul(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
-        let modulus = Integer::from(self.n.square_ref());
+        let modulus = self.n.square();
 
         PaillierCiphertext {
-            c: Integer::from(ciphertext.c.pow_mod_ref(&input, &modulus).unwrap()),
+            c: ciphertext.c.pow_mod(&input, &modulus),
         }
     }
 }
@@ -154,7 +153,7 @@ impl HomomorphicAddition for PaillierPK {
 mod tests {
     use crate::cryptosystems::paillier::Paillier;
     use rand_core::OsRng;
-    use rug::Integer;
+    use scicrypt_bigint::BigInteger;
     use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
@@ -166,9 +165,9 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(15), &mut rng);
+        let ciphertext = pk.encrypt(&BigInteger::from(15), &mut rng);
 
-        assert_eq!(15, sk.decrypt(&ciphertext));
+        assert_eq!(BigInteger::from(15), sk.decrypt(&ciphertext));
     }
 
     #[test]
@@ -178,11 +177,11 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext_a = pk.encrypt(&Integer::from(7), &mut rng);
-        let ciphertext_b = pk.encrypt(&Integer::from(7), &mut rng);
+        let ciphertext_a = pk.encrypt(&BigInteger::from(7), &mut rng);
+        let ciphertext_b = pk.encrypt(&BigInteger::from(7), &mut rng);
         let ciphertext_twice = ciphertext_a + ciphertext_b;
 
-        assert_eq!(Integer::from(14), sk.decrypt(&ciphertext_twice));
+        assert_eq!(BigInteger::from(14), sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
@@ -192,9 +191,9 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(9), &mut rng);
-        let ciphertext_twice = ciphertext * Integer::from(16);
+        let ciphertext = pk.encrypt(&BigInteger::from(9), &mut rng);
+        let ciphertext_twice = ciphertext * BigInteger::from(16);
 
-        assert_eq!(144, sk.decrypt(&ciphertext_twice));
+        assert_eq!(BigInteger::from(144), sk.decrypt(&ciphertext_twice));
     }
 }

@@ -1,6 +1,6 @@
 #![feature(int_roundings)]
 #![feature(test)]
-use std::{ops::{AddAssign, Mul, RemAssign, Rem, Add, ShrAssign, Shr}, cmp::{max, min}, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug}, ptr::null_mut, alloc::Layout};
+use std::{ops::{AddAssign, Mul, RemAssign, Rem, Add, ShrAssign, Shr, DivAssign, MulAssign, SubAssign}, cmp::{max, min}, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug}, ptr::null_mut, alloc::Layout};
 
 use gmp_mpfr_sys::gmp::{mpz_t, self};
 
@@ -116,6 +116,11 @@ impl BigInteger {
             number.value.size = bits.div_ceil(GMP_NUMB_BITS as i64) as i32;
             number
         }
+    }
+
+    pub fn random_below<R: SecureRng>(limit: &BigInteger, rng: &mut GeneralRng<R>) -> Self {
+        // FIXME: This is completely not secure
+        BigInteger::random(limit.size_in_bits, rng) % limit
     }
 
     pub fn set_bit(&mut self, bit_index: u64) {
@@ -366,6 +371,11 @@ impl BigInteger {
 
         result
     }
+
+    pub fn square(&self) -> BigInteger {
+        // TODO: Switch to more efficient squaring function
+        self * self
+    }
 }
 
 impl AddAssign<&BigInteger> for BigInteger {
@@ -400,6 +410,8 @@ impl Add<&BigInteger> for BigInteger {
         self
     }
 }
+
+// TODO: Also implement addition with u64 using `mpn_sec_add_1`
 
 impl Mul for &BigInteger {
     type Output = BigInteger;
@@ -453,6 +465,18 @@ impl Mul for &BigInteger {
             result.size_in_bits = self.size_in_bits + rhs.size_in_bits;
             result
         }
+    }
+}
+
+impl DivAssign<&BigInteger> for BigInteger {
+    fn div_assign(&mut self, rhs: &BigInteger) {
+        todo!()
+    }
+}
+
+impl SubAssign<&BigInteger> for BigInteger {
+    fn sub_assign(&mut self, rhs: &BigInteger) {
+        todo!()
     }
 }
 
