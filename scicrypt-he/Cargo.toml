@@ -15,8 +15,8 @@ bench = false  # Disable default bench (we use criterion)
 [dependencies]
 scicrypt-traits = { version = "0.6.0", path = "../scicrypt-traits" }
 scicrypt-numbertheory = { version = "0.6.0", path = "../scicrypt-numbertheory" }
+scicrypt-bigint = { version = "0.6.0", path = "../scicrypt-bigint" }
 curve25519-dalek = "4.0.0-pre.2"
-rug = "1.13"
 rand_core = "0.6"
 
 [dev-dependencies]
