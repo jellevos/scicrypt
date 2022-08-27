@@ -8,6 +8,10 @@ use scicrypt_traits::homomorphic::HomomorphicAddition;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
+use serde::de::{self, SeqAccess, Visitor};
+use serde::ser::SerializeStruct;
+use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::fmt::{Debug, Formatter};
 
 /// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
@@ -17,19 +21,22 @@ pub struct CurveElGamal;
 
 /// ElGamal ciphertext containing curve points. The addition operator on the ciphertext is
 /// reflected as the curve operation on the associated plaintext.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct CurveElGamalCiphertext {
-    pub(crate) c1: RistrettoPoint,
-    pub(crate) c2: RistrettoPoint,
+    /// First part of ciphertext
+    pub c1: RistrettoPoint,
+    /// Second part of ciphertext
+    pub c2: RistrettoPoint,
 }
 
 impl Associable<CurveElGamalPK> for CurveElGamalCiphertext {}
 impl Associable<PrecomputedCurveElGamalPK> for CurveElGamalCiphertext {}
 
 /// Encryption key for curve-based ElGamal
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub struct CurveElGamalPK {
-    pub(crate) point: RistrettoPoint,
+    /// Public key as a RistrettoPoint
+    pub point: RistrettoPoint,
 }
 
 /// Decryption key for curve-based ElGamal
@@ -103,6 +110,7 @@ impl EncryptionKey for CurveElGamalPK {
 }
 
 /// Public key with several precomputations to speed-up encryption
+#[derive(Clone)]
 pub struct PrecomputedCurveElGamalPK {
     pub(crate) point: RistrettoBasepointTable,
 }
@@ -116,6 +124,50 @@ impl Debug for PrecomputedCurveElGamalPK {
 impl PartialEq for PrecomputedCurveElGamalPK {
     fn eq(&self, other: &Self) -> bool {
         self.point.basepoint() == other.point.basepoint()
+    }
+}
+
+impl Serialize for PrecomputedCurveElGamalPK {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut state = serializer.serialize_struct("PrecomputedCurveElGamalPK", 1)?;
+        state.serialize_field("point", &self.point.basepoint())?;
+        state.end()
+    }
+}
+impl<'de> Deserialize<'de> for PrecomputedCurveElGamalPK {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct PrecomputedCurveElGamalPKVisitor;
+
+        impl<'de> Visitor<'de> for PrecomputedCurveElGamalPKVisitor {
+            type Value = PrecomputedCurveElGamalPK;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct PrecomputedCurveElGamalPK")
+            }
+
+            fn visit_seq<V>(self, mut seq: V) -> Result<PrecomputedCurveElGamalPK, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let point = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                Ok(CurveElGamalPK { point }.precompute())
+            }
+        }
+
+        const FIELDS: &[&str] = &["point"];
+        deserializer.deserialize_struct(
+            "PrecomputedCurveElGamalPK",
+            FIELDS,
+            PrecomputedCurveElGamalPKVisitor,
+        )
     }
 }
 
@@ -201,6 +253,8 @@ impl HomomorphicAddition for PrecomputedCurveElGamalPK {
 #[cfg(test)]
 mod tests {
     use crate::cryptosystems::curve_el_gamal::CurveElGamal;
+    use crate::cryptosystems::curve_el_gamal::PrecomputedCurveElGamalPK;
+    use bincode::{deserialize, serialize};
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
@@ -263,5 +317,19 @@ mod tests {
             &Scalar::from(3u64) * &RISTRETTO_BASEPOINT_POINT,
             sk.decrypt(&ciphertext_thrice)
         );
+    }
+    #[test]
+    fn serialize_deserialize() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let el_gamal = CurveElGamal::setup(&Default::default());
+        let (pk, _sk) = el_gamal.generate_keys(&mut rng);
+
+        let pk_deserialized: PrecomputedCurveElGamalPK =
+            deserialize(&serialize(&pk).unwrap()).unwrap();
+        let (pk_new, _sk) = el_gamal.generate_keys(&mut rng);
+
+        assert_eq!(pk_deserialized.point.basepoint(), pk.point.basepoint());
+        assert_ne!(pk_new.point.basepoint(), pk_deserialized.point.basepoint());
     }
 }
