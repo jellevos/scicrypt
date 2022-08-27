@@ -7,6 +7,7 @@ use scicrypt_traits::homomorphic::HomomorphicMultiplication;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
+use serde::{Deserialize, Serialize};
 use std::ops::Rem;
 
 /// The RSA cryptosystem.
@@ -16,10 +17,12 @@ pub struct Rsa {
 }
 
 /// Public key for the RSA cryptosystem.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct RsaPK {
-    n: Integer,
-    e: Integer,
+    /// Public modulus
+    pub n: Integer,
+    /// Public exponentation factor
+    pub e: Integer,
 }
 
 /// Decryption key for RSA
@@ -28,8 +31,10 @@ pub struct RsaSK {
 }
 
 /// Ciphertext of the RSA cryptosystem, which is multiplicatively homomorphic.
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct RsaCiphertext {
-    c: Integer,
+    /// Ciphertext as an Integer
+    pub c: Integer,
 }
 
 impl Associable<RsaPK> for RsaCiphertext {}
@@ -94,8 +99,10 @@ impl HomomorphicMultiplication for RsaPK {
     }
 }
 /// Signature of the RSA cryptosystem
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct RsaSignature {
-    s: Integer,
+    /// Signature as an Integer
+    pub s: Integer,
 }
 
 impl VerificationKey for RsaPK {

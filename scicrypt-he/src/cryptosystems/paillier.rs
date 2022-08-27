@@ -7,6 +7,7 @@ use scicrypt_traits::homomorphic::HomomorphicAddition;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
+use serde::{Deserialize, Serialize};
 use std::ops::Rem;
 
 /// The Paillier cryptosystem.
@@ -16,12 +17,13 @@ pub struct Paillier {
 }
 
 /// Public key for the Paillier cryptosystem.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct PaillierPK {
-    n: Integer,
-    g: Integer,
+    /// Public modulus n for encryption
+    pub n: Integer,
+    /// Public generator g for encryption
+    pub g: Integer,
 }
-
 /// Decryption key for the Paillier cryptosystem.
 pub struct PaillierSK {
     lambda: Integer,
@@ -29,8 +31,10 @@ pub struct PaillierSK {
 }
 
 /// Ciphertext of the Paillier cryptosystem, which is additively homomorphic.
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct PaillierCiphertext {
-    pub(crate) c: Integer,
+    /// Encrypted message (Ciphertext)
+    pub c: Integer,
 }
 
 impl Associable<PaillierPK> for PaillierCiphertext {}
