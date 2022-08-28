@@ -55,8 +55,9 @@ impl NOfNCryptosystem for NOfNIntegerElGamal {
             })
             .collect();
 
-        let master_key: BigInteger = partial_keys.iter().map(|k| &k.key).sum();
-        let public_key = BigInteger::from(4).pow_mod(&master_key, &self.modulus);
+        let q = &self.modulus >> 1;
+        let master_key: BigInteger = partial_keys.iter().map(|k| &k.key).sum::<BigInteger>() % &q;
+        let public_key = BigInteger::new(4, 3).pow_mod(&master_key, &self.modulus);
 
         (
             IntegerElGamalPK {
@@ -83,7 +84,7 @@ impl PartialDecryptionKey<IntegerElGamalPK> for NOfNIntegerElGamalSK {
             c1: ciphertext
                     .c1
                     .pow_mod(&self.key, &public_key.modulus),
-            c2: ciphertext.c2.clone(),
+            c2: ciphertext.c2.clone(),  // TODO: Now, all c2 are cloned. We only need one in decryption.
         })
     }
 }
@@ -94,15 +95,15 @@ impl DecryptionShare<IntegerElGamalPK> for NOfNIntegerElGamalShare {
         public_key: &IntegerElGamalPK,
     ) -> Result<BigInteger, DecryptionError> {
         Ok(
-            &decryption_shares[0].0.c2
+            (&decryption_shares[0].0.c2
                 * &decryption_shares
                     .iter()
                     .map(|share| &share.0.c1)
-                    .product::<BigInteger>()
+                    .product::<BigInteger>()  // TODO: We should probably keep reducing this value during aggregation
+                    .rem(&public_key.modulus)
                     .invert(&public_key.modulus)
-                    .unwrap()
-        .rem(&public_key.modulus))
-    }
+                    .unwrap()) % &public_key.modulus)
+    }  // FIXME: This fails randomly during tests
 }
 
 /// Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires t out of n parties to
@@ -166,7 +167,7 @@ impl TOfNCryptosystem for TOfNIntegerElGamal {
 
                 for j in 0..(threshold_t - 1) {
                     key = (key
-                        + &((&coefficients[j as usize] * &BigInteger::from(i.pow((j + 1) as u32) as u64))
+                        + &((&coefficients[j as usize] * &BigInteger::from(i.pow((j + 1) as u32) as u64))  // TODO: Can this be a u64 multiplication?
                             % &q)) % &q;
                 }
 
@@ -174,7 +175,7 @@ impl TOfNCryptosystem for TOfNIntegerElGamal {
             })
             .collect();
 
-        let public_key = BigInteger::from(4).pow_mod(&master_key, &self.modulus);
+        let public_key = BigInteger::new(4, 3).pow_mod(&master_key, &self.modulus);
 
         (
             IntegerElGamalPK {
@@ -226,13 +227,20 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
                         continue;
                     }
 
+                    println!("GOING OVER {} {}", i, i_prime);
+
+                    dbg!(&b);
+                    dbg!(BigInteger::from(decryption_shares[i_prime].id as u64));
+                    dbg!(&q);
+                    dbg!(&b * &BigInteger::from(decryption_shares[i_prime].id as u64));
+                    //dbg!((&b * &BigInteger::new(decryption_shares[i_prime].id as u64, q.size_in_bits())) % &q);
                     b = (&b * &BigInteger::from(decryption_shares[i_prime].id as u64)) % &q;
-                    b = (&b
-                        * &(BigInteger::from(decryption_shares[i_prime].id as u64)
-                            - &BigInteger::from(decryption_shares[i].id as u64))
-                        .invert(&q)
-                        .unwrap())
-                    % &q;
+                    b = (&b * &(BigInteger::from(decryption_shares[i_prime].id as u64) - &BigInteger::from(decryption_shares[i].id as u64)))
+                        .rem(&q)
+                        .invert_unsecure(&q)
+                        //.invert(&q)
+                        .unwrap();
+                    println!("NEXT");
                 }
 
                 share.c1.pow_mod(&b, &public_key.modulus)
@@ -240,6 +248,7 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
             .reduce(|a, b| (&a * &b) % &public_key.modulus)
             .unwrap();
 
+        println!("GOING TO OK");
         Ok(
             (&decryption_shares[0].c2 * &multiplied.invert(&public_key.modulus).unwrap())
                 % &public_key.modulus,
@@ -264,17 +273,24 @@ mod tests {
     fn test_encrypt_decrypt_3_of_3() {
         let mut rng = GeneralRng::new(OsRng);
 
+        println!("setup");
         let el_gamal = NOfNIntegerElGamal::setup(&Default::default());
+        println!("generate keys");
         let (pk, sks) = el_gamal.generate_keys(3, &mut rng);
 
         let plaintext = BigInteger::from(25);
 
+        println!("encrypt");
         let ciphertext = pk.encrypt(&plaintext.clone(), &mut rng);
 
+        println!("partial decrypt 1");
         let share_1 = sks[0].partial_decrypt(&ciphertext);
+        println!("partial decrypt 2");
         let share_2 = sks[1].partial_decrypt(&ciphertext);
+        println!("partial decrypt 3");
         let share_3 = sks[2].partial_decrypt(&ciphertext);
 
+        println!("combine");
         assert_eq!(
             plaintext,
             NOfNIntegerElGamalShare::combine(&[share_1, share_2, share_3], &pk).unwrap()
@@ -285,16 +301,22 @@ mod tests {
     fn test_encrypt_decrypt_2_of_3() {
         let mut rng = GeneralRng::new(OsRng);
 
+        println!("setup");
         let el_gamal = TOfNIntegerElGamal::setup(&Default::default());
+        println!("generate keys");
         let (pk, sks) = el_gamal.generate_keys(2, 3, &mut rng);
 
         let plaintext = BigInteger::from(2100u64);
 
+        println!("encrypt");
         let ciphertext = pk.encrypt(&plaintext, &mut rng);
 
+        println!("partial decrypt 1");
         let share_1 = sks[0].partial_decrypt(&ciphertext);
+        println!("partial decrypt 2");
         let share_3 = sks[2].partial_decrypt(&ciphertext);
 
+        println!("combine");
         assert_eq!(
             plaintext,
             TOfNIntegerElGamalShare::combine(&[share_1, share_3], &pk).unwrap()

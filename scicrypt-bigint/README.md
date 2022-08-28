@@ -14,3 +14,4 @@ Exceptions:
 - `set_bit` and `clear_bit`
 - `is_probably_prime`
 - Right shifts
+- Division by `i64`

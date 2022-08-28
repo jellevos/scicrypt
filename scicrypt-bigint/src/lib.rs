@@ -64,6 +64,10 @@ impl BigInteger {
         Self::zero((size_in_limbs as u64 * GMP_NUMB_BITS) as i64)
     }
 
+    pub fn size_in_bits(&self) -> i64 {
+        self.size_in_bits
+    }
+
     pub fn new(integer: u64, size_in_bits: i64) -> Self {
         let mut res = BigInteger::zero(size_in_bits);
 
@@ -167,6 +171,7 @@ impl BigInteger {
             gmp::mpz_lcm(&mut result.value, &self.value, &other.value);
         }
 
+        result.size_in_bits = (result.value.size * GMP_NUMB_BITS as i32) as i64;
         result
     }
 
@@ -231,17 +236,6 @@ mod tests {
         let a = BigInteger::random(1024, &mut rng);
         
         assert_eq!(a.value.size, 1024 / GMP_NUMB_BITS as i32);
-    }
-
-    #[test]
-    fn test_addition() {
-        let mut x = BigInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
-        let y = BigInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
-
-        x += &y;
-
-        assert_eq!(BigInteger::from_string("5378288885604998150111573291864".to_string(), 10, 103), x);
-        assert_eq!(x.size_in_bits, 103);
     }
 
     #[test]

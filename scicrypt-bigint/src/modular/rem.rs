@@ -1,4 +1,4 @@
-use std::{ptr::null_mut, alloc::Layout, ops::{RemAssign, Rem}};
+use std::ops::{RemAssign, Rem};
 
 use gmp_mpfr_sys::gmp;
 
@@ -6,6 +6,17 @@ use crate::{BigInteger, GMP_NUMB_BITS, scratch::Scratch};
 
 impl RemAssign<&BigInteger> for BigInteger {
     fn rem_assign(&mut self, rhs: &Self) {
+        // Check if this value is already reduced
+        if self.value.size < rhs.value.size {
+            println!("WE REACHED THE SPECIAL CASE!");
+            // TODO: WHAT DO WE DO WITH THE SIZE HERE
+            return;
+        }
+
+        //debug_assert!(self.value.size >= rhs.value.size);
+        debug_assert!(rhs.value.size >= 1);
+        //debug_assert!(rhs.value.d[rhs.value.size - 1] != 0);
+
         debug_assert_eq!(self.size_in_bits.div_ceil(GMP_NUMB_BITS as i64) as i32, self.value.size, "the operands' size in bits must match their actual size");
         debug_assert_eq!(rhs.size_in_bits.div_ceil(GMP_NUMB_BITS as i64) as i32, rhs.value.size, "the operands' size in bits must match their actual size");
 

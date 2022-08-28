@@ -58,8 +58,8 @@ impl AsymmetricCryptosystem for Paillier {
     fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (PaillierPK, PaillierSK) {
         let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
 
-        let g = BigInteger::from(1) + &n;
-        let mu = lambda.clone().invert(&n).unwrap();
+        let g = n.clone() + 1;
+        let mu = (lambda.clone() % &n).invert(&n).unwrap();
 
         (PaillierPK { n, g }, PaillierSK { lambda, mu })
     }
@@ -120,8 +120,8 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
         let n_squared = public_key.n.square();
 
         let mut inner = ciphertext.c.pow_mod(&self.lambda, &n_squared);
-        inner -= &BigInteger::from(1);
-        inner /= &public_key.n;
+        inner -= 1;
+        inner = inner / &public_key.n;
         inner = &inner * &self.mu;
 
         inner % &public_key.n

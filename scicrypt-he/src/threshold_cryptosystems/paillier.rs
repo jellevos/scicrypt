@@ -65,7 +65,7 @@ impl TOfNCryptosystem for ThresholdPaillier {
         let modulus = &prime_p * &prime_q;
         let sub_modulus = &subprime_p * &subprime_q;
 
-        let generator = BigInteger::from(1) + &modulus;
+        let generator = modulus.clone() + 1;
 
         let beta = BigInteger::random_below(&modulus, rng);
         let theta = (&sub_modulus * &beta) % &modulus;
@@ -81,7 +81,7 @@ impl TOfNCryptosystem for ThresholdPaillier {
                 let mut key = &beta * &sub_modulus;
 
                 for j in 0..(threshold_t - 1) {
-                    key += &(&coefficients[j as usize] * &BigInteger::from(i.pow((j + 1) as u32) as u64));
+                    key += &((&coefficients[j as usize] * &BigInteger::from(i.pow((j + 1) as u32) as u64)) % &m_times_n);
                 }
 
                 ThresholdPaillierSK {
@@ -142,7 +142,7 @@ impl PartialDecryptionKey<ThresholdPaillierPK> for ThresholdPaillierSK {
         ThresholdPaillierShare {
             id: self.id,
             share: ciphertext.c.pow_mod(
-                &(&(&BigInteger::from(2) * &public_key.delta) * &self.key),
+                &(&(&BigInteger::new(2, 3) * &public_key.delta) * &self.key),
                 &n_squared,
             ),
         }
@@ -168,8 +168,15 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
                     }
 
                     lambda = &lambda * &BigInteger::from(decryption_shares[i_prime].id as u64);
-                    lambda /= &BigInteger::from((decryption_shares[i_prime].id - decryption_shares[i].id) as u64);
+                    dbg!(&lambda);
+                    dbg!((decryption_shares[i_prime].id - decryption_shares[i].id) as u64);
+                    // TODO: Integer overflow in this subtraction
+                    //let denominator = q + (decryption_shares[i_prime].id - decryption_shares[i].id)
+                    lambda = lambda / (decryption_shares[i_prime].id - decryption_shares[i].id) as i64;
                 }
+
+                // FIXME: lambda becomes zero due to sizing problem in div
+                dbg!(&lambda);
 
                 lambda
             })
@@ -189,6 +196,7 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
 
         let inverse =
             (&(&BigInteger::from(4) * &public_key.delta.square()) * &public_key.theta)
+                .rem(&public_key.modulus)
                 .invert(&public_key.modulus)
                 .unwrap();
 

@@ -36,7 +36,7 @@ impl BitsOfSecurity {
             Self::AES192 => 7680,
             Self::AES256 => 15360,
             Self::Custom { pk_bits } => *pk_bits,
-            Self::ToyParameters => 160,
+            Self::ToyParameters => 256,
         }
     }
 }

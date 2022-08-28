@@ -13,6 +13,8 @@ impl BigInteger {
 
         debug_assert_eq!(modulus.size_in_bits as i32, modulus.value.size * GMP_NUMB_BITS as i32, "the modulus' size in bits must be tight with its actual size");
 
+        println!("Exponent of pow_mod: {} bits ({} limbs)", exponent.size_in_bits, exponent.value.size);
+
         // TODO: Probably we should also assert that the modulus does not contain less limbs than the other operands
 
         let mut result = BigInteger::init(modulus.value.size);

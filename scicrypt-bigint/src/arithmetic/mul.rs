@@ -33,6 +33,8 @@ impl Mul for &BigInteger {
                 scratch.as_mut(),
             );
 
+            println!("{} x {} = {}", self.value.size, rhs.value.size, self.value.size + rhs.value.size);
+
             result.value.size = self.value.size + rhs.value.size;
             result.size_in_bits = self.size_in_bits + rhs.size_in_bits;
             result
@@ -48,7 +50,8 @@ impl BigInteger {
 }
 
 impl<'a> Product<&'a BigInteger> for BigInteger {
-    fn product<I: Iterator<Item = &'a BigInteger>>(iter: I) -> Self {
-        todo!()
+    fn product<I: Iterator<Item = &'a BigInteger>>(mut iter: I) -> Self {
+        let initial = iter.next().unwrap().clone();
+        iter.fold(initial, |x, y| &x * &y)
     }
 }
