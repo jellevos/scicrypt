@@ -14,7 +14,7 @@ bench = false  # Disable default bench (we use criterion)
 
 [dependencies]
 rand_core = "0.6"
-rug = "1.13"
+rug = { version = "1.13", default-features = false, features = ["integer", "rand"]}
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--html-in-header", "katex-header.html" ]
