@@ -12,9 +12,9 @@ use std::fmt::Debug;
 /// deciding the level of security. As such, each cryptosystem should clearly indicate these.
 pub trait AsymmetricCryptosystem {
     /// The public key, used for encrypting plaintexts.
-    type PublicKey;
+    type PublicKey: EncryptionKey;
     /// The secret key, used for decrypting ciphertexts.
-    type SecretKey;
+    type SecretKey: DecryptionKey<Self::PublicKey>;
 
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
