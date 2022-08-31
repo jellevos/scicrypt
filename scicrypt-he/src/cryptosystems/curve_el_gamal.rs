@@ -8,6 +8,7 @@ use scicrypt_traits::homomorphic::HomomorphicAddition;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 
 /// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
@@ -17,19 +18,22 @@ pub struct CurveElGamal;
 
 /// ElGamal ciphertext containing curve points. The addition operator on the ciphertext is
 /// reflected as the curve operation on the associated plaintext.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct CurveElGamalCiphertext {
-    pub(crate) c1: RistrettoPoint,
-    pub(crate) c2: RistrettoPoint,
+    /// First part of ciphertext
+    pub c1: RistrettoPoint,
+    /// Second part of ciphertext
+    pub c2: RistrettoPoint,
 }
 
 impl Associable<CurveElGamalPK> for CurveElGamalCiphertext {}
 impl Associable<PrecomputedCurveElGamalPK> for CurveElGamalCiphertext {}
 
 /// Encryption key for curve-based ElGamal
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Serialize, Deserialize)]
 pub struct CurveElGamalPK {
-    pub(crate) point: RistrettoPoint,
+    /// Public key as a RistrettoPoint
+    pub point: RistrettoPoint,
 }
 
 /// Decryption key for curve-based ElGamal
@@ -42,6 +46,15 @@ impl CurveElGamalPK {
     pub fn precompute(self) -> PrecomputedCurveElGamalPK {
         PrecomputedCurveElGamalPK {
             point: RistrettoBasepointTable::create(&self.point),
+        }
+    }
+}
+
+impl PrecomputedCurveElGamalPK {
+    /// Compresses the encryption key down to a `CurveElGamalPK` which is slower but more compact. This is useful for serialization.
+    pub fn compress(self) -> CurveElGamalPK {
+        CurveElGamalPK {
+            point: self.point.basepoint(),
         }
     }
 }
@@ -103,6 +116,7 @@ impl EncryptionKey for CurveElGamalPK {
 }
 
 /// Public key with several precomputations to speed-up encryption
+#[derive(Clone)]
 pub struct PrecomputedCurveElGamalPK {
     pub(crate) point: RistrettoBasepointTable,
 }

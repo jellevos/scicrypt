@@ -7,6 +7,7 @@ use scicrypt_traits::homomorphic::HomomorphicMultiplication;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
+use serde::{Deserialize, Serialize};
 use std::ops::Rem;
 
 /// Multiplicatively homomorphic ElGamal over a safe prime group where the generator is 4.
@@ -35,16 +36,21 @@ pub struct IntegerElGamal {
 }
 
 /// Public key containing the ElGamal encryption key and the modulus of the group.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct IntegerElGamalPK {
-    pub(crate) h: Integer,
-    pub(crate) modulus: Integer,
+    /// Generator for encrypting
+    pub h: Integer,
+    /// Modulus of public key
+    pub modulus: Integer,
 }
 
 /// ElGamal ciphertext of integers.
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct IntegerElGamalCiphertext {
-    pub(crate) c1: Integer,
-    pub(crate) c2: Integer,
+    /// First part of ciphertext
+    pub c1: Integer,
+    /// Second part of ciphertext
+    pub c2: Integer,
 }
 
 impl Associable<IntegerElGamalPK> for IntegerElGamalCiphertext {}
