@@ -215,8 +215,6 @@ impl HomomorphicAddition for PrecomputedCurveElGamalPK {
 #[cfg(test)]
 mod tests {
     use crate::cryptosystems::curve_el_gamal::CurveElGamal;
-    use crate::cryptosystems::curve_el_gamal::PrecomputedCurveElGamalPK;
-    use bincode::{deserialize, serialize};
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
     use curve25519_dalek::scalar::Scalar;
     use rand_core::OsRng;
