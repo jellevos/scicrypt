@@ -14,7 +14,7 @@ bench = false  # Disable default bench (we use criterion)
 
 [dependencies]
 scicrypt-traits = { version = "0.6.0", path = "../scicrypt-traits" }
-rug = { version = "1.13", default-features = false, features = ["integer"]}
+rug = { version = "1.13", default-features = false, features = ["integer", "rand"]}
 rand_core = "0.6"
 
 [dev-dependencies]
