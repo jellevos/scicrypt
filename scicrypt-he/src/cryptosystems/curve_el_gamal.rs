@@ -8,10 +8,7 @@ use scicrypt_traits::homomorphic::HomomorphicAddition;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
-use serde::de::{self, SeqAccess, Visitor};
-use serde::ser::SerializeStruct;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use std::fmt::{Debug, Formatter};
 
 /// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
@@ -49,6 +46,15 @@ impl CurveElGamalPK {
     pub fn precompute(self) -> PrecomputedCurveElGamalPK {
         PrecomputedCurveElGamalPK {
             point: RistrettoBasepointTable::create(&self.point),
+        }
+    }
+}
+
+impl PrecomputedCurveElGamalPK {
+    /// Compresses the encryption key down to a `CurveElGamalPK` which is slower but more compact. This is useful for serialization.
+    pub fn compress(self) -> CurveElGamalPK {
+        CurveElGamalPK {
+            point: self.point.basepoint(),
         }
     }
 }
@@ -124,50 +130,6 @@ impl Debug for PrecomputedCurveElGamalPK {
 impl PartialEq for PrecomputedCurveElGamalPK {
     fn eq(&self, other: &Self) -> bool {
         self.point.basepoint() == other.point.basepoint()
-    }
-}
-
-impl Serialize for PrecomputedCurveElGamalPK {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        let mut state = serializer.serialize_struct("PrecomputedCurveElGamalPK", 1)?;
-        state.serialize_field("point", &self.point.basepoint())?;
-        state.end()
-    }
-}
-impl<'de> Deserialize<'de> for PrecomputedCurveElGamalPK {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct PrecomputedCurveElGamalPKVisitor;
-
-        impl<'de> Visitor<'de> for PrecomputedCurveElGamalPKVisitor {
-            type Value = PrecomputedCurveElGamalPK;
-
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                formatter.write_str("struct PrecomputedCurveElGamalPK")
-            }
-
-            fn visit_seq<V>(self, mut seq: V) -> Result<PrecomputedCurveElGamalPK, V::Error>
-            where
-                V: SeqAccess<'de>,
-            {
-                let point = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                Ok(CurveElGamalPK { point }.precompute())
-            }
-        }
-
-        const FIELDS: &[&str] = &["point"];
-        deserializer.deserialize_struct(
-            "PrecomputedCurveElGamalPK",
-            FIELDS,
-            PrecomputedCurveElGamalPKVisitor,
-        )
     }
 }
 
@@ -317,19 +279,5 @@ mod tests {
             &Scalar::from(3u64) * &RISTRETTO_BASEPOINT_POINT,
             sk.decrypt(&ciphertext_thrice)
         );
-    }
-    #[test]
-    fn serialize_deserialize() {
-        let mut rng = GeneralRng::new(OsRng);
-
-        let el_gamal = CurveElGamal::setup(&Default::default());
-        let (pk, _sk) = el_gamal.generate_keys(&mut rng);
-
-        let pk_deserialized: PrecomputedCurveElGamalPK =
-            deserialize(&serialize(&pk).unwrap()).unwrap();
-        let (pk_new, _sk) = el_gamal.generate_keys(&mut rng);
-
-        assert_eq!(pk_deserialized.point.basepoint(), pk.point.basepoint());
-        assert_ne!(pk_new.point.basepoint(), pk_deserialized.point.basepoint());
     }
 }
