@@ -81,7 +81,9 @@ impl TOfNCryptosystem for ThresholdPaillier {
                 let mut key = &beta * &sub_modulus;
 
                 for j in 0..(threshold_t - 1) {
-                    key += &((&coefficients[j as usize] * &BigInteger::from(i.pow((j + 1) as u32) as u64)) % &m_times_n);
+                    key += &((&coefficients[j as usize]
+                        * &BigInteger::from(i.pow((j + 1) as u32) as u64))
+                        % &m_times_n);
                 }
 
                 ThresholdPaillierSK {
@@ -121,7 +123,7 @@ impl EncryptionKey for ThresholdPaillierPK {
         let n_squared = self.modulus.square();
         let r = BigInteger::random_below(&n_squared, rng);
 
-        let first = self.generator.pow_mod(&plaintext, &n_squared);
+        let first = self.generator.pow_mod(plaintext, &n_squared);
         let second = r.pow_mod(&self.modulus, &n_squared);
 
         PaillierCiphertext {
@@ -169,10 +171,15 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
 
                     lambda = &lambda * &BigInteger::from(decryption_shares[i_prime].id as u64);
                     dbg!(&lambda);
-                    dbg!(BigInteger::from((decryption_shares[i_prime].id - decryption_shares[i].id) as i64));
+                    dbg!(BigInteger::from(
+                        (decryption_shares[i_prime].id - decryption_shares[i].id) as i64
+                    ));
                     // TODO: Integer overflow in this subtraction
                     //let denominator = q + (decryption_shares[i_prime].id - decryption_shares[i].id)
-                    lambda = lambda / &BigInteger::from((decryption_shares[i_prime].id - decryption_shares[i].id) as i64);
+                    lambda = lambda
+                        / &BigInteger::from(
+                            (decryption_shares[i_prime].id - decryption_shares[i].id) as i64,
+                        );
                 }
 
                 // FIXME: lambda becomes zero due to sizing problem in div
@@ -187,18 +194,17 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
         let mut product = BigInteger::from(1u64);
 
         for (share, lambda) in decryption_shares.iter().zip(lambdas) {
-            product = (&product * &share
-                        .share
-                        .pow_mod(&(&BigInteger::from(2u64) * &lambda), &n_squared)
-                )
-            .rem(&n_squared);
+            product = (&product
+                * &share
+                    .share
+                    .pow_mod(&(&BigInteger::from(2u64) * &lambda), &n_squared))
+                .rem(&n_squared);
         }
 
-        let inverse =
-            (&(&BigInteger::from(4u64) * &public_key.delta.square()) * &public_key.theta)
-                .rem(&public_key.modulus)
-                .invert(&public_key.modulus)
-                .unwrap();
+        let inverse = (&(&BigInteger::from(4u64) * &public_key.delta.square()) * &public_key.theta)
+            .rem(&public_key.modulus)
+            .invert(&public_key.modulus)
+            .unwrap();
 
         Result::Ok(
             (&((product - &BigInteger::from(1u64)) / &public_key.modulus) * &inverse)

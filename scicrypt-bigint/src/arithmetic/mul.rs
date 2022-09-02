@@ -1,8 +1,8 @@
-use std::{ops::Mul, iter::Product};
+use std::{iter::Product, ops::Mul};
 
 use gmp_mpfr_sys::gmp;
 
-use crate::{BigInteger, GMP_NUMB_BITS, scratch::Scratch};
+use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
 
 impl Mul for &BigInteger {
     type Output = BigInteger;
@@ -12,8 +12,16 @@ impl Mul for &BigInteger {
             return rhs * self;
         }
 
-        debug_assert_eq!(self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32, self.value.size.abs(), "the operands' size in bits must match their actual size");
-        debug_assert_eq!(rhs.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32, rhs.value.size.abs(), "the operands' size in bits must match their actual size");
+        debug_assert_eq!(
+            self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
+            self.value.size.abs(),
+            "the operands' size in bits must match their actual size"
+        );
+        debug_assert_eq!(
+            rhs.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
+            rhs.value.size.abs(),
+            "the operands' size in bits must match their actual size"
+        );
 
         let mut result = BigInteger::init(self.value.size.abs() + rhs.value.size.abs());
 
@@ -21,7 +29,7 @@ impl Mul for &BigInteger {
             let scratch_size = gmp::mpn_sec_mul_itch(self.value.size as i64, rhs.value.size as i64)
                 as usize
                 * GMP_NUMB_BITS as usize;
-            
+
             let mut scratch = Scratch::new(scratch_size);
 
             gmp::mpn_sec_mul(
@@ -33,7 +41,12 @@ impl Mul for &BigInteger {
                 scratch.as_mut(),
             );
 
-            println!("{} x {} = {}", self.value.size, rhs.value.size, self.value.size + rhs.value.size);
+            println!(
+                "{} x {} = {}",
+                self.value.size,
+                rhs.value.size,
+                self.value.size + rhs.value.size
+            );
 
             let sign = self.value.size.signum() * rhs.value.size.signum();
             result.value.size = sign * (self.value.size.abs() + rhs.value.size.abs());
@@ -81,7 +94,10 @@ mod tests {
 
         let c = &a * &b;
 
-        assert_eq!(BigInteger::from_string("12830519023467651038400984".to_string(), 10, 128), c);
+        assert_eq!(
+            BigInteger::from_string("12830519023467651038400984".to_string(), 10, 128),
+            c
+        );
     }
 
     #[test]

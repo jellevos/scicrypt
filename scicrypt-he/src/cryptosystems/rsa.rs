@@ -47,7 +47,10 @@ impl AsymmetricCryptosystem for Rsa {
         let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
 
         let e = BigInteger::new(65537, 17);
-        let d = e.clone().invert_unsecure(&lambda).expect("e should always be invertible mod lambda.");
+        let d = e
+            .clone()
+            .invert_unsecure(&lambda)
+            .expect("e should always be invertible mod lambda.");
 
         (RsaPK { n, e }, RsaSK { d })
     }
@@ -102,7 +105,7 @@ impl VerificationKey for RsaPK {
     type Signature = RsaSignature;
 
     fn verify(&self, signature: &Self::Signature, plaintext: &Self::Plaintext) -> bool {
-        return signature.s.pow_mod(&self.e, &self.n) == *plaintext;
+        signature.s.pow_mod(&self.e, &self.n) == *plaintext
     }
 }
 

@@ -68,7 +68,7 @@ impl AsymmetricCryptosystem for IntegerElGamal {
                     _ => panic!("No parameters available for this security parameter"),
                 },
                 16,
-                public_key_len
+                public_key_len,
             ),
         }
     }
@@ -90,8 +90,7 @@ impl AsymmetricCryptosystem for IntegerElGamal {
     ) -> (IntegerElGamalPK, IntegerElGamalSK) {
         let q = &self.modulus >> 1;
         let secret_key = BigInteger::random_below(&q, rng);
-        let public_key =
-            BigInteger::from(4u64).pow_mod(&secret_key, &self.modulus);
+        let public_key = BigInteger::from(4u64).pow_mod(&secret_key, &self.modulus);
 
         (
             IntegerElGamalPK {
@@ -159,10 +158,11 @@ impl DecryptionKey<IntegerElGamalPK> for IntegerElGamalSK {
     ) -> BigInteger {
         (&ciphertext.c2
             * &ciphertext
-                    .c1
-                    .pow_mod(&self.key, &public_key.modulus)
-            .invert(&public_key.modulus)
-            .unwrap()) % &public_key.modulus
+                .c1
+                .pow_mod(&self.key, &public_key.modulus)
+                .invert(&public_key.modulus)
+                .unwrap())
+            % &public_key.modulus
     }
 }
 

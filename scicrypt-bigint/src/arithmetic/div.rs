@@ -1,24 +1,32 @@
-use std::ops::{DivAssign, Div};
+use std::ops::{Div, DivAssign};
 
-use gmp_mpfr_sys::{gmp};
+use gmp_mpfr_sys::gmp;
 
-use crate::{BigInteger, GMP_NUMB_BITS, scratch::Scratch};
+use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
 
 impl Div<&BigInteger> for BigInteger {
     type Output = BigInteger;
 
     fn div(mut self, rhs: &BigInteger) -> BigInteger {
         // TODO: Check the other preconditions
-        debug_assert_eq!(self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32, self.value.size.abs(), "the operands' size in bits must match their actual size");
-        debug_assert_eq!(rhs.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32, rhs.value.size.abs(), "the operands' size in bits must match their actual size");
+        debug_assert_eq!(
+            self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
+            self.value.size.abs(),
+            "the operands' size in bits must match their actual size"
+        );
+        debug_assert_eq!(
+            rhs.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
+            rhs.value.size.abs(),
+            "the operands' size in bits must match their actual size"
+        );
 
         debug_assert!(self.value.size.abs() >= rhs.value.size.abs());
         debug_assert!(rhs.value.size.abs() >= 1);
 
         unsafe {
-            let scratch_size = gmp::mpn_sec_div_qr_itch(self.value.size as i64, rhs.value.size as i64)
-                as usize
-                * GMP_NUMB_BITS as usize;
+            let scratch_size =
+                gmp::mpn_sec_div_qr_itch(self.value.size as i64, rhs.value.size as i64) as usize
+                    * GMP_NUMB_BITS as usize;
 
             let mut scratch = Scratch::new(scratch_size);
 
@@ -40,7 +48,11 @@ impl Div<&BigInteger> for BigInteger {
             res.value.size = sign * (size + (most_significant_limb != 0) as i32);
             //res.size_in_bits = self.size_in_bits - rhs.size_in_bits + 1;
             res.size_in_bits = res.value.size.abs() as u32 * GMP_NUMB_BITS;
-            res.value.d.as_ptr().offset(size as isize).write(most_significant_limb);
+            res.value
+                .d
+                .as_ptr()
+                .offset(size as isize)
+                .write(most_significant_limb);
             return res;
         }
     }

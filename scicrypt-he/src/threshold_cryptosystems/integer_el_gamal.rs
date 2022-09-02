@@ -29,7 +29,7 @@ impl NOfNCryptosystem for NOfNIntegerElGamal {
     /// Uses previously randomly generated safe primes as the modulus for pre-set modulus sizes.
     fn setup(security_param: &BitsOfSecurity) -> Self {
         let public_key_len = security_param.to_public_key_bit_length();
-        
+
         NOfNIntegerElGamal {
             modulus: BigInteger::from_string(
                 match public_key_len {
@@ -39,7 +39,7 @@ impl NOfNCryptosystem for NOfNIntegerElGamal {
                     _ => panic!("No parameters available for this security parameter"),
                 },
                 16,
-                public_key_len
+                public_key_len,
             ),
         }
     }
@@ -81,10 +81,8 @@ impl PartialDecryptionKey<IntegerElGamalPK> for NOfNIntegerElGamalSK {
         ciphertext: &IntegerElGamalCiphertext,
     ) -> NOfNIntegerElGamalShare {
         NOfNIntegerElGamalShare(IntegerElGamalCiphertext {
-            c1: ciphertext
-                    .c1
-                    .pow_mod(&self.key, &public_key.modulus),
-            c2: ciphertext.c2.clone(),  // TODO: Now, all c2 are cloned. We only need one in decryption.
+            c1: ciphertext.c1.pow_mod(&self.key, &public_key.modulus),
+            c2: ciphertext.c2.clone(), // TODO: Now, all c2 are cloned. We only need one in decryption.
         })
     }
 }
@@ -94,16 +92,16 @@ impl DecryptionShare<IntegerElGamalPK> for NOfNIntegerElGamalShare {
         decryption_shares: &[Self],
         public_key: &IntegerElGamalPK,
     ) -> Result<BigInteger, DecryptionError> {
-        Ok(
-            (&decryption_shares[0].0.c2
-                * &decryption_shares
-                    .iter()
-                    .map(|share| &share.0.c1)
-                    .product::<BigInteger>()  // TODO: We should probably keep reducing this value during aggregation
-                    .rem(&public_key.modulus)
-                    .invert(&public_key.modulus)
-                    .unwrap()) % &public_key.modulus)
-    }  // FIXME: This fails randomly during tests
+        Ok((&decryption_shares[0].0.c2
+            * &decryption_shares
+                .iter()
+                .map(|share| &share.0.c1)
+                .product::<BigInteger>() // TODO: We should probably keep reducing this value during aggregation
+                .rem(&public_key.modulus)
+                .invert(&public_key.modulus)
+                .unwrap())
+            % &public_key.modulus)
+    } // FIXME: This fails randomly during tests
 }
 
 /// Threshold ElGamal cryptosystem over integers: Extension of ElGamal that requires t out of n parties to
@@ -143,7 +141,7 @@ impl TOfNCryptosystem for TOfNIntegerElGamal {
                     _ => panic!("No parameters available for this security parameter"),
                 },
                 16,
-                public_key_len
+                public_key_len,
             ),
         }
     }
@@ -168,7 +166,8 @@ impl TOfNCryptosystem for TOfNIntegerElGamal {
                 for j in 0..(threshold_t - 1) {
                     key = (key
                         + &((&coefficients[j as usize] * &BigInteger::from(i.pow((j + 1) as u32) as u64))  // TODO: Can this be a u64 multiplication?
-                            % &q)) % &q;
+                            % &q))
+                        % &q;
                 }
 
                 TOfNIntegerElGamalSK { id: i as i32, key }
@@ -197,9 +196,7 @@ impl PartialDecryptionKey<IntegerElGamalPK> for TOfNIntegerElGamalSK {
     ) -> TOfNIntegerElGamalShare {
         TOfNIntegerElGamalShare {
             id: self.id,
-            c1: ciphertext
-                    .c1
-                    .pow_mod(&self.key, &public_key.modulus),
+            c1: ciphertext.c1.pow_mod(&self.key, &public_key.modulus),
             c2: ciphertext.c2.clone(),
         }
     }
@@ -235,7 +232,9 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
                     dbg!(&b * &BigInteger::from(decryption_shares[i_prime].id as u64));
                     //dbg!((&b * &BigInteger::new(decryption_shares[i_prime].id as u64, q.size_in_bits())) % &q);
                     b = (&b * &BigInteger::from(decryption_shares[i_prime].id as u64)) % &q;
-                    b = (&b * &(BigInteger::from(decryption_shares[i_prime].id as u64) - &BigInteger::from(decryption_shares[i].id as u64)))
+                    b = (&b
+                        * &(BigInteger::from(decryption_shares[i_prime].id as u64)
+                            - &BigInteger::from(decryption_shares[i].id as u64)))
                         .rem(&q)
                         .invert_unsecure(&q)
                         //.invert(&q)

@@ -1,3 +1,3 @@
-mod rem;
-mod pow;
 mod inv;
+mod pow;
+mod rem;

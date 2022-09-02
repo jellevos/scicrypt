@@ -1,6 +1,4 @@
-use std::{ptr::null_mut, alloc::Layout};
-
-
+use std::{alloc::Layout, ptr::null_mut};
 
 const ALIGN: usize = 128;
 
@@ -12,11 +10,17 @@ pub struct Scratch {
 impl Scratch {
     pub fn new(size_in_bits: usize) -> Self {
         match size_in_bits {
-            0 => Scratch { layout: None, space: null_mut() },
+            0 => Scratch {
+                layout: None,
+                space: null_mut(),
+            },
             s => {
                 let layout = Layout::from_size_align(s, ALIGN).unwrap();
                 unsafe {
-                    Scratch { layout: Some(layout), space: std::alloc::alloc(layout) }
+                    Scratch {
+                        layout: Some(layout),
+                        space: std::alloc::alloc(layout),
+                    }
                 }
             }
         }

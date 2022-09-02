@@ -1,8 +1,12 @@
-use std::{ops::{AddAssign, Add}, cmp::{min, max}, iter::Sum};
+use std::{
+    cmp::{max, min},
+    iter::Sum,
+    ops::{Add, AddAssign},
+};
 
 use gmp_mpfr_sys::gmp;
 
-use crate::{BigInteger, scratch::Scratch, GMP_NUMB_BITS};
+use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
 
 impl AddAssign<&BigInteger> for BigInteger {
     fn add_assign(&mut self, rhs: &Self) {
@@ -42,10 +46,9 @@ impl Add<&BigInteger> for BigInteger {
 impl AddAssign<u64> for BigInteger {
     fn add_assign(&mut self, rhs: u64) {
         unsafe {
-            let scratch_size = gmp::mpn_sec_add_1_itch(self.value.size as i64)
-                as usize
-                * GMP_NUMB_BITS as usize;
-            
+            let scratch_size =
+                gmp::mpn_sec_add_1_itch(self.value.size as i64) as usize * GMP_NUMB_BITS as usize;
+
             let mut scratch = Scratch::new(scratch_size);
 
             let carry = gmp::mpn_sec_add_1(
@@ -53,7 +56,7 @@ impl AddAssign<u64> for BigInteger {
                 self.value.d.as_ptr(),
                 self.value.size as i64,
                 rhs,
-                scratch.as_mut()
+                scratch.as_mut(),
             );
 
             self.value.size += carry as i32;
@@ -89,7 +92,10 @@ mod tests {
 
         x += &y;
 
-        assert_eq!(BigInteger::from_string("5378288885604998150111573291864".to_string(), 10, 103), x);
+        assert_eq!(
+            BigInteger::from_string("5378288885604998150111573291864".to_string(), 10, 103),
+            x
+        );
         assert_eq!(x.size_in_bits, 103);
     }
 
@@ -100,7 +106,10 @@ mod tests {
 
         x += y;
 
-        assert_eq!(BigInteger::from_string("5378239758327583290580573280749".to_string(), 10, 103), x);
+        assert_eq!(
+            BigInteger::from_string("5378239758327583290580573280749".to_string(), 10, 103),
+            x
+        );
         assert_eq!(x.size_in_bits, 103);
     }
 }

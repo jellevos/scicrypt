@@ -91,7 +91,7 @@ impl EncryptionKey for PaillierPK {
         let n_squared = self.n.square();
         let r = BigInteger::random_below(&n_squared, rng);
 
-        let first = self.g.pow_mod(&plaintext, &n_squared);
+        let first = self.g.pow_mod(plaintext, &n_squared);
         let second = r.pow_mod(&self.n, &n_squared);
 
         PaillierCiphertext {

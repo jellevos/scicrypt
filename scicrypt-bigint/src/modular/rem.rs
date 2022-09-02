@@ -1,8 +1,8 @@
-use std::ops::{RemAssign, Rem};
+use std::ops::{Rem, RemAssign};
 
 use gmp_mpfr_sys::gmp;
 
-use crate::{BigInteger, GMP_NUMB_BITS, scratch::Scratch};
+use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
 
 impl RemAssign<&BigInteger> for BigInteger {
     fn rem_assign(&mut self, rhs: &Self) {
@@ -17,13 +17,21 @@ impl RemAssign<&BigInteger> for BigInteger {
         debug_assert!(rhs.value.size >= 1);
         //debug_assert!(rhs.value.d[rhs.value.size - 1] != 0);
 
-        debug_assert_eq!(self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32, self.value.size, "the operands' size in bits must match their actual size");
-        debug_assert_eq!(rhs.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32, rhs.value.size, "the operands' size in bits must match their actual size");
+        debug_assert_eq!(
+            self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
+            self.value.size,
+            "the operands' size in bits must match their actual size"
+        );
+        debug_assert_eq!(
+            rhs.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
+            rhs.value.size,
+            "the operands' size in bits must match their actual size"
+        );
 
         unsafe {
-            let scratch_size = gmp::mpn_sec_div_r_itch(self.value.size as i64, rhs.value.size as i64)
-                as usize
-                * GMP_NUMB_BITS as usize;
+            let scratch_size =
+                gmp::mpn_sec_div_r_itch(self.value.size as i64, rhs.value.size as i64) as usize
+                    * GMP_NUMB_BITS as usize;
 
             let mut scratch = Scratch::new(scratch_size);
 

@@ -1,4 +1,4 @@
-use std::ops::{ShrAssign, Shr};
+use std::ops::{Shr, ShrAssign};
 
 use gmp_mpfr_sys::gmp;
 
@@ -11,7 +11,12 @@ impl ShrAssign<u32> for BigInteger {
         assert!(rhs <= GMP_NUMB_BITS - 1);
 
         unsafe {
-            gmp::mpn_rshift(self.value.d.as_mut(), self.value.d.as_ptr(), self.value.size as i64, rhs);
+            gmp::mpn_rshift(
+                self.value.d.as_mut(),
+                self.value.d.as_ptr(),
+                self.value.size as i64,
+                rhs,
+            );
         }
     }
 }
@@ -27,7 +32,12 @@ impl Shr<u32> for &BigInteger {
         let mut result = BigInteger::init(self.value.size);
 
         unsafe {
-            gmp::mpn_rshift(result.value.d.as_mut(), self.value.d.as_ptr(), self.value.size as i64, rhs);
+            gmp::mpn_rshift(
+                result.value.d.as_mut(),
+                self.value.d.as_ptr(),
+                self.value.size as i64,
+                rhs,
+            );
         }
 
         result.value.size = self.value.size;

@@ -6,9 +6,15 @@ mod arithmetic;
 mod binary;
 mod modular;
 
-use std::{cmp::min, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug}, ptr::null_mut};
+use std::{
+    cmp::min,
+    ffi::{CStr, CString},
+    fmt::{Debug, Display},
+    mem::MaybeUninit,
+    ptr::null_mut,
+};
 
-use gmp_mpfr_sys::gmp::{mpz_t, self, mpz_fac_ui};
+use gmp_mpfr_sys::gmp::{self, mpz_fac_ui, mpz_t};
 
 const GMP_NUMB_BITS: u32 = 64;
 
@@ -54,13 +60,18 @@ impl From<i64> for BigInteger {
 
 impl Debug for BigInteger {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self} <{} bits as {}x{GMP_NUMB_BITS}-bit limbs>", self.size_in_bits, self.value.size.abs())
+        write!(
+            f,
+            "{self} <{} bits as {}x{GMP_NUMB_BITS}-bit limbs>",
+            self.size_in_bits,
+            self.value.size.abs()
+        )
     }
 }
 
 pub struct BigInteger {
     value: mpz_t,
-    size_in_bits: u32
+    size_in_bits: u32,
 }
 
 impl Drop for BigInteger {
@@ -115,7 +126,7 @@ impl BigInteger {
             gmp::mpz_set_str(&mut z, c_string.as_ptr(), base);
             BigInteger {
                 value: z,
-                size_in_bits
+                size_in_bits,
             }
         }
     }
@@ -126,8 +137,9 @@ impl BigInteger {
 
         unsafe {
             let mut number = BigInteger::zero(bits);
-            let limbs = gmp::mpz_limbs_write(&mut number.value, bits.div_ceil(GMP_NUMB_BITS) as i64);
-    
+            let limbs =
+                gmp::mpz_limbs_write(&mut number.value, bits.div_ceil(GMP_NUMB_BITS) as i64);
+
             for i in 0isize..bits.div_ceil(GMP_NUMB_BITS) as isize {
                 let mut bytes = [0; 8];
                 rng.rng().fill_bytes(&mut bytes);
@@ -158,16 +170,12 @@ impl BigInteger {
 
     /// Computes self modulo a u64 number. This function is not constant-time.
     pub fn mod_u(&self, modulus: u64) -> u64 {
-        unsafe {
-            gmp::mpz_fdiv_ui(&self.value, modulus)
-        }
+        unsafe { gmp::mpz_fdiv_ui(&self.value, modulus) }
     }
 
     /// Returns true when this number is prime. This function is not constant-time. Internally it uses Baille-PSW.
     pub fn is_probably_prime(&self) -> bool {
-        unsafe {
-            gmp::mpz_probab_prime_p(&self.value, 25) > 0
-        }
+        unsafe { gmp::mpz_probab_prime_p(&self.value, 25) > 0 }
     }
 
     /// Returns true if self == 0. This is faster than checking equality.
@@ -203,17 +211,17 @@ impl BigInteger {
 impl PartialEq for BigInteger {
     fn eq(&self, other: &Self) -> bool {
         let n = min(self.value.size.abs(), other.value.size.abs());
-        
+
         unsafe { gmp::mpn_cmp(self.value.d.as_ptr(), other.value.d.as_ptr(), n as i64) == 0 }
     }
 }
 
-impl Eq for BigInteger { }
+impl Eq for BigInteger {}
 
 impl Clone for BigInteger {
     fn clone(&self) -> Self {
         let mut result = BigInteger::init(self.value.size);
-        
+
         unsafe {
             gmp::mpz_set(&mut result.value, &self.value);
         }
@@ -222,7 +230,6 @@ impl Clone for BigInteger {
         result
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -237,7 +244,7 @@ mod tests {
 
         let a = BigInteger::random(64, &mut rng);
         let b = BigInteger::random(64, &mut rng);
-        
+
         assert_ne!(a, b);
     }
 
@@ -246,7 +253,7 @@ mod tests {
         let mut rng = GeneralRng::new(OsRng);
 
         let a = BigInteger::random(1024, &mut rng);
-        
+
         assert_eq!(a.value.size, 1024 / GMP_NUMB_BITS as i32);
     }
 
@@ -386,7 +393,7 @@ mod tests {
 }
 
 extern crate test;
-use scicrypt_traits::randomness::{SecureRng, GeneralRng};
+use scicrypt_traits::randomness::{GeneralRng, SecureRng};
 use test::Bencher;
 
 #[bench]
