@@ -10,7 +10,7 @@ impl BigInteger {
         //assert_eq!(self.supposed_size, modulus.supposed_size);
         //self.supposed_size = modulus.inner.size as i64;
 
-        debug_assert_eq!(modulus.size_in_bits.div_ceil(GMP_NUMB_BITS as i64) as i32, modulus.value.size, "the modulus' size in bits must match its actual size");
+        debug_assert_eq!(modulus.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32, modulus.value.size, "the modulus' size in bits must match its actual size");
         //debug_assert_eq!(modulus.size_in_bits as i32, modulus.value.size * GMP_NUMB_BITS as i32, "the modulus' size in bits must be tight with its actual size");
         debug_assert_eq!(modulus.size_in_bits, self.size_in_bits, "the modulus must have the same size as self");
 

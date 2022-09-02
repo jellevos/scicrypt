@@ -68,7 +68,7 @@ impl AsymmetricCryptosystem for IntegerElGamal {
                     _ => panic!("No parameters available for this security parameter"),
                 },
                 16,
-                public_key_len as i64
+                public_key_len
             ),
         }
     }
@@ -91,7 +91,7 @@ impl AsymmetricCryptosystem for IntegerElGamal {
         let q = &self.modulus >> 1;
         let secret_key = BigInteger::random_below(&q, rng);
         let public_key =
-            BigInteger::from(4).pow_mod(&secret_key, &self.modulus);
+            BigInteger::from(4u64).pow_mod(&secret_key, &self.modulus);
 
         (
             IntegerElGamalPK {
@@ -130,7 +130,7 @@ impl EncryptionKey for IntegerElGamalPK {
         let y = BigInteger::random_below(&q, rng);
 
         IntegerElGamalCiphertext {
-            c1: BigInteger::from(4).pow_mod(&y, &self.modulus),
+            c1: BigInteger::from(4u64).pow_mod(&y, &self.modulus),
             c2: (plaintext * &self.h.pow_mod(&y, &self.modulus)) % &self.modulus,
         }
     }
@@ -201,23 +201,24 @@ mod tests {
         let el_gamal = IntegerElGamal::setup(&Default::default());
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(19), &mut rng);
+        let ciphertext = pk.encrypt(&BigInteger::from(19u64), &mut rng);
 
-        assert_eq!(BigInteger::from(19), sk.decrypt(&ciphertext));
+        assert_eq!(BigInteger::from(19u64), sk.decrypt(&ciphertext));
     }
 
     #[test]
     fn test_homomorphic_mul() {
+        // TODO: Sometimes fails
         let mut rng = GeneralRng::new(OsRng);
 
         let el_gamal = IntegerElGamal::setup(&Default::default());
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext_a = pk.encrypt(&BigInteger::from(7), &mut rng);
-        let ciphertext_b = pk.encrypt(&BigInteger::from(7), &mut rng);
+        let ciphertext_a = pk.encrypt(&BigInteger::from(7u64), &mut rng);
+        let ciphertext_b = pk.encrypt(&BigInteger::from(7u64), &mut rng);
         let ciphertext_twice = ciphertext_a * ciphertext_b;
 
-        assert_eq!(BigInteger::from(49), sk.decrypt(&ciphertext_twice));
+        assert_eq!(BigInteger::from(49u64), sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
@@ -227,9 +228,9 @@ mod tests {
         let el_gamal = IntegerElGamal::setup(&Default::default());
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(9), &mut rng);
-        let ciphertext_twice = ciphertext.pow(BigInteger::from(4));
+        let ciphertext = pk.encrypt(&BigInteger::from(9u64), &mut rng);
+        let ciphertext_twice = ciphertext.pow(BigInteger::from(4u64));
 
-        assert_eq!(BigInteger::from(6561), sk.decrypt(&ciphertext_twice));
+        assert_eq!(BigInteger::from(6561u64), sk.decrypt(&ciphertext_twice));
     }
 }

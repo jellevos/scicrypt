@@ -19,8 +19,8 @@ use scicrypt_traits::randomness::SecureRng;
 /// `bit_length` bits, of which the first and the last bit are always 1.
 pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> BigInteger {
     'outer: loop {
-        let mut candidate = BigInteger::random(bit_length as i64, rng);
-        candidate.set_bit(bit_length as u64 - 1);
+        let mut candidate = BigInteger::random(bit_length, rng);
+        candidate.set_bit(bit_length - 1);
         candidate.set_bit(0);
 
         // A heuristic that closely follows OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
@@ -62,8 +62,8 @@ pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> BigI
 /// the form $p = 2q + 1$, where $q$ is a smaller prime.
 pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> BigInteger {
     'outer: loop {
-        let mut candidate = BigInteger::random(bit_length as i64, rng);
-        candidate.set_bit(bit_length as u64 - 1);
+        let mut candidate = BigInteger::random(bit_length, rng);
+        candidate.set_bit(bit_length - 1);
         candidate.set_bit(0);
 
         // A heuristic that closely follows OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)

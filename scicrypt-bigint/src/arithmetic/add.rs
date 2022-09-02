@@ -25,7 +25,7 @@ impl AddAssign<&BigInteger> for BigInteger {
             let largest_size = max(self.value.size, rhs.value.size) as i32;
 
             self.value.size = largest_size + carry as i32;
-            self.size_in_bits = max(self.size_in_bits, rhs.size_in_bits) + carry as i64;
+            self.size_in_bits = max(self.size_in_bits, rhs.size_in_bits) + carry as u32;
         }
     }
 }
@@ -57,7 +57,7 @@ impl AddAssign<u64> for BigInteger {
             );
 
             self.value.size += carry as i32;
-            self.size_in_bits += carry as i64;
+            self.size_in_bits += carry as u32;
         }
     }
 }

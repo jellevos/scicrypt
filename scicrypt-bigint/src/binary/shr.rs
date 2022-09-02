@@ -8,7 +8,7 @@ use crate::{BigInteger, GMP_NUMB_BITS};
 impl ShrAssign<u32> for BigInteger {
     fn shr_assign(&mut self, rhs: u32) {
         assert!(1 <= rhs);
-        assert!(rhs as u64 <= GMP_NUMB_BITS - 1);
+        assert!(rhs <= GMP_NUMB_BITS - 1);
 
         unsafe {
             gmp::mpn_rshift(self.value.d.as_mut(), self.value.d.as_ptr(), self.value.size as i64, rhs);
@@ -22,7 +22,7 @@ impl Shr<u32> for &BigInteger {
 
     fn shr(self, rhs: u32) -> Self::Output {
         assert!(1 <= rhs);
-        assert!(rhs as u64 <= GMP_NUMB_BITS - 1);
+        assert!(rhs <= GMP_NUMB_BITS - 1);
 
         let mut result = BigInteger::init(self.value.size);
 

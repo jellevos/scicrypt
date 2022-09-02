@@ -164,9 +164,12 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(15), &mut rng);
+        println!("To encrypt");
+        let ciphertext = pk.encrypt(&BigInteger::from(15u64), &mut rng);
 
-        assert_eq!(BigInteger::from(15), sk.decrypt(&ciphertext));
+        println!("To decrypt");
+        println!("dec: {}", sk.decrypt(&ciphertext));
+        assert_eq!(BigInteger::from(15u64), sk.decrypt(&ciphertext));
     }
 
     #[test]
@@ -176,11 +179,11 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext_a = pk.encrypt(&BigInteger::from(7), &mut rng);
-        let ciphertext_b = pk.encrypt(&BigInteger::from(7), &mut rng);
+        let ciphertext_a = pk.encrypt(&BigInteger::from(7u64), &mut rng);
+        let ciphertext_b = pk.encrypt(&BigInteger::from(7u64), &mut rng);
         let ciphertext_twice = ciphertext_a + ciphertext_b;
 
-        assert_eq!(BigInteger::from(14), sk.decrypt(&ciphertext_twice));
+        assert_eq!(BigInteger::from(14u64), sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
@@ -190,9 +193,9 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(9), &mut rng);
-        let ciphertext_twice = ciphertext * BigInteger::from(16);
+        let ciphertext = pk.encrypt(&BigInteger::from(9u64), &mut rng);
+        let ciphertext_twice = ciphertext * BigInteger::from(16u64);
 
-        assert_eq!(BigInteger::from(144), sk.decrypt(&ciphertext_twice));
+        assert_eq!(BigInteger::from(144u64), sk.decrypt(&ciphertext_twice));
     }
 }

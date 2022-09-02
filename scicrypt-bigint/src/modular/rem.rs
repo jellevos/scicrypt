@@ -17,8 +17,8 @@ impl RemAssign<&BigInteger> for BigInteger {
         debug_assert!(rhs.value.size >= 1);
         //debug_assert!(rhs.value.d[rhs.value.size - 1] != 0);
 
-        debug_assert_eq!(self.size_in_bits.div_ceil(GMP_NUMB_BITS as i64) as i32, self.value.size, "the operands' size in bits must match their actual size");
-        debug_assert_eq!(rhs.size_in_bits.div_ceil(GMP_NUMB_BITS as i64) as i32, rhs.value.size, "the operands' size in bits must match their actual size");
+        debug_assert_eq!(self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32, self.value.size, "the operands' size in bits must match their actual size");
+        debug_assert_eq!(rhs.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32, rhs.value.size, "the operands' size in bits must match their actual size");
 
         unsafe {
             let scratch_size = gmp::mpn_sec_div_r_itch(self.value.size as i64, rhs.value.size as i64)

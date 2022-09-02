@@ -137,9 +137,9 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(15), &mut rng);
+        let ciphertext = pk.encrypt(&BigInteger::from(15u64), &mut rng);
 
-        assert_eq!(BigInteger::from(15), sk.decrypt(&ciphertext));
+        assert_eq!(BigInteger::from(15u64), sk.decrypt(&ciphertext));
     }
 
     #[test]
@@ -149,11 +149,11 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext_a = pk.encrypt(&BigInteger::from(7), &mut rng);
-        let ciphertext_b = pk.encrypt(&BigInteger::from(7), &mut rng);
+        let ciphertext_a = pk.encrypt(&BigInteger::from(7u64), &mut rng);
+        let ciphertext_b = pk.encrypt(&BigInteger::from(7u64), &mut rng);
         let ciphertext_twice = ciphertext_a * ciphertext_b;
 
-        assert_eq!(BigInteger::from(49), sk.decrypt(&ciphertext_twice));
+        assert_eq!(BigInteger::from(49u64), sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
@@ -163,10 +163,10 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(9), &mut rng);
-        let ciphertext_twice = ciphertext.pow(BigInteger::from(4));
+        let ciphertext = pk.encrypt(&BigInteger::from(9u64), &mut rng);
+        let ciphertext_twice = ciphertext.pow(BigInteger::from(4u64));
 
-        assert_eq!(BigInteger::from(6561), sk.decrypt(&ciphertext_twice));
+        assert_eq!(BigInteger::from(6561u64), sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
@@ -175,7 +175,7 @@ mod tests {
 
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
-        let plaintext = BigInteger::from(10);
+        let plaintext = BigInteger::from(10u64);
 
         let signature = sk.sign(&plaintext, &pk, &mut rng);
 
@@ -188,10 +188,10 @@ mod tests {
 
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
-        let plaintext = BigInteger::from(10);
+        let plaintext = BigInteger::from(10u64);
 
         let signature = sk.sign(&plaintext, &pk, &mut rng);
 
-        assert!(!pk.verify(&signature, &BigInteger::from(11)));
+        assert!(!pk.verify(&signature, &BigInteger::from(11u64)));
     }
 }

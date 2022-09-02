@@ -10,7 +10,7 @@ use std::{cmp::min, mem::MaybeUninit, ffi::{CString, CStr}, fmt::{Display, Debug
 
 use gmp_mpfr_sys::gmp::{mpz_t, self, mpz_fac_ui};
 
-const GMP_NUMB_BITS: u64 = 64;
+const GMP_NUMB_BITS: u32 = 64;
 
 impl Display for BigInteger {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -40,15 +40,27 @@ impl From<u64> for BigInteger {
     }
 }
 
+impl From<i64> for BigInteger {
+    fn from(integer: i64) -> Self {
+        let mut res = BigInteger::zero(64);
+
+        unsafe {
+            gmp::mpz_set_si(&mut res.value, integer);
+        }
+
+        res
+    }
+}
+
 impl Debug for BigInteger {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} <{} bits>", self, self.size_in_bits)
+        write!(f, "{self} <{} bits as {}x{GMP_NUMB_BITS}-bit limbs>", self.size_in_bits, self.value.size.abs())
     }
 }
 
 pub struct BigInteger {
     value: mpz_t,
-    size_in_bits: i64
+    size_in_bits: u32
 }
 
 impl Drop for BigInteger {
@@ -61,14 +73,14 @@ impl Drop for BigInteger {
 
 impl BigInteger {
     fn init(size_in_limbs: i32) -> Self {
-        Self::zero((size_in_limbs as u64 * GMP_NUMB_BITS) as i64)
+        Self::zero(size_in_limbs.abs() as u32 * GMP_NUMB_BITS)
     }
 
-    pub fn size_in_bits(&self) -> i64 {
+    pub fn size_in_bits(&self) -> u32 {
         self.size_in_bits
     }
 
-    pub fn new(integer: u64, size_in_bits: i64) -> Self {
+    pub fn new(integer: u64, size_in_bits: u32) -> Self {
         let mut res = BigInteger::zero(size_in_bits);
 
         unsafe {
@@ -79,7 +91,7 @@ impl BigInteger {
     }
 
     /// Creates a BigInteger with value 0. All arithmetic operations are constant-time with regards to the integer's size `bits`.
-    pub fn zero(size_in_bits: i64) -> Self {
+    pub fn zero(size_in_bits: u32) -> Self {
         unsafe {
             let mut z = MaybeUninit::uninit();
             gmp::mpz_init2(z.as_mut_ptr(), size_in_bits as u64);
@@ -92,7 +104,7 @@ impl BigInteger {
     }
 
     /// Creates a BigInteger from a value given as a `string` in a certain `base`. The `size_in_bits` should not be lower than the actual value encoded.
-    pub fn from_string(string: String, base: i32, size_in_bits: i64) -> BigInteger {
+    pub fn from_string(string: String, base: i32, size_in_bits: u32) -> BigInteger {
         // TODO: debug_assert!() that the size_in_bits is not smaller than the actual value
 
         unsafe {
@@ -109,20 +121,20 @@ impl BigInteger {
     }
 
     /// Generates a random number with `bits` bits. `bits` should be a multiple of 8.
-    pub fn random<R: SecureRng>(bits: i64, rng: &mut GeneralRng<R>) -> Self {
+    pub fn random<R: SecureRng>(bits: u32, rng: &mut GeneralRng<R>) -> Self {
         debug_assert!((bits % 8) == 0, "`bits` should be a multiple of 8");
 
         unsafe {
             let mut number = BigInteger::zero(bits);
-            let limbs = gmp::mpz_limbs_write(&mut number.value, bits.div_ceil(GMP_NUMB_BITS as i64));
+            let limbs = gmp::mpz_limbs_write(&mut number.value, bits.div_ceil(GMP_NUMB_BITS) as i64);
     
-            for i in 0isize..bits.div_ceil(GMP_NUMB_BITS as i64) as isize {
+            for i in 0isize..bits.div_ceil(GMP_NUMB_BITS) as isize {
                 let mut bytes = [0; 8];
                 rng.rng().fill_bytes(&mut bytes);
                 limbs.offset(i).write(u64::from_be_bytes(bytes));
             }
 
-            number.value.size = bits.div_ceil(GMP_NUMB_BITS as i64) as i32;
+            number.value.size = bits.div_ceil(GMP_NUMB_BITS) as i32;
             number
         }
     }
@@ -132,15 +144,15 @@ impl BigInteger {
         BigInteger::random(limit.size_in_bits, rng) % limit
     }
 
-    pub fn set_bit(&mut self, bit_index: u64) {
+    pub fn set_bit(&mut self, bit_index: u32) {
         unsafe {
-            gmp::mpz_setbit(&mut self.value, bit_index);
+            gmp::mpz_setbit(&mut self.value, bit_index as u64);
         }
     }
 
-    pub fn clear_bit(&mut self, bit_index: u64) {
+    pub fn clear_bit(&mut self, bit_index: u32) {
         unsafe {
-            gmp::mpz_clrbit(&mut self.value, bit_index);
+            gmp::mpz_clrbit(&mut self.value, bit_index as u64);
         }
     }
 
@@ -171,7 +183,7 @@ impl BigInteger {
             gmp::mpz_lcm(&mut result.value, &self.value, &other.value);
         }
 
-        result.size_in_bits = (result.value.size * GMP_NUMB_BITS as i32) as i64;
+        result.size_in_bits = (result.value.size * GMP_NUMB_BITS as i32) as u32;
         result
     }
 
@@ -182,7 +194,7 @@ impl BigInteger {
             mpz_fac_ui(&mut res.value, n);
         }
 
-        res.size_in_bits = (res.value.size * GMP_NUMB_BITS as i32) as i64;
+        res.size_in_bits = (res.value.size * GMP_NUMB_BITS as i32) as u32;
         res
     }
 }
@@ -190,7 +202,7 @@ impl BigInteger {
 /// Note that equality checks are not in constant time. This function only considers the number of limbs of the number with the fewest limbs.
 impl PartialEq for BigInteger {
     fn eq(&self, other: &Self) -> bool {
-        let n = min(self.value.size, other.value.size);
+        let n = min(self.value.size.abs(), other.value.size.abs());
         
         unsafe { gmp::mpn_cmp(self.value.d.as_ptr(), other.value.d.as_ptr(), n as i64) == 0 }
     }
@@ -244,38 +256,7 @@ mod tests {
         let mut a = BigInteger::new(129, 128);
         a >>= 3;
 
-        assert_eq!(BigInteger::from(16), a);
-    }
-
-    #[test]
-    fn test_mul_equal_size() {
-        let a = BigInteger::new(23, 64);
-        let b = BigInteger::new(14, 64);
-
-        let c = &a * &b;
-
-        assert_eq!(BigInteger::from(23 * 14), c);
-    }
-
-    #[test]
-    fn test_mul_larger_a() {
-        let a = BigInteger::from_string("125789402190859323905892".to_string(), 10, 128);
-        let b = BigInteger::new(102, 7);
-
-        let c = &a * &b;
-
-        assert_eq!(BigInteger::from_string("12830519023467651038400984".to_string(), 10, 128), c);
-    }
-
-    #[test]
-    fn test_mul_larger_b() {
-        let a = BigInteger::new(12, 64);
-        let b = BigInteger::from_string("393530540239137101151".to_string(), 10, 128);
-
-        let c = &a * &b;
-
-        let expected = BigInteger::from_string("4722366482869645213812".to_string(), 10, 128);
-        assert_eq!(expected, c);
+        assert_eq!(BigInteger::from(16u64), a);
     }
 
     #[test]
@@ -317,9 +298,9 @@ mod tests {
 
     #[test]
     fn test_powmod_mini() {
-        let b = BigInteger::from(3);
-        let e = BigInteger::from(7);
-        let m = BigInteger::from(11);
+        let b = BigInteger::from(3u64);
+        let e = BigInteger::from(7u64);
+        let m = BigInteger::from(11u64);
 
         let res = b.pow_mod(&e, &m);
 
@@ -330,9 +311,9 @@ mod tests {
 
     #[test]
     fn test_powmod_mini_plusmod() {
-        let b = BigInteger::from(14);
-        let e = BigInteger::from(7);
-        let m = BigInteger::from(11);
+        let b = BigInteger::from(14u64);
+        let e = BigInteger::from(7u64);
+        let m = BigInteger::from(11u64);
 
         let res = b.pow_mod(&e, &m);
 
@@ -368,18 +349,18 @@ mod tests {
 
     #[test]
     fn test_invert_small() {
-        let a = BigInteger::from(3);
-        let m = BigInteger::from(13);
+        let a = BigInteger::from(3u64);
+        let m = BigInteger::from(13u64);
 
         let res = a.invert(&m);
 
-        assert_eq!(BigInteger::from(9), res.unwrap());
+        assert_eq!(BigInteger::from(9u64), res.unwrap());
     }
 
     #[test]
     fn test_no_inverse_small() {
-        let a = BigInteger::from(14);
-        let m = BigInteger::from(49);
+        let a = BigInteger::from(14u64);
+        let m = BigInteger::from(49u64);
 
         let res = a.invert(&m);
 
@@ -392,7 +373,7 @@ mod tests {
         let m = BigInteger::new(14, 64);
 
         a %= &m;
-        assert_eq!(BigInteger::from(9), a);
+        assert_eq!(BigInteger::from(9u64), a);
     }
 
     #[test]
@@ -400,7 +381,7 @@ mod tests {
         let a = BigInteger::new(23, 64);
         let m = BigInteger::new(14, 64);
 
-        assert_eq!(BigInteger::from(9), a % &m);
+        assert_eq!(BigInteger::from(9u64), a % &m);
     }
 }
 

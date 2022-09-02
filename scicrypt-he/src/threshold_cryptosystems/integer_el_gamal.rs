@@ -39,7 +39,7 @@ impl NOfNCryptosystem for NOfNIntegerElGamal {
                     _ => panic!("No parameters available for this security parameter"),
                 },
                 16,
-                public_key_len as i64
+                public_key_len
             ),
         }
     }
@@ -143,7 +143,7 @@ impl TOfNCryptosystem for TOfNIntegerElGamal {
                     _ => panic!("No parameters available for this security parameter"),
                 },
                 16,
-                public_key_len as i64
+                public_key_len
             ),
         }
     }
@@ -216,7 +216,7 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
             .iter()
             .enumerate()
             .map(|(i, share)| {
-                let mut b = BigInteger::from(1);
+                let mut b = BigInteger::from(1u64);
 
                 for i_prime in 0..decryption_shares.len() {
                     if i == i_prime {
@@ -278,7 +278,7 @@ mod tests {
         println!("generate keys");
         let (pk, sks) = el_gamal.generate_keys(3, &mut rng);
 
-        let plaintext = BigInteger::from(25);
+        let plaintext = BigInteger::from(25u64);
 
         println!("encrypt");
         let ciphertext = pk.encrypt(&plaintext.clone(), &mut rng);

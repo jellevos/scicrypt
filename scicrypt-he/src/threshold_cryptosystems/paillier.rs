@@ -169,10 +169,10 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
 
                     lambda = &lambda * &BigInteger::from(decryption_shares[i_prime].id as u64);
                     dbg!(&lambda);
-                    dbg!((decryption_shares[i_prime].id - decryption_shares[i].id) as u64);
+                    dbg!(BigInteger::from((decryption_shares[i_prime].id - decryption_shares[i].id) as i64));
                     // TODO: Integer overflow in this subtraction
                     //let denominator = q + (decryption_shares[i_prime].id - decryption_shares[i].id)
-                    lambda = lambda / (decryption_shares[i_prime].id - decryption_shares[i].id) as i64;
+                    lambda = lambda / &BigInteger::from((decryption_shares[i_prime].id - decryption_shares[i].id) as i64);
                 }
 
                 // FIXME: lambda becomes zero due to sizing problem in div
@@ -184,24 +184,24 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
 
         let n_squared = public_key.modulus.square();
 
-        let mut product = BigInteger::from(1);
+        let mut product = BigInteger::from(1u64);
 
         for (share, lambda) in decryption_shares.iter().zip(lambdas) {
             product = (&product * &share
                         .share
-                        .pow_mod(&(&BigInteger::from(2) * &lambda), &n_squared)
+                        .pow_mod(&(&BigInteger::from(2u64) * &lambda), &n_squared)
                 )
             .rem(&n_squared);
         }
 
         let inverse =
-            (&(&BigInteger::from(4) * &public_key.delta.square()) * &public_key.theta)
+            (&(&BigInteger::from(4u64) * &public_key.delta.square()) * &public_key.theta)
                 .rem(&public_key.modulus)
                 .invert(&public_key.modulus)
                 .unwrap();
 
         Result::Ok(
-            (&((product - &BigInteger::from(1)) / &public_key.modulus) * &inverse)
+            (&((product - &BigInteger::from(1u64)) / &public_key.modulus) * &inverse)
                 % &public_key.modulus,
         )
     }
@@ -226,13 +226,13 @@ mod tests {
         let paillier = ThresholdPaillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sks) = paillier.generate_keys(2, 3, &mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(19), &mut rng);
+        let ciphertext = pk.encrypt(&BigInteger::from(19u64), &mut rng);
 
         let share_1 = sks[0].partial_decrypt(&ciphertext);
         let share_3 = sks[2].partial_decrypt(&ciphertext);
 
         assert_eq!(
-            BigInteger::from(19),
+            BigInteger::from(19u64),
             ThresholdPaillierShare::combine(&[share_1, share_3], &pk).unwrap()
         );
     }
