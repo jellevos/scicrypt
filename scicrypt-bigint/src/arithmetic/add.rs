@@ -10,6 +10,14 @@ use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
 
 impl AddAssign<&BigInteger> for BigInteger {
     fn add_assign(&mut self, rhs: &Self) {
+        // TODO: Change to debug assert
+        if self.value.size.is_negative() {
+            todo!("Adding to a negative number");
+        }
+        if rhs.value.size.is_negative() {
+            todo!("Adding by a negative number");
+        }
+
         debug_assert!(self.size_in_bits >= rhs.size_in_bits);
 
         let n = min(self.value.size, rhs.value.size);
@@ -112,4 +120,18 @@ mod tests {
         );
         assert_eq!(x.size_in_bits, 103);
     }
+
+    // #[test]
+    // fn test_addition_negative() {
+    //     let mut x = BigInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+    //     let y = BigInteger::from_string("-49127277414859531000011129".to_string(), 10, 86);
+
+    //     x += &y;
+
+    //     assert_eq!(
+    //         BigInteger::from_string("5378190631050168431049573269606".to_string(), 10, 103),
+    //         x
+    //     );
+    //     assert_eq!(x.size_in_bits, 103);
+    // }
 }

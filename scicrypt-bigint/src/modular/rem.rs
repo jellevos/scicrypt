@@ -6,6 +6,8 @@ use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
 
 impl RemAssign<&BigInteger> for BigInteger {
     fn rem_assign(&mut self, rhs: &Self) {
+        debug_assert!(self.value.size.is_positive());
+        
         // Check if this value is already reduced
         if self.value.size < rhs.value.size {
             println!("WE REACHED THE SPECIAL CASE!");

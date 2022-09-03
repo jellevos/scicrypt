@@ -9,6 +9,8 @@ impl BigInteger {
         // TODO: Verify that the input must be smaller than the modulus (is this indeed true?)
         //assert_eq!(self.supposed_size, modulus.supposed_size);
         //self.supposed_size = modulus.inner.size as i64;
+        debug_assert!(self.value.size.is_positive());
+        debug_assert!(modulus.value.size.is_positive());
 
         debug_assert_eq!(
             modulus.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,

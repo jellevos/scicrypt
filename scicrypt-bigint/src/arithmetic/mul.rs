@@ -72,10 +72,7 @@ impl<'a> Product<&'a BigInteger> for BigInteger {
 
 #[cfg(test)]
 mod tests {
-    use rand::rngs::OsRng;
-    use scicrypt_traits::randomness::GeneralRng;
-
-    use crate::{BigInteger, GMP_NUMB_BITS};
+    use crate::BigInteger;
 
     #[test]
     fn test_mul_equal_size() {
@@ -119,6 +116,17 @@ mod tests {
         let c = &a * &b;
 
         let expected = BigInteger::from_string("-4722366482869645213812".to_string(), 10, 128);
+        assert_eq!(expected, c);
+    }
+
+    #[test]
+    fn test_mul_larger_both_negative() {
+        let a = BigInteger::from_string("-12".to_string(), 10, 64);
+        let b = BigInteger::from_string("-393530540239137101151".to_string(), 10, 128);
+
+        let c = &a * &b;
+
+        let expected = BigInteger::from_string("4722366482869645213812".to_string(), 10, 128);
         assert_eq!(expected, c);
     }
 }

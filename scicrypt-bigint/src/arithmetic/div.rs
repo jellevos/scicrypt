@@ -1,4 +1,4 @@
-use std::ops::{Div, DivAssign};
+use std::ops::Div;
 
 use gmp_mpfr_sys::gmp;
 

@@ -9,6 +9,14 @@ use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
 
 impl SubAssign<&BigInteger> for BigInteger {
     fn sub_assign(&mut self, rhs: &BigInteger) {
+        // TODO: Change to debug assert
+        if self.value.size.is_negative() {
+            todo!("Subtracting from a negative number");
+        }
+        if rhs.value.size.is_negative() {
+            todo!("Subtracting by a negative number");
+        }
+
         debug_assert!(self.size_in_bits >= rhs.size_in_bits);
 
         let n = min(self.value.size, rhs.value.size);

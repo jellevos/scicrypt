@@ -7,6 +7,8 @@ use crate::{BigInteger, GMP_NUMB_BITS};
 /// Not a constant-time function: Reveals the actual size of self.
 impl ShrAssign<u32> for BigInteger {
     fn shr_assign(&mut self, rhs: u32) {
+        debug_assert!(self.value.size.is_positive());
+        
         assert!(1 <= rhs);
         assert!(rhs <= GMP_NUMB_BITS - 1);
 
@@ -26,6 +28,8 @@ impl Shr<u32> for &BigInteger {
     type Output = BigInteger;
 
     fn shr(self, rhs: u32) -> Self::Output {
+        debug_assert!(self.value.size.is_positive());
+
         assert!(1 <= rhs);
         assert!(rhs <= GMP_NUMB_BITS - 1);
 

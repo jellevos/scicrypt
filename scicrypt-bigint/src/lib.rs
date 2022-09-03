@@ -87,6 +87,7 @@ impl BigInteger {
         Self::zero(size_in_limbs.abs() as u32 * GMP_NUMB_BITS)
     }
 
+    /// The size of the signed/unsiged numbers expressed in bits. This is a reasonably tight upper bound (it cannot exceed the actual value by more than 64 bits).
     pub fn size_in_bits(&self) -> u32 {
         self.size_in_bits
     }
@@ -131,7 +132,7 @@ impl BigInteger {
         }
     }
 
-    /// Generates a random number with `bits` bits. `bits` should be a multiple of 8.
+    /// Generates a random unsigned number with `bits` bits. `bits` should be a multiple of 8.
     pub fn random<R: SecureRng>(bits: u32, rng: &mut GeneralRng<R>) -> Self {
         debug_assert!((bits % 8) == 0, "`bits` should be a multiple of 8");
 
@@ -151,6 +152,7 @@ impl BigInteger {
         }
     }
 
+    /// Generates a random unsigned number below `limit`.
     pub fn random_below<R: SecureRng>(limit: &BigInteger, rng: &mut GeneralRng<R>) -> Self {
         // FIXME: This is completely not secure
         BigInteger::random(limit.size_in_bits, rng) % limit

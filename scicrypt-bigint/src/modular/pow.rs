@@ -5,14 +5,17 @@ use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
 impl BigInteger {
     /// Compute `self` to the power `exponent` modulo an odd `modulus`. The computation takes time that scales with the specified size of the `exponent` and `modulus`.
     pub fn pow_mod(&self, exponent: &BigInteger, modulus: &BigInteger) -> BigInteger {
-        debug_assert!(!self.is_zero(), "the base must be larger than 0");
-        debug_assert!(!modulus.is_zero(), "the modulus must be larger than 0");
+        debug_assert!(!self.is_zero(), "the base must not be 0");
+        debug_assert!(!modulus.is_zero(), "the modulus must not be 0");
         // TODO: debug_assert!() that the modulus is ODD
         // TODO: debug_assert!() that the exponent's bitsize is smaller than its size_in_bits
         debug_assert!(
             exponent.size_in_bits > 0,
             "the exponent must be larger than 0"
         );
+
+        debug_assert!(self.value.size.is_positive());
+        debug_assert!(modulus.value.size.is_positive());
 
         debug_assert_eq!(
             modulus.size_in_bits as i32,
