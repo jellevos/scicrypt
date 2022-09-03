@@ -49,13 +49,13 @@ impl NOfNCryptosystem for NOfNIntegerElGamal {
         key_count_n: usize,
         rng: &mut GeneralRng<R>,
     ) -> (IntegerElGamalPK, Vec<NOfNIntegerElGamalSK>) {
+        let q = &self.modulus >> 1;
         let partial_keys: Vec<NOfNIntegerElGamalSK> = (0..key_count_n)
             .map(|_| NOfNIntegerElGamalSK {
-                key: BigInteger::random_below(&self.modulus, rng),
+                key: BigInteger::random_below(&q, rng),
             })
             .collect();
 
-        let q = &self.modulus >> 1;
         let master_key: BigInteger = partial_keys.iter().map(|k| &k.key).sum::<BigInteger>() % &q;
         let public_key = BigInteger::new(4, 3).pow_mod(&master_key, &self.modulus);
 
