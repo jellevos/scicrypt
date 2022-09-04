@@ -6,17 +6,17 @@ use std::{
 
 use gmp_mpfr_sys::gmp;
 
-use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS, SignedInteger};
+use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 
-impl SignedInteger {
-    pub fn leaky_add_assign(&mut self, rhs: &Self) {
-        unsafe {
-            gmp::mpz_add(&mut self.value, &self.value, &rhs.value);
-        }
+// impl SignedInteger {
+//     pub fn leaky_add_assign(&mut self, rhs: &Self) {
+//         unsafe {
+//             gmp::mpz_add(&mut self.value, &self.value, &rhs.value);
+//         }
 
-        self.size_in_bits = self.significant_bits() as u32;
-    }
-}
+//         self.size_in_bits = self.significant_bits() as u32;
+//     }
+// }
 
 impl AddAssign<&UnsignedInteger> for UnsignedInteger {
     fn add_assign(&mut self, rhs: &Self) {

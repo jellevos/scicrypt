@@ -12,9 +12,14 @@ readme = "README.md"
 [dependencies]
 gmp-mpfr-sys = { version = "1.4", default-features = false }
 scicrypt-traits ={ version = "0.6.0", path = "../scicrypt-traits" }
+rug = { version = "1.13", default-features = false, features = ["integer", "rand", "serde"], optional = true }
 
 [dev-dependencies]
 rand = "0.8"
 
 [package.metadata.docs.rs]
 rustdoc-args = [ "--html-in-header", "katex-header.html" ]
+
+[features]
+default = ["rug"]
+rug = ["dep:rug"]

@@ -1,3 +1,4 @@
+use rug::Integer;
 use scicrypt_bigint::UnsignedInteger;
 use scicrypt_numbertheory::gen_safe_prime;
 use scicrypt_traits::cryptosystems::{Associable, EncryptionKey};
@@ -156,9 +157,9 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
         decryption_shares: &[Self],
         public_key: &ThresholdPaillierPK,
     ) -> Result<UnsignedInteger, DecryptionError> {
-        let lambdas: Vec<UnsignedInteger> = (0..decryption_shares.len())
+        let lambdas: Vec<Integer> = (0..decryption_shares.len())
             .map(|i| {
-                let mut lambda = public_key.delta.clone();
+                let mut lambda = public_key.delta.clone().to_rug();
 
                 for i_prime in 0..decryption_shares.len() {
                     if i == i_prime {
@@ -169,17 +170,19 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
                         continue;
                     }
 
-                    lambda = &lambda * &UnsignedInteger::from(decryption_shares[i_prime].id as u64);
-                    dbg!(&lambda);
-                    dbg!(UnsignedInteger::from(
-                        (decryption_shares[i_prime].id - decryption_shares[i].id) as i64
-                    ));
-                    // TODO: Integer overflow in this subtraction
-                    //let denominator = q + (decryption_shares[i_prime].id - decryption_shares[i].id)
-                    lambda = lambda
-                        / &UnsignedInteger::from(
-                            (decryption_shares[i_prime].id - decryption_shares[i].id) as i64,
-                        );
+                    // lambda = &lambda * &UnsignedInteger::from(decryption_shares[i_prime].id as u64);
+                    // dbg!(&lambda);
+                    // dbg!(UnsignedInteger::from(
+                    //     (decryption_shares[i_prime].id - decryption_shares[i].id) as i64
+                    // ));
+                    // // TODO: Integer overflow in this subtraction
+                    // //let denominator = q + (decryption_shares[i_prime].id - decryption_shares[i].id)
+                    // lambda = lambda
+                    //     / &UnsignedInteger::from(
+                    //         (decryption_shares[i_prime].id - decryption_shares[i].id) as i64,
+                    //     );
+                    lambda *= decryption_shares[i_prime].id;
+                    lambda /= decryption_shares[i_prime].id - decryption_shares[i].id;
                 }
 
                 // FIXME: lambda becomes zero due to sizing problem in div
@@ -197,7 +200,7 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
             product = (&product
                 * &share
                     .share
-                    .pow_mod(&(&UnsignedInteger::from(2u64) * &lambda), &n_squared))
+                    .pow_mod(&(UnsignedInteger::from(lambda * 2u64)), &n_squared))
                 .rem(&n_squared);
         }
 

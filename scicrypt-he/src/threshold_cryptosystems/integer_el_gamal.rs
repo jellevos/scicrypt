@@ -1,5 +1,6 @@
 use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 use crate::cryptosystems::integer_el_gamal::{IntegerElGamalCiphertext, IntegerElGamalPK};
+use rug::Integer;
 use scicrypt_bigint::UnsignedInteger;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
@@ -207,14 +208,14 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
         decryption_shares: &[Self],
         public_key: &IntegerElGamalPK,
     ) -> Result<UnsignedInteger, DecryptionError> {
-        let q = &public_key.modulus >> 1;
+        let q = (&public_key.modulus >> 1).to_rug();
 
         let multiplied: UnsignedInteger = decryption_shares
             .iter()
             .enumerate()
             .map(|(i, share)| {
-                let mut b = UnsignedInteger::new(1, 1);
-
+                let mut b = Integer::from(1);
+                
                 for i_prime in 0..decryption_shares.len() {
                     if i == i_prime {
                         continue;
@@ -226,26 +227,23 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
 
                     println!("GOING OVER {} {}", i, i_prime);
 
-                    dbg!(&b);
-                    dbg!(UnsignedInteger::from(decryption_shares[i_prime].id as u64));
-                    dbg!(&q);
-                    dbg!(&b * &UnsignedInteger::from(decryption_shares[i_prime].id as u64));
+                    // dbg!(&b);
+                    // dbg!(UnsignedInteger::from(decryption_shares[i_prime].id as u64));
+                    // dbg!(&q);
+                    // dbg!(&b * &UnsignedInteger::from(decryption_shares[i_prime].id as u64));
                     //dbg!((&b * &BigInteger::new(decryption_shares[i_prime].id as u64, q.size_in_bits())) % &q);
-                    println!("computing {} * {} = {} mod q", b, UnsignedInteger::from(decryption_shares[i_prime].id as u64), (&b * &UnsignedInteger::from(decryption_shares[i_prime].id as u64)) % &q);
+                    // println!("computing {} * {} = {} mod q", b, UnsignedInteger::from(decryption_shares[i_prime].id as u64), (&b * &UnsignedInteger::from(decryption_shares[i_prime].id as u64)) % &q);
                     
-                    b = (&b * &UnsignedInteger::from(decryption_shares[i_prime].id as u64)) % &q;
-                    b = (&b
-                        * &((UnsignedInteger::from(decryption_shares[i_prime].id as u64)
-                            - &UnsignedInteger::from(decryption_shares[i].id as u64))
-                            .rem(&q)
-                            .invert_unsecure(&q)
-                            //.invert(&q)
-                            .unwrap()))
-                        % &q;
-                    println!("NEXT");
+                    b = (b * Integer::from(decryption_shares[i_prime].id)).rem(&q);
+                    b = (b
+                        * (Integer::from(decryption_shares[i_prime].id)
+                            - Integer::from(decryption_shares[i].id))
+                        .invert(&q)
+                        .unwrap())
+                    .rem(&q);
                 }
 
-                share.c1.pow_mod(&b, &public_key.modulus)
+                share.c1.pow_mod(&UnsignedInteger::from(b), &public_key.modulus)
             })
             .reduce(|a, b| (&a * &b) % &public_key.modulus)
             .unwrap();

@@ -10,11 +10,14 @@ use std::{
     cmp::min,
     ffi::{CStr, CString},
     fmt::{Debug, Display},
-    mem::MaybeUninit,
+    mem::{MaybeUninit, ManuallyDrop},
     ptr::null_mut,
 };
 
 use gmp_mpfr_sys::gmp::{self, mpz_fac_ui, mpz_t};
+
+#[cfg(feature = "rug")]
+use rug::Integer;
 
 const GMP_NUMB_BITS: u32 = 64;
 
@@ -46,17 +49,36 @@ impl From<u64> for UnsignedInteger {
     }
 }
 
-impl From<i64> for SignedInteger {
-    fn from(integer: i64) -> Self {
-        let mut res = SignedInteger::zero(64 - integer.leading_zeros());
-
-        unsafe {
-            gmp::mpz_set_si(&mut res.value, integer);
-        }
-
-        res
+#[cfg(feature = "rug")]
+impl From<Integer> for UnsignedInteger {
+    fn from(integer: Integer) -> Self {
+        let size_in_bits = integer.significant_bits();
+        UnsignedInteger { value: integer.into_raw(), size_in_bits }
     }
 }
+
+#[cfg(feature = "rug")]
+impl UnsignedInteger {
+    pub fn to_rug(self) -> Integer {
+        let value = self.value;
+        let _ = ManuallyDrop::new(self);
+        unsafe {
+            Integer::from_raw(value)
+        }
+    }
+}
+
+// impl From<i64> for SignedInteger {
+//     fn from(integer: i64) -> Self {
+//         let mut res = SignedInteger::zero(64 - integer.leading_zeros());
+
+//         unsafe {
+//             gmp::mpz_set_si(&mut res.value, integer);
+//         }
+
+//         res
+//     }
+// }
 
 impl Debug for UnsignedInteger {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -69,37 +91,23 @@ impl Debug for UnsignedInteger {
     }
 }
 
-/// An unsigned big (arbitrary-size) integer. Unless specified with the `leaky` keyword, all functions are constant-time.
+/// An unsigned big (arbitrary-size) integer. Unless specified with the `leaky` keyword, all functions are designed to be constant-time.
 pub struct UnsignedInteger {
     value: mpz_t,
     size_in_bits: u32,
 }
 
-/// A signed big (arbitrary-size) integer. Unless specified with the `leaky` keyword, all functions are constant-time. Supports a different set of functions than `UnsignedInteger`s.
-pub struct SignedInteger {
-    value: mpz_t,
-    size_in_bits: u32,
-}
-
-impl SignedInteger {
-    pub fn significant_bits(&self) -> usize {
-        let size = self.value.size;
-        if size == 0 {
-            return 0;
-        }
-        unsafe { gmp::mpn_sizeinbase(self.value.d.as_ptr(), self.value.size.abs() as i64, 2) }
-    }
-}
+// impl SignedInteger {
+//     pub fn significant_bits(&self) -> usize {
+//         let size = self.value.size;
+//         if size == 0 {
+//             return 0;
+//         }
+//         unsafe { gmp::mpn_sizeinbase(self.value.d.as_ptr(), self.value.size.abs() as i64, 2) }
+//     }
+// }
 
 impl Drop for UnsignedInteger {
-    fn drop(&mut self) {
-        unsafe {
-            gmp::mpz_clear(&mut self.value);
-        }
-    }
-}
-
-impl Drop for SignedInteger {
     fn drop(&mut self) {
         unsafe {
             gmp::mpz_clear(&mut self.value);

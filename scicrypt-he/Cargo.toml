@@ -18,6 +18,7 @@ scicrypt-numbertheory = { version = "0.6.0", path = "../scicrypt-numbertheory" }
 scicrypt-bigint = { version = "0.6.0", path = "../scicrypt-bigint" }
 curve25519-dalek = "4.0.0-pre.2"
 rand_core = "0.6"
+rug = { version = "1.13", default-features = false, features = ["integer", "rand", "serde"]}
 
 [dev-dependencies]
 criterion = "0.3.3"
