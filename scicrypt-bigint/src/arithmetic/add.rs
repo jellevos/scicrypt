@@ -6,33 +6,20 @@ use std::{
 
 use gmp_mpfr_sys::gmp;
 
-use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
+use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS, SignedInteger};
 
-impl AddAssign<&BigInteger> for BigInteger {
+impl SignedInteger {
+    pub fn leaky_add_assign(&mut self, rhs: &Self) {
+        unsafe {
+            gmp::mpz_add(&mut self.value, &self.value, &rhs.value);
+        }
+
+        self.size_in_bits = self.significant_bits() as u32;
+    }
+}
+
+impl AddAssign<&UnsignedInteger> for UnsignedInteger {
     fn add_assign(&mut self, rhs: &Self) {
-        // TODO: Change to debug assert
-        if self.value.size.is_negative() {
-            //todo!("Adding to a negative number");
-            // TODO: This is copied from sub.rs, can we do better?
-            assert!(self.value.size.abs() <= rhs.value.size.abs());
-            if rhs.value.size == 0 {
-                return;
-            }
-    
-            unsafe {
-                gmp::mpn_sub_n(
-                    self.value.d.as_mut(),
-                    rhs.value.d.as_ptr(),
-                    self.value.d.as_ptr(),
-                    -self.value.size as i64,
-                );
-            }
-            return;
-        }
-        if rhs.value.size.is_negative() {
-            todo!("Adding by a negative number");
-        }
-
         debug_assert!(self.size_in_bits >= rhs.size_in_bits);
 
         let n = min(self.value.size, rhs.value.size);
@@ -57,8 +44,8 @@ impl AddAssign<&BigInteger> for BigInteger {
     }
 }
 
-impl Add<&BigInteger> for BigInteger {
-    type Output = BigInteger;
+impl Add<&UnsignedInteger> for UnsignedInteger {
+    type Output = UnsignedInteger;
 
     fn add(mut self, rhs: &Self) -> Self::Output {
         self += rhs;
@@ -66,7 +53,7 @@ impl Add<&BigInteger> for BigInteger {
     }
 }
 
-impl AddAssign<u64> for BigInteger {
+impl AddAssign<u64> for UnsignedInteger {
     fn add_assign(&mut self, rhs: u64) {
         unsafe {
             let scratch_size =
@@ -88,8 +75,8 @@ impl AddAssign<u64> for BigInteger {
     }
 }
 
-impl Add<u64> for BigInteger {
-    type Output = BigInteger;
+impl Add<u64> for UnsignedInteger {
+    type Output = UnsignedInteger;
 
     fn add(mut self, rhs: u64) -> Self::Output {
         self += rhs;
@@ -97,8 +84,8 @@ impl Add<u64> for BigInteger {
     }
 }
 
-impl<'a> Sum<&'a BigInteger> for BigInteger {
-    fn sum<I: Iterator<Item = &'a BigInteger>>(mut iter: I) -> Self {
+impl<'a> Sum<&'a UnsignedInteger> for UnsignedInteger {
+    fn sum<I: Iterator<Item = &'a UnsignedInteger>>(mut iter: I) -> Self {
         let initial = iter.next().unwrap().clone();
         iter.fold(initial, |x, y| x + y)
     }
@@ -106,17 +93,17 @@ impl<'a> Sum<&'a BigInteger> for BigInteger {
 
 #[cfg(test)]
 mod tests {
-    use crate::BigInteger;
+    use crate::UnsignedInteger;
 
     #[test]
     fn test_addition() {
-        let mut x = BigInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
-        let y = BigInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
+        let mut x = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let y = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
 
         x += &y;
 
         assert_eq!(
-            BigInteger::from_string("5378288885604998150111573291864".to_string(), 10, 103),
+            UnsignedInteger::from_string("5378288885604998150111573291864".to_string(), 10, 103),
             x
         );
         assert_eq!(x.size_in_bits, 103);
@@ -124,13 +111,13 @@ mod tests {
 
     #[test]
     fn test_addition_u64() {
-        let mut x = BigInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let mut x = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
         let y = 14;
 
         x += y;
 
         assert_eq!(
-            BigInteger::from_string("5378239758327583290580573280749".to_string(), 10, 103),
+            UnsignedInteger::from_string("5378239758327583290580573280749".to_string(), 10, 103),
             x
         );
         assert_eq!(x.size_in_bits, 103);

@@ -1,10 +1,10 @@
 use gmp_mpfr_sys::gmp::{self, mpz_invert};
 
-use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
+use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 
-impl BigInteger {
+impl UnsignedInteger {
     /// Computes `self^-1 mod modulus`, taking ownership of `self`. Returns None if no inverse exists. `modulus` must be odd.
-    pub fn invert(self, modulus: &BigInteger) -> Option<BigInteger> {
+    pub fn invert(self, modulus: &UnsignedInteger) -> Option<UnsignedInteger> {
         println!("COMPUTING INVERSE FOR:\n{:?}\nmod\n{:?}", self, modulus);
         // TODO: Verify that the input must be smaller than the modulus (is this indeed true?)
         //assert_eq!(self.supposed_size, modulus.supposed_size);
@@ -39,7 +39,7 @@ impl BigInteger {
 
         //self += modulus;
 
-        let mut result = BigInteger::init(modulus.value.size);
+        let mut result = UnsignedInteger::init(modulus.value.size);
 
         unsafe {
             let scratch_size = gmp::mpn_sec_invert_itch(modulus.value.size as i64) as usize
@@ -70,7 +70,7 @@ impl BigInteger {
         }
     }
 
-    pub fn invert_unsecure(mut self, modulus: &BigInteger) -> Option<BigInteger> {
+    pub fn invert_unsecure(mut self, modulus: &UnsignedInteger) -> Option<UnsignedInteger> {
         unsafe {
             let is_valid = mpz_invert(&mut self.value, &self.value, &modulus.value);
 

@@ -2,10 +2,10 @@ use std::{iter::Product, ops::Mul};
 
 use gmp_mpfr_sys::gmp;
 
-use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
+use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 
-impl Mul for &BigInteger {
-    type Output = BigInteger;
+impl Mul for &UnsignedInteger {
+    type Output = UnsignedInteger;
 
     fn mul(self, rhs: Self) -> Self::Output {
         if rhs.value.size.abs() > self.value.size.abs() {
@@ -23,7 +23,7 @@ impl Mul for &BigInteger {
             "the operands' size in bits must match their actual size"
         );
 
-        let mut result = BigInteger::init(self.value.size.abs() + rhs.value.size.abs());
+        let mut result = UnsignedInteger::init(self.value.size.abs() + rhs.value.size.abs());
 
         unsafe {
             let scratch_size = gmp::mpn_sec_mul_itch(self.value.size as i64, rhs.value.size as i64)
@@ -57,15 +57,15 @@ impl Mul for &BigInteger {
     }
 }
 
-impl BigInteger {
-    pub fn square(&self) -> BigInteger {
+impl UnsignedInteger {
+    pub fn square(&self) -> UnsignedInteger {
         // TODO: Switch to more efficient squaring function
         self * self
     }
 }
 
-impl<'a> Product<&'a BigInteger> for BigInteger {
-    fn product<I: Iterator<Item = &'a BigInteger>>(mut iter: I) -> Self {
+impl<'a> Product<&'a UnsignedInteger> for UnsignedInteger {
+    fn product<I: Iterator<Item = &'a UnsignedInteger>>(mut iter: I) -> Self {
         let initial = iter.next().unwrap().clone();
         iter.fold(initial, |x, y| &x * &y)
     }
@@ -73,61 +73,61 @@ impl<'a> Product<&'a BigInteger> for BigInteger {
 
 #[cfg(test)]
 mod tests {
-    use crate::BigInteger;
+    use crate::UnsignedInteger;
 
     #[test]
     fn test_mul_equal_size() {
-        let a = BigInteger::new(23, 64);
-        let b = BigInteger::new(14, 64);
+        let a = UnsignedInteger::new(23, 64);
+        let b = UnsignedInteger::new(14, 64);
 
         let c = &a * &b;
 
-        assert_eq!(BigInteger::from(23u64 * 14), c);
+        assert_eq!(UnsignedInteger::from(23u64 * 14), c);
     }
 
     #[test]
     fn test_mul_larger_a() {
-        let a = BigInteger::from_string("125789402190859323905892".to_string(), 10, 128);
-        let b = BigInteger::new(102, 7);
+        let a = UnsignedInteger::from_string("125789402190859323905892".to_string(), 10, 128);
+        let b = UnsignedInteger::new(102, 7);
 
         let c = &a * &b;
 
         assert_eq!(
-            BigInteger::from_string("12830519023467651038400984".to_string(), 10, 128),
+            UnsignedInteger::from_string("12830519023467651038400984".to_string(), 10, 128),
             c
         );
     }
 
     #[test]
     fn test_mul_larger_b() {
-        let a = BigInteger::new(12, 64);
-        let b = BigInteger::from_string("393530540239137101151".to_string(), 10, 128);
+        let a = UnsignedInteger::new(12, 64);
+        let b = UnsignedInteger::from_string("393530540239137101151".to_string(), 10, 128);
 
         let c = &a * &b;
 
-        let expected = BigInteger::from_string("4722366482869645213812".to_string(), 10, 128);
+        let expected = UnsignedInteger::from_string("4722366482869645213812".to_string(), 10, 128);
         assert_eq!(expected, c);
     }
 
     #[test]
     fn test_mul_larger_b_negative() {
-        let a = BigInteger::new(12, 64);
-        let b = BigInteger::from_string("-393530540239137101151".to_string(), 10, 128);
+        let a = UnsignedInteger::new(12, 64);
+        let b = UnsignedInteger::from_string("-393530540239137101151".to_string(), 10, 128);
 
         let c = &a * &b;
 
-        let expected = BigInteger::from_string("-4722366482869645213812".to_string(), 10, 128);
+        let expected = UnsignedInteger::from_string("-4722366482869645213812".to_string(), 10, 128);
         assert_eq!(expected, c);
     }
 
     #[test]
     fn test_mul_larger_both_negative() {
-        let a = BigInteger::from_string("-12".to_string(), 10, 64);
-        let b = BigInteger::from_string("-393530540239137101151".to_string(), 10, 128);
+        let a = UnsignedInteger::from_string("-12".to_string(), 10, 64);
+        let b = UnsignedInteger::from_string("-393530540239137101151".to_string(), 10, 128);
 
         let c = &a * &b;
 
-        let expected = BigInteger::from_string("4722366482869645213812".to_string(), 10, 128);
+        let expected = UnsignedInteger::from_string("4722366482869645213812".to_string(), 10, 128);
         assert_eq!(expected, c);
     }
 }

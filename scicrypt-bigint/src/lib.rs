@@ -18,7 +18,7 @@ use gmp_mpfr_sys::gmp::{self, mpz_fac_ui, mpz_t};
 
 const GMP_NUMB_BITS: u32 = 64;
 
-impl Display for BigInteger {
+impl Display for UnsignedInteger {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         unsafe {
             if self.is_zero() {
@@ -34,9 +34,9 @@ impl Display for BigInteger {
     }
 }
 
-impl From<u64> for BigInteger {
+impl From<u64> for UnsignedInteger {
     fn from(integer: u64) -> Self {
-        let mut res = BigInteger::zero(64 - integer.leading_zeros());
+        let mut res = UnsignedInteger::zero(64 - integer.leading_zeros());
 
         unsafe {
             gmp::mpz_set_ui(&mut res.value, integer);
@@ -46,9 +46,9 @@ impl From<u64> for BigInteger {
     }
 }
 
-impl From<i64> for BigInteger {
+impl From<i64> for SignedInteger {
     fn from(integer: i64) -> Self {
-        let mut res = BigInteger::zero(64 - integer.leading_zeros());
+        let mut res = SignedInteger::zero(64 - integer.leading_zeros());
 
         unsafe {
             gmp::mpz_set_si(&mut res.value, integer);
@@ -58,7 +58,7 @@ impl From<i64> for BigInteger {
     }
 }
 
-impl Debug for BigInteger {
+impl Debug for UnsignedInteger {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -69,12 +69,29 @@ impl Debug for BigInteger {
     }
 }
 
-pub struct BigInteger {
+/// An unsigned big (arbitrary-size) integer. Unless specified with the `leaky` keyword, all functions are constant-time.
+pub struct UnsignedInteger {
     value: mpz_t,
     size_in_bits: u32,
 }
 
-impl Drop for BigInteger {
+/// A signed big (arbitrary-size) integer. Unless specified with the `leaky` keyword, all functions are constant-time. Supports a different set of functions than `UnsignedInteger`s.
+pub struct SignedInteger {
+    value: mpz_t,
+    size_in_bits: u32,
+}
+
+impl SignedInteger {
+    pub fn significant_bits(&self) -> usize {
+        let size = self.value.size;
+        if size == 0 {
+            return 0;
+        }
+        unsafe { gmp::mpn_sizeinbase(self.value.d.as_ptr(), self.value.size.abs() as i64, 2) }
+    }
+}
+
+impl Drop for UnsignedInteger {
     fn drop(&mut self) {
         unsafe {
             gmp::mpz_clear(&mut self.value);
@@ -82,7 +99,15 @@ impl Drop for BigInteger {
     }
 }
 
-impl BigInteger {
+impl Drop for SignedInteger {
+    fn drop(&mut self) {
+        unsafe {
+            gmp::mpz_clear(&mut self.value);
+        }
+    }
+}
+
+impl UnsignedInteger {
     fn init(size_in_limbs: i32) -> Self {
         Self::zero(size_in_limbs.abs() as u32 * GMP_NUMB_BITS)
     }
@@ -93,7 +118,7 @@ impl BigInteger {
     }
 
     pub fn new(integer: u64, size_in_bits: u32) -> Self {
-        let mut res = BigInteger::zero(size_in_bits);
+        let mut res = UnsignedInteger::zero(size_in_bits);
 
         unsafe {
             gmp::mpz_set_ui(&mut res.value, integer);
@@ -108,7 +133,7 @@ impl BigInteger {
             let mut z = MaybeUninit::uninit();
             gmp::mpz_init2(z.as_mut_ptr(), size_in_bits as u64);
             let z = z.assume_init();
-            BigInteger {
+            UnsignedInteger {
                 value: z,
                 size_in_bits,
             }
@@ -116,7 +141,7 @@ impl BigInteger {
     }
 
     /// Creates a BigInteger from a value given as a `string` in a certain `base`. The `size_in_bits` should not be lower than the actual value encoded.
-    pub fn from_string(string: String, base: i32, size_in_bits: u32) -> BigInteger {
+    pub fn from_string(string: String, base: i32, size_in_bits: u32) -> UnsignedInteger {
         // TODO: debug_assert!() that the size_in_bits is not smaller than the actual value
 
         unsafe {
@@ -125,7 +150,7 @@ impl BigInteger {
             let mut z = z.assume_init();
             let c_string = CString::new(string).unwrap();
             gmp::mpz_set_str(&mut z, c_string.as_ptr(), base);
-            BigInteger {
+            UnsignedInteger {
                 value: z,
                 size_in_bits,
             }
@@ -137,7 +162,7 @@ impl BigInteger {
         debug_assert!((bits % 8) == 0, "`bits` should be a multiple of 8");
 
         unsafe {
-            let mut number = BigInteger::zero(bits);
+            let mut number = UnsignedInteger::zero(bits);
             let limbs =
                 gmp::mpz_limbs_write(&mut number.value, bits.div_ceil(GMP_NUMB_BITS) as i64);
 
@@ -153,9 +178,9 @@ impl BigInteger {
     }
 
     /// Generates a random unsigned number below `limit`.
-    pub fn random_below<R: SecureRng>(limit: &BigInteger, rng: &mut GeneralRng<R>) -> Self {
+    pub fn random_below<R: SecureRng>(limit: &UnsignedInteger, rng: &mut GeneralRng<R>) -> Self {
         // FIXME: This is completely not secure
-        BigInteger::random(limit.size_in_bits, rng) % limit
+        UnsignedInteger::random(limit.size_in_bits, rng) % limit
     }
 
     pub fn set_bit(&mut self, bit_index: u32) {
@@ -186,8 +211,8 @@ impl BigInteger {
     }
 
     // Computes the least common multiple between self and other. This function is not constant-time.
-    pub fn lcm(&self, other: &BigInteger) -> BigInteger {
-        let mut result = BigInteger::init(self.value.size);
+    pub fn lcm(&self, other: &UnsignedInteger) -> UnsignedInteger {
+        let mut result = UnsignedInteger::init(self.value.size);
 
         unsafe {
             gmp::mpz_lcm(&mut result.value, &self.value, &other.value);
@@ -198,7 +223,7 @@ impl BigInteger {
     }
 
     pub fn factorial(n: u64) -> Self {
-        let mut res = BigInteger::init(0);
+        let mut res = UnsignedInteger::init(0);
 
         unsafe {
             mpz_fac_ui(&mut res.value, n);
@@ -210,19 +235,19 @@ impl BigInteger {
 }
 
 /// Note that equality checks are not in constant time. This function only considers the number of limbs of the number with the fewest limbs.
-impl PartialEq for BigInteger {
+impl PartialEq for UnsignedInteger {
     fn eq(&self, other: &Self) -> bool {
-        let n = min(self.value.size.abs(), other.value.size.abs());
+        let n = min(self.value.size, other.value.size);
 
         unsafe { gmp::mpn_cmp(self.value.d.as_ptr(), other.value.d.as_ptr(), n as i64) == 0 }
     }
 }
 
-impl Eq for BigInteger {}
+impl Eq for UnsignedInteger {}
 
-impl Clone for BigInteger {
+impl Clone for UnsignedInteger {
     fn clone(&self) -> Self {
-        let mut result = BigInteger::init(self.value.size);
+        let mut result = UnsignedInteger::init(self.value.size);
 
         unsafe {
             gmp::mpz_set(&mut result.value, &self.value);
@@ -238,14 +263,14 @@ mod tests {
     use rand::rngs::OsRng;
     use scicrypt_traits::randomness::GeneralRng;
 
-    use crate::{BigInteger, GMP_NUMB_BITS};
+    use crate::{UnsignedInteger, GMP_NUMB_BITS};
 
     #[test]
     fn test_random_not_same() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let a = BigInteger::random(64, &mut rng);
-        let b = BigInteger::random(64, &mut rng);
+        let a = UnsignedInteger::random(64, &mut rng);
+        let b = UnsignedInteger::random(64, &mut rng);
 
         assert_ne!(a, b);
     }
@@ -254,7 +279,7 @@ mod tests {
     fn test_random_length_1024() {
         let mut rng = GeneralRng::new(OsRng);
 
-        let a = BigInteger::random(1024, &mut rng);
+        let a = UnsignedInteger::random(1024, &mut rng);
 
         assert_eq!(a.value.size, 1024 / GMP_NUMB_BITS as i32);
     }
@@ -262,10 +287,10 @@ mod tests {
     #[test]
     fn test_shift_right_assign() {
         // TODO: Sometimes fails when run in conjunction!
-        let mut a = BigInteger::new(129, 128);
+        let mut a = UnsignedInteger::new(129, 128);
         a >>= 3;
 
-        assert_eq!(BigInteger::from(16u64), a);
+        assert_eq!(UnsignedInteger::from(16u64), a);
     }
 
     // #[test]
@@ -283,30 +308,30 @@ mod tests {
 
     #[test]
     fn test_invert() {
-        let a = BigInteger::from_string("5892358416859326896589748197812740739507917092740973905700591759793209771117197329023975932757523759072735959723097537209079532975039297099714397901428947253853027537265853823285397084380934928703270590758520818187287349487329243789243783249743289423789918417987091287932757258397104397295856325791091077".to_string(), 10, 1024);
-        let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+        let a = UnsignedInteger::from_string("5892358416859326896589748197812740739507917092740973905700591759793209771117197329023975932757523759072735959723097537209079532975039297099714397901428947253853027537265853823285397084380934928703270590758520818187287349487329243789243783249743289423789918417987091287932757258397104397295856325791091077".to_string(), 10, 1024);
+        let m = UnsignedInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
 
         let res = a.invert(&m);
 
         // TODO: Check if this is indeed ok
-        let expected = BigInteger::from_string("123739905086158212270843051527441649600807330749471895683394889028867514801710371562360352272055594352035190616471030275978939424413601977497555131069474726813170115491482106601865630839838144362329125370518957163898801175903502017426241817312333816497160685389024867847545777202327273987093691380956370608950".to_string(), 10, 1024);
+        let expected = UnsignedInteger::from_string("123739905086158212270843051527441649600807330749471895683394889028867514801710371562360352272055594352035190616471030275978939424413601977497555131069474726813170115491482106601865630839838144362329125370518957163898801175903502017426241817312333816497160685389024867847545777202327273987093691380956370608950".to_string(), 10, 1024);
         assert_eq!(res.unwrap(), expected);
     }
 
     #[test]
     fn test_invert_small() {
-        let a = BigInteger::from(3u64);
-        let m = BigInteger::from(13u64);
+        let a = UnsignedInteger::from(3u64);
+        let m = UnsignedInteger::from(13u64);
 
         let res = a.invert(&m);
 
-        assert_eq!(BigInteger::from(9u64), res.unwrap());
+        assert_eq!(UnsignedInteger::from(9u64), res.unwrap());
     }
 
     #[test]
     fn test_no_inverse_small() {
-        let a = BigInteger::from(14u64);
-        let m = BigInteger::from(49u64);
+        let a = UnsignedInteger::from(14u64);
+        let m = UnsignedInteger::from(49u64);
 
         let res = a.invert(&m);
 
@@ -320,9 +345,9 @@ use test::Bencher;
 
 #[bench]
 fn bench_powmod_small_base(bench: &mut Bencher) {
-    let b = BigInteger::from_string("105".to_string(), 10, 7);
-    let e = BigInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
-    let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+    let b = UnsignedInteger::from_string("105".to_string(), 10, 7);
+    let e = UnsignedInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
+    let m = UnsignedInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
 
     bench.iter(|| {
         // Use `test::black_box` to prevent compiler optimizations from disregarding
@@ -333,9 +358,9 @@ fn bench_powmod_small_base(bench: &mut Bencher) {
 
 #[bench]
 fn bench_powmod_large_base(bench: &mut Bencher) {
-    let b = BigInteger::from_string("10539499294995885839929294349858893482048503424233434382948939585380202480248428858035020202848894983349030959432221114892829832832820310342164784362849732894729586478637897481742109741907489237586753826748420497102914324234241221888888487774774646263775738582835875726672378181992949120102959881821".to_string(), 10, 1024);
-    let e = BigInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
-    let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+    let b = UnsignedInteger::from_string("10539499294995885839929294349858893482048503424233434382948939585380202480248428858035020202848894983349030959432221114892829832832820310342164784362849732894729586478637897481742109741907489237586753826748420497102914324234241221888888487774774646263775738582835875726672378181992949120102959881821".to_string(), 10, 1024);
+    let e = UnsignedInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
+    let m = UnsignedInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
 
     bench.iter(|| {
         // Use `test::black_box` to prevent compiler optimizations from disregarding
@@ -346,9 +371,9 @@ fn bench_powmod_large_base(bench: &mut Bencher) {
 
 #[bench]
 fn bench_powmod_large_exp(bench: &mut Bencher) {
-    let b = BigInteger::from_string("10539499294995885839929294349858893482048503424233434382948939585380202480248428858035020202848894983349030959432221114892829832832820310342164784362849732894729586478637897481742109741907489237586753826748420497102914324234241221888888487774774646263775738582835875726672378181992949120102959881821".to_string(), 10, 7);
-    let e = BigInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
-    let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+    let b = UnsignedInteger::from_string("10539499294995885839929294349858893482048503424233434382948939585380202480248428858035020202848894983349030959432221114892829832832820310342164784362849732894729586478637897481742109741907489237586753826748420497102914324234241221888888487774774646263775738582835875726672378181992949120102959881821".to_string(), 10, 7);
+    let e = UnsignedInteger::from_string("92848022024833655041372304737256052921065477715975001419347548380734496823522565044177931242947122534563813415992433917108481569319894167972639736788613656007853719476736625612543893748136536594494005487213485785676333621181690463942417781763743640447405597892807333854156631166426238815716390011586838580891".to_string(), 10, 1024);
+    let m = UnsignedInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
 
     bench.iter(|| {
         // Use `test::black_box` to prevent compiler optimizations from disregarding
@@ -359,9 +384,9 @@ fn bench_powmod_large_exp(bench: &mut Bencher) {
 
 #[bench]
 fn bench_powmod_small_exp(bench: &mut Bencher) {
-    let b = BigInteger::from_string("10539499294995885839929294349858893482048503424233434382948939585380202480248428858035020202848894983349030959432221114892829832832820310342164784362849732894729586478637897481742109741907489237586753826748420497102914324234241221888888487774774646263775738582835875726672378181992949120102959881821".to_string(), 10, 1024);
-    let e = BigInteger::from_string("105".to_string(), 10, 1024);
-    let m = BigInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
+    let b = UnsignedInteger::from_string("10539499294995885839929294349858893482048503424233434382948939585380202480248428858035020202848894983349030959432221114892829832832820310342164784362849732894729586478637897481742109741907489237586753826748420497102914324234241221888888487774774646263775738582835875726672378181992949120102959881821".to_string(), 10, 1024);
+    let e = UnsignedInteger::from_string("105".to_string(), 10, 1024);
+    let m = UnsignedInteger::from_string("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
 
     bench.iter(|| {
         // Use `test::black_box` to prevent compiler optimizations from disregarding

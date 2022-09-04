@@ -4,10 +4,10 @@ use std::{
 
 use gmp_mpfr_sys::gmp;
 
-use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
+use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 
-impl SubAssign<&BigInteger> for BigInteger {
-    fn sub_assign(&mut self, rhs: &BigInteger) {
+impl SubAssign<&UnsignedInteger> for UnsignedInteger {
+    fn sub_assign(&mut self, rhs: &UnsignedInteger) {
         // TODO: Change to debug assert
         if self.value.size.is_negative() {
             todo!("Subtracting from a negative number");
@@ -51,16 +51,16 @@ impl SubAssign<&BigInteger> for BigInteger {
     }
 }
 
-impl Sub<&BigInteger> for BigInteger {
-    type Output = BigInteger;
+impl Sub<&UnsignedInteger> for UnsignedInteger {
+    type Output = UnsignedInteger;
 
-    fn sub(mut self, rhs: &BigInteger) -> Self::Output {
+    fn sub(mut self, rhs: &UnsignedInteger) -> Self::Output {
         self -= rhs;
         self
     }
 }
 
-impl SubAssign<u64> for BigInteger {
+impl SubAssign<u64> for UnsignedInteger {
     fn sub_assign(&mut self, rhs: u64) {
         debug_assert!(self.size_in_bits >= 64);
 
@@ -83,17 +83,17 @@ impl SubAssign<u64> for BigInteger {
 
 #[cfg(test)]
 mod tests {
-    use crate::BigInteger;
+    use crate::UnsignedInteger;
 
     #[test]
     fn test_subtract() {
-        let mut x = BigInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
-        let y = BigInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
+        let mut x = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let y = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
 
         x -= &y;
 
         assert_eq!(
-            BigInteger::from_string("5378190631050168431049573269606".to_string(), 10, 103),
+            UnsignedInteger::from_string("5378190631050168431049573269606".to_string(), 10, 103),
             x
         );
         assert_eq!(x.size_in_bits, 103);
@@ -101,13 +101,13 @@ mod tests {
 
     #[test]
     fn test_subtract_reversed() {
-        let mut x = BigInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
-        let y = BigInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let mut x = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
+        let y = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
 
         x -= &y;
 
         assert_eq!(
-            BigInteger::from_string("-5378190631050168431049573269606".to_string(), 10, 103),
+            UnsignedInteger::from_string("-5378190631050168431049573269606".to_string(), 10, 103),
             x
         );
         assert_eq!(x.size_in_bits, 103);
@@ -115,13 +115,13 @@ mod tests {
 
     #[test]
     fn test_subtract_u64() {
-        let mut x = BigInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let mut x = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
         let y = 14;
 
         x -= y;
 
         assert_eq!(
-            BigInteger::from_string("5378239758327583290580573280721".to_string(), 10, 103),
+            UnsignedInteger::from_string("5378239758327583290580573280721".to_string(), 10, 103),
             x
         );
         assert_eq!(x.size_in_bits, 103);

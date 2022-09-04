@@ -1,4 +1,4 @@
-use scicrypt_bigint::BigInteger;
+use scicrypt_bigint::UnsignedInteger;
 use scicrypt_numbertheory::gen_safe_prime;
 use scicrypt_traits::cryptosystems::{Associable, EncryptionKey};
 use scicrypt_traits::randomness::GeneralRng;
@@ -22,22 +22,22 @@ pub struct ThresholdPaillier {
 /// The public key for encryption.
 #[derive(PartialEq, Eq, Debug)]
 pub struct ThresholdPaillierPK {
-    generator: BigInteger,
-    modulus: BigInteger,
-    theta: BigInteger,
-    delta: BigInteger,
+    generator: UnsignedInteger,
+    modulus: UnsignedInteger,
+    theta: UnsignedInteger,
+    delta: UnsignedInteger,
 }
 
 /// One of the partial keys, of which t must be used to decrypt successfully.
 pub struct ThresholdPaillierSK {
     id: i32,
-    key: BigInteger,
+    key: UnsignedInteger,
 }
 
 /// A partially decrypted ciphertext, of which t must be combined to decrypt successfully.
 pub struct ThresholdPaillierShare {
     id: i32,
-    share: BigInteger,
+    share: UnsignedInteger,
 }
 
 impl TOfNCryptosystem for ThresholdPaillier {
@@ -67,13 +67,13 @@ impl TOfNCryptosystem for ThresholdPaillier {
 
         let generator = modulus.clone() + 1;
 
-        let beta = BigInteger::random_below(&modulus, rng);
+        let beta = UnsignedInteger::random_below(&modulus, rng);
         let theta = (&sub_modulus * &beta) % &modulus;
-        let delta = BigInteger::factorial(key_count_n as u64);
+        let delta = UnsignedInteger::factorial(key_count_n as u64);
 
         let m_times_n = &sub_modulus * &modulus;
-        let coefficients: Vec<BigInteger> = (0..(threshold_t - 1))
-            .map(|_| BigInteger::random_below(&m_times_n, rng))
+        let coefficients: Vec<UnsignedInteger> = (0..(threshold_t - 1))
+            .map(|_| UnsignedInteger::random_below(&m_times_n, rng))
             .collect();
 
         let partial_keys: Vec<ThresholdPaillierSK> = (1..=key_count_n)
@@ -82,7 +82,7 @@ impl TOfNCryptosystem for ThresholdPaillier {
 
                 for j in 0..(threshold_t - 1) {
                     key += &((&coefficients[j as usize]
-                        * &BigInteger::from(i.pow((j + 1) as u32) as u64))
+                        * &UnsignedInteger::from(i.pow((j + 1) as u32) as u64))
                         % &m_times_n);
                 }
 
@@ -108,20 +108,20 @@ impl TOfNCryptosystem for ThresholdPaillier {
 impl Associable<ThresholdPaillierPK> for PaillierCiphertext {}
 
 impl EncryptionKey for ThresholdPaillierPK {
-    type Input = BigInteger;
-    type Plaintext = BigInteger;
+    type Input = UnsignedInteger;
+    type Plaintext = UnsignedInteger;
     type Ciphertext = PaillierCiphertext;
 
     fn encrypt_raw<R: SecureRng>(
         &self,
-        plaintext: &BigInteger,
+        plaintext: &UnsignedInteger,
         rng: &mut GeneralRng<R>,
     ) -> PaillierCiphertext
     where
         Self: Sized,
     {
         let n_squared = self.modulus.square();
-        let r = BigInteger::random_below(&n_squared, rng);
+        let r = UnsignedInteger::random_below(&n_squared, rng);
 
         let first = self.generator.pow_mod(plaintext, &n_squared);
         let second = r.pow_mod(&self.modulus, &n_squared);
@@ -144,7 +144,7 @@ impl PartialDecryptionKey<ThresholdPaillierPK> for ThresholdPaillierSK {
         ThresholdPaillierShare {
             id: self.id,
             share: ciphertext.c.pow_mod(
-                &(&(&BigInteger::new(2, 3) * &public_key.delta) * &self.key),
+                &(&(&UnsignedInteger::new(2, 3) * &public_key.delta) * &self.key),
                 &n_squared,
             ),
         }
@@ -155,8 +155,8 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
     fn combine(
         decryption_shares: &[Self],
         public_key: &ThresholdPaillierPK,
-    ) -> Result<BigInteger, DecryptionError> {
-        let lambdas: Vec<BigInteger> = (0..decryption_shares.len())
+    ) -> Result<UnsignedInteger, DecryptionError> {
+        let lambdas: Vec<UnsignedInteger> = (0..decryption_shares.len())
             .map(|i| {
                 let mut lambda = public_key.delta.clone();
 
@@ -169,15 +169,15 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
                         continue;
                     }
 
-                    lambda = &lambda * &BigInteger::from(decryption_shares[i_prime].id as u64);
+                    lambda = &lambda * &UnsignedInteger::from(decryption_shares[i_prime].id as u64);
                     dbg!(&lambda);
-                    dbg!(BigInteger::from(
+                    dbg!(UnsignedInteger::from(
                         (decryption_shares[i_prime].id - decryption_shares[i].id) as i64
                     ));
                     // TODO: Integer overflow in this subtraction
                     //let denominator = q + (decryption_shares[i_prime].id - decryption_shares[i].id)
                     lambda = lambda
-                        / &BigInteger::from(
+                        / &UnsignedInteger::from(
                             (decryption_shares[i_prime].id - decryption_shares[i].id) as i64,
                         );
                 }
@@ -191,23 +191,23 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
 
         let n_squared = public_key.modulus.square();
 
-        let mut product = BigInteger::from(1u64);
+        let mut product = UnsignedInteger::from(1u64);
 
         for (share, lambda) in decryption_shares.iter().zip(lambdas) {
             product = (&product
                 * &share
                     .share
-                    .pow_mod(&(&BigInteger::from(2u64) * &lambda), &n_squared))
+                    .pow_mod(&(&UnsignedInteger::from(2u64) * &lambda), &n_squared))
                 .rem(&n_squared);
         }
 
-        let inverse = (&(&BigInteger::from(4u64) * &public_key.delta.square()) * &public_key.theta)
+        let inverse = (&(&UnsignedInteger::from(4u64) * &public_key.delta.square()) * &public_key.theta)
             .rem(&public_key.modulus)
             .invert(&public_key.modulus)
             .unwrap();
 
         Result::Ok(
-            (&((product - &BigInteger::from(1u64)) / &public_key.modulus) * &inverse)
+            (&((product - &UnsignedInteger::from(1u64)) / &public_key.modulus) * &inverse)
                 % &public_key.modulus,
         )
     }
@@ -217,7 +217,7 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
 mod tests {
     use crate::threshold_cryptosystems::paillier::{ThresholdPaillier, ThresholdPaillierShare};
     use rand_core::OsRng;
-    use scicrypt_bigint::BigInteger;
+    use scicrypt_bigint::UnsignedInteger;
     use scicrypt_traits::cryptosystems::EncryptionKey;
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
@@ -232,13 +232,13 @@ mod tests {
         let paillier = ThresholdPaillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sks) = paillier.generate_keys(2, 3, &mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(19u64), &mut rng);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(19u64), &mut rng);
 
         let share_1 = sks[0].partial_decrypt(&ciphertext);
         let share_3 = sks[2].partial_decrypt(&ciphertext);
 
         assert_eq!(
-            BigInteger::from(19u64),
+            UnsignedInteger::from(19u64),
             ThresholdPaillierShare::combine(&[share_1, share_3], &pk).unwrap()
         );
     }

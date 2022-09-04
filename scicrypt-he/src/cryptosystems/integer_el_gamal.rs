@@ -1,5 +1,5 @@
 use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
-use scicrypt_bigint::BigInteger;
+use scicrypt_bigint::UnsignedInteger;
 use scicrypt_traits::cryptosystems::{
     Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
 };
@@ -29,27 +29,27 @@ use scicrypt_traits::security::BitsOfSecurity;
 /// ```
 #[derive(Clone)]
 pub struct IntegerElGamal {
-    modulus: BigInteger,
+    modulus: UnsignedInteger,
 }
 
 /// Public key containing the ElGamal encryption key and the modulus of the group.
 #[derive(PartialEq, Eq, Debug)]
 pub struct IntegerElGamalPK {
-    pub(crate) h: BigInteger,
-    pub(crate) modulus: BigInteger,
+    pub(crate) h: UnsignedInteger,
+    pub(crate) modulus: UnsignedInteger,
 }
 
 /// ElGamal ciphertext of integers.
 pub struct IntegerElGamalCiphertext {
-    pub(crate) c1: BigInteger,
-    pub(crate) c2: BigInteger,
+    pub(crate) c1: UnsignedInteger,
+    pub(crate) c2: UnsignedInteger,
 }
 
 impl Associable<IntegerElGamalPK> for IntegerElGamalCiphertext {}
 
 /// Decryption key for Integer-based ElGamal
 pub struct IntegerElGamalSK {
-    pub(crate) key: BigInteger,
+    pub(crate) key: UnsignedInteger,
 }
 
 impl AsymmetricCryptosystem for IntegerElGamal {
@@ -60,7 +60,7 @@ impl AsymmetricCryptosystem for IntegerElGamal {
     fn setup(security_param: &BitsOfSecurity) -> Self {
         let public_key_len = security_param.to_public_key_bit_length();
         IntegerElGamal {
-            modulus: BigInteger::from_string(
+            modulus: UnsignedInteger::from_string(
                 match public_key_len {
                     1024 => SAFE_PRIME_1024.to_string(),
                     2048 => SAFE_PRIME_2048.to_string(),
@@ -89,8 +89,8 @@ impl AsymmetricCryptosystem for IntegerElGamal {
         rng: &mut GeneralRng<R>,
     ) -> (IntegerElGamalPK, IntegerElGamalSK) {
         let q = &self.modulus >> 1;
-        let secret_key = BigInteger::random_below(&q, rng);
-        let public_key = BigInteger::from(4u64).pow_mod(&secret_key, &self.modulus);
+        let secret_key = UnsignedInteger::random_below(&q, rng);
+        let public_key = UnsignedInteger::from(4u64).pow_mod(&secret_key, &self.modulus);
 
         (
             IntegerElGamalPK {
@@ -103,8 +103,8 @@ impl AsymmetricCryptosystem for IntegerElGamal {
 }
 
 impl EncryptionKey for IntegerElGamalPK {
-    type Input = BigInteger;
-    type Plaintext = BigInteger;
+    type Input = UnsignedInteger;
+    type Plaintext = UnsignedInteger;
     type Ciphertext = IntegerElGamalCiphertext;
 
     /// Encrypts an integer using the public key.
@@ -122,14 +122,14 @@ impl EncryptionKey for IntegerElGamalPK {
     /// ```
     fn encrypt_raw<R: SecureRng>(
         &self,
-        plaintext: &BigInteger,
+        plaintext: &UnsignedInteger,
         rng: &mut GeneralRng<R>,
     ) -> IntegerElGamalCiphertext {
         let q = &self.modulus >> 1;
-        let y = BigInteger::random_below(&q, rng);
+        let y = UnsignedInteger::random_below(&q, rng);
 
         IntegerElGamalCiphertext {
-            c1: BigInteger::from(4u64).pow_mod(&y, &self.modulus),
+            c1: UnsignedInteger::from(4u64).pow_mod(&y, &self.modulus),
             c2: (plaintext * &self.h.pow_mod(&y, &self.modulus)) % &self.modulus,
         }
     }
@@ -155,7 +155,7 @@ impl DecryptionKey<IntegerElGamalPK> for IntegerElGamalSK {
         &self,
         public_key: &IntegerElGamalPK,
         ciphertext: &IntegerElGamalCiphertext,
-    ) -> BigInteger {
+    ) -> UnsignedInteger {
         (&ciphertext.c2
             * &ciphertext
                 .c1
@@ -190,7 +190,7 @@ impl HomomorphicMultiplication for IntegerElGamalPK {
 mod tests {
     use crate::cryptosystems::integer_el_gamal::IntegerElGamal;
     use rand_core::OsRng;
-    use scicrypt_bigint::BigInteger;
+    use scicrypt_bigint::UnsignedInteger;
     use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
 
@@ -201,9 +201,9 @@ mod tests {
         let el_gamal = IntegerElGamal::setup(&Default::default());
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(19u64), &mut rng);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(19u64), &mut rng);
 
-        assert_eq!(BigInteger::from(19u64), sk.decrypt(&ciphertext));
+        assert_eq!(UnsignedInteger::from(19u64), sk.decrypt(&ciphertext));
     }
 
     #[test]
@@ -214,11 +214,11 @@ mod tests {
         let el_gamal = IntegerElGamal::setup(&Default::default());
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext_a = pk.encrypt(&BigInteger::from(7u64), &mut rng);
-        let ciphertext_b = pk.encrypt(&BigInteger::from(7u64), &mut rng);
+        let ciphertext_a = pk.encrypt(&UnsignedInteger::from(7u64), &mut rng);
+        let ciphertext_b = pk.encrypt(&UnsignedInteger::from(7u64), &mut rng);
         let ciphertext_twice = ciphertext_a * ciphertext_b;
 
-        assert_eq!(BigInteger::from(49u64), sk.decrypt(&ciphertext_twice));
+        assert_eq!(UnsignedInteger::from(49u64), sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
@@ -228,9 +228,9 @@ mod tests {
         let el_gamal = IntegerElGamal::setup(&Default::default());
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(9u64), &mut rng);
-        let ciphertext_twice = ciphertext.pow(BigInteger::from(4u64));
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(9u64), &mut rng);
+        let ciphertext_twice = ciphertext.pow(UnsignedInteger::from(4u64));
 
-        assert_eq!(BigInteger::from(6561u64), sk.decrypt(&ciphertext_twice));
+        assert_eq!(UnsignedInteger::from(6561u64), sk.decrypt(&ciphertext_twice));
     }
 }

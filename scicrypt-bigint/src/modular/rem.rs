@@ -2,9 +2,9 @@ use std::ops::{Rem, RemAssign};
 
 use gmp_mpfr_sys::gmp;
 
-use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
+use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 
-impl RemAssign<&BigInteger> for BigInteger {
+impl RemAssign<&UnsignedInteger> for UnsignedInteger {
     fn rem_assign(&mut self, rhs: &Self) {
         println!("Reducing {} limbs", self.value.size);
         debug_assert!(rhs.value.size.is_positive());
@@ -58,10 +58,10 @@ impl RemAssign<&BigInteger> for BigInteger {
     }
 }
 
-impl Rem<&BigInteger> for BigInteger {
-    type Output = BigInteger;
+impl Rem<&UnsignedInteger> for UnsignedInteger {
+    type Output = UnsignedInteger;
 
-    fn rem(mut self, rhs: &BigInteger) -> Self::Output {
+    fn rem(mut self, rhs: &UnsignedInteger) -> Self::Output {
         self %= rhs;
         self
     }
@@ -69,23 +69,23 @@ impl Rem<&BigInteger> for BigInteger {
 
 #[cfg(test)]
 mod tests {
-    use crate::BigInteger;
+    use crate::UnsignedInteger;
 
     #[test]
     fn test_modulo_assign() {
-        let mut a = BigInteger::new(23, 64);
-        let m = BigInteger::new(14, 64);
+        let mut a = UnsignedInteger::new(23, 64);
+        let m = UnsignedInteger::new(14, 64);
 
         a %= &m;
-        assert_eq!(BigInteger::from(9u64), a);
+        assert_eq!(UnsignedInteger::from(9u64), a);
     }
 
     #[test]
     fn test_modulo() {
-        let a = BigInteger::new(23, 64);
-        let m = BigInteger::new(14, 64);
+        let a = UnsignedInteger::new(23, 64);
+        let m = UnsignedInteger::new(14, 64);
 
-        assert_eq!(BigInteger::from(9u64), a % &m);
+        assert_eq!(UnsignedInteger::from(9u64), a % &m);
     }
 
     // #[test]

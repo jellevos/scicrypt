@@ -2,10 +2,10 @@ use std::ops::{Shr, ShrAssign};
 
 use gmp_mpfr_sys::gmp;
 
-use crate::{BigInteger, GMP_NUMB_BITS};
+use crate::{UnsignedInteger, GMP_NUMB_BITS};
 
 /// Not a constant-time function: Reveals the actual size of self.
-impl ShrAssign<u32> for BigInteger {
+impl ShrAssign<u32> for UnsignedInteger {
     fn shr_assign(&mut self, rhs: u32) {
         debug_assert!(self.value.size.is_positive());
 
@@ -24,8 +24,8 @@ impl ShrAssign<u32> for BigInteger {
 }
 
 /// Not a constant-time function: Reveals the actual size of self.
-impl Shr<u32> for &BigInteger {
-    type Output = BigInteger;
+impl Shr<u32> for &UnsignedInteger {
+    type Output = UnsignedInteger;
 
     fn shr(self, rhs: u32) -> Self::Output {
         debug_assert!(self.value.size.is_positive());
@@ -33,7 +33,7 @@ impl Shr<u32> for &BigInteger {
         assert!(1 <= rhs);
         assert!(rhs <= GMP_NUMB_BITS - 1);
 
-        let mut result = BigInteger::init(self.value.size);
+        let mut result = UnsignedInteger::init(self.value.size);
 
         unsafe {
             gmp::mpn_rshift(

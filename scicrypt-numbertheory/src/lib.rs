@@ -9,7 +9,7 @@
 mod primes;
 
 use crate::primes::FIRST_PRIMES;
-use scicrypt_bigint::BigInteger;
+use scicrypt_bigint::UnsignedInteger;
 //use rug::integer::IsPrime;
 //use rug::Integer;
 use scicrypt_traits::randomness::GeneralRng;
@@ -17,9 +17,9 @@ use scicrypt_traits::randomness::SecureRng;
 
 /// Generates a uniformly random prime number of a given bit length. So, the number contains
 /// `bit_length` bits, of which the first and the last bit are always 1.
-pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> BigInteger {
+pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> UnsignedInteger {
     'outer: loop {
-        let mut candidate = BigInteger::random(bit_length, rng);
+        let mut candidate = UnsignedInteger::random(bit_length, rng);
         candidate.set_bit(bit_length - 1);
         candidate.set_bit(0);
 
@@ -48,7 +48,7 @@ pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> BigI
             }
 
             // If we have passed all prime_count first primes, then we are fairly certain this is a prime!
-            break BigInteger::from(delta);
+            break UnsignedInteger::from(delta);
         };
 
         // Ensure that we have a prime with a stronger primality test
@@ -60,9 +60,9 @@ pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> BigI
 
 /// Generates a uniformly random *safe* prime number of a given bit length. This is a prime $p$ of
 /// the form $p = 2q + 1$, where $q$ is a smaller prime.
-pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> BigInteger {
+pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> UnsignedInteger {
     'outer: loop {
-        let mut candidate = BigInteger::random(bit_length, rng);
+        let mut candidate = UnsignedInteger::random(bit_length, rng);
         candidate.set_bit(bit_length - 1);
         candidate.set_bit(0);
 
@@ -91,7 +91,7 @@ pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) ->
             }
 
             // If we have passed all prime_count first primes, then we are fairly certain this is a prime!
-            break BigInteger::from(delta);
+            break UnsignedInteger::from(delta);
         };
 
         // Ensure that we have a prime with a stronger primality test
@@ -111,7 +111,7 @@ pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) ->
 pub fn gen_rsa_modulus<R: SecureRng>(
     bit_length: u32,
     rng: &mut GeneralRng<R>,
-) -> (BigInteger, BigInteger) {
+) -> (UnsignedInteger, UnsignedInteger) {
     let mut p = gen_safe_prime(bit_length / 2, rng);
     let mut q = gen_safe_prime(bit_length / 2, rng);
     println!("{:?}", p);
@@ -131,10 +131,10 @@ pub fn gen_rsa_modulus<R: SecureRng>(
 mod tests {
     use crate::{gen_prime, gen_safe_prime};
     use rand_core::OsRng;
-    use scicrypt_bigint::BigInteger;
+    use scicrypt_bigint::UnsignedInteger;
     use scicrypt_traits::randomness::GeneralRng;
 
-    fn assert_primality_100_000_factors(integer: &BigInteger) {
+    fn assert_primality_100_000_factors(integer: &UnsignedInteger) {
         let (_, hi) = primal::estimate_nth_prime(100_000);
         for prime in primal::Sieve::new(hi as usize).primes_from(0) {
             assert!(

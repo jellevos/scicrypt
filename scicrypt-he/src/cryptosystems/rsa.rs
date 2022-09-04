@@ -1,4 +1,4 @@
-use scicrypt_bigint::BigInteger;
+use scicrypt_bigint::UnsignedInteger;
 use scicrypt_numbertheory::gen_rsa_modulus;
 use scicrypt_traits::cryptosystems::{
     Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey, SigningKey, VerificationKey,
@@ -17,18 +17,18 @@ pub struct Rsa {
 /// Public key for the RSA cryptosystem.
 #[derive(PartialEq, Eq, Debug)]
 pub struct RsaPK {
-    n: BigInteger,
-    e: BigInteger,
+    n: UnsignedInteger,
+    e: UnsignedInteger,
 }
 
 /// Decryption key for RSA
 pub struct RsaSK {
-    d: BigInteger,
+    d: UnsignedInteger,
 }
 
 /// Ciphertext of the RSA cryptosystem, which is multiplicatively homomorphic.
 pub struct RsaCiphertext {
-    c: BigInteger,
+    c: UnsignedInteger,
 }
 
 impl Associable<RsaPK> for RsaCiphertext {}
@@ -46,7 +46,7 @@ impl AsymmetricCryptosystem for Rsa {
     fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (RsaPK, RsaSK) {
         let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
 
-        let e = BigInteger::new(65537, 17);
+        let e = UnsignedInteger::new(65537, 17);
         let d = e
             .clone()
             .invert_unsecure(&lambda)
@@ -57,13 +57,13 @@ impl AsymmetricCryptosystem for Rsa {
 }
 
 impl EncryptionKey for RsaPK {
-    type Input = BigInteger;
-    type Plaintext = BigInteger;
+    type Input = UnsignedInteger;
+    type Plaintext = UnsignedInteger;
     type Ciphertext = RsaCiphertext;
 
     fn encrypt_raw<R: SecureRng>(
         &self,
-        plaintext: &BigInteger,
+        plaintext: &UnsignedInteger,
         _rng: &mut GeneralRng<R>,
     ) -> RsaCiphertext {
         RsaCiphertext {
@@ -73,7 +73,7 @@ impl EncryptionKey for RsaPK {
 }
 
 impl DecryptionKey<RsaPK> for RsaSK {
-    fn decrypt_raw(&self, public_key: &RsaPK, ciphertext: &RsaCiphertext) -> BigInteger {
+    fn decrypt_raw(&self, public_key: &RsaPK, ciphertext: &RsaCiphertext) -> UnsignedInteger {
         ciphertext.c.pow_mod(&self.d, &public_key.n)
     }
 }
@@ -97,11 +97,11 @@ impl HomomorphicMultiplication for RsaPK {
 }
 /// Signature of the RSA cryptosystem
 pub struct RsaSignature {
-    s: BigInteger,
+    s: UnsignedInteger,
 }
 
 impl VerificationKey for RsaPK {
-    type Plaintext = BigInteger;
+    type Plaintext = UnsignedInteger;
     type Signature = RsaSignature;
 
     fn verify(&self, signature: &Self::Signature, plaintext: &Self::Plaintext) -> bool {
@@ -126,7 +126,7 @@ impl SigningKey<RsaPK> for RsaSK {
 mod tests {
     use crate::cryptosystems::rsa::Rsa;
     use rand_core::OsRng;
-    use scicrypt_bigint::BigInteger;
+    use scicrypt_bigint::UnsignedInteger;
     use scicrypt_traits::cryptosystems::{
         AsymmetricCryptosystem, DecryptionKey, EncryptionKey, SigningKey, VerificationKey,
     };
@@ -140,9 +140,9 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(15u64), &mut rng);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(15u64), &mut rng);
 
-        assert_eq!(BigInteger::from(15u64), sk.decrypt(&ciphertext));
+        assert_eq!(UnsignedInteger::from(15u64), sk.decrypt(&ciphertext));
     }
 
     #[test]
@@ -152,11 +152,11 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext_a = pk.encrypt(&BigInteger::from(7u64), &mut rng);
-        let ciphertext_b = pk.encrypt(&BigInteger::from(7u64), &mut rng);
+        let ciphertext_a = pk.encrypt(&UnsignedInteger::from(7u64), &mut rng);
+        let ciphertext_b = pk.encrypt(&UnsignedInteger::from(7u64), &mut rng);
         let ciphertext_twice = ciphertext_a * ciphertext_b;
 
-        assert_eq!(BigInteger::from(49u64), sk.decrypt(&ciphertext_twice));
+        assert_eq!(UnsignedInteger::from(49u64), sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
@@ -166,10 +166,10 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&BigInteger::from(9u64), &mut rng);
-        let ciphertext_twice = ciphertext.pow(BigInteger::from(4u64));
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(9u64), &mut rng);
+        let ciphertext_twice = ciphertext.pow(UnsignedInteger::from(4u64));
 
-        assert_eq!(BigInteger::from(6561u64), sk.decrypt(&ciphertext_twice));
+        assert_eq!(UnsignedInteger::from(6561u64), sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
@@ -178,7 +178,7 @@ mod tests {
 
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
-        let plaintext = BigInteger::from(10u64);
+        let plaintext = UnsignedInteger::from(10u64);
 
         let signature = sk.sign(&plaintext, &pk, &mut rng);
 
@@ -191,10 +191,10 @@ mod tests {
 
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
-        let plaintext = BigInteger::from(10u64);
+        let plaintext = UnsignedInteger::from(10u64);
 
         let signature = sk.sign(&plaintext, &pk, &mut rng);
 
-        assert!(!pk.verify(&signature, &BigInteger::from(11u64)));
+        assert!(!pk.verify(&signature, &UnsignedInteger::from(11u64)));
     }
 }
