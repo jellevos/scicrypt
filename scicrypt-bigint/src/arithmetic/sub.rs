@@ -1,5 +1,4 @@
 use std::{
-    cmp::{max, min},
     ops::{Sub, SubAssign},
 };
 
@@ -17,11 +16,27 @@ impl SubAssign<&BigInteger> for BigInteger {
             todo!("Subtracting by a negative number");
         }
 
-        debug_assert!(self.size_in_bits >= rhs.size_in_bits);
+        if self.size_in_bits <= rhs.size_in_bits {
+            // Switch the order and reverse the sign of the result
+            if self.value.size == 0 {
+                return;
+            }
 
-        let n = min(self.value.size, rhs.value.size);
+            unsafe {
+                gmp::mpn_sub_n(
+                    self.value.d.as_mut(),
+                    rhs.value.d.as_ptr(),
+                    self.value.d.as_ptr(),
+                    self.value.size as i64,
+                );
+    
+                self.value.size = -rhs.value.size;
+                self.size_in_bits = rhs.size_in_bits;
+            }
+            return;
+        }
 
-        if n == 0 {
+        if rhs.value.size == 0 {
             return;
         }
 
@@ -30,13 +45,8 @@ impl SubAssign<&BigInteger> for BigInteger {
                 self.value.d.as_mut(),
                 self.value.d.as_ptr(),
                 rhs.value.d.as_ptr(),
-                n as i64,
+                rhs.value.size as i64,
             );
-
-            let largest_size = max(self.value.size, rhs.value.size) as i32;
-
-            self.value.size = largest_size;
-            self.size_in_bits = max(self.size_in_bits, rhs.size_in_bits);
         }
     }
 }
@@ -52,6 +62,8 @@ impl Sub<&BigInteger> for BigInteger {
 
 impl SubAssign<u64> for BigInteger {
     fn sub_assign(&mut self, rhs: u64) {
+        debug_assert!(self.size_in_bits >= 64);
+
         unsafe {
             let scratch_size =
                 gmp::mpn_sec_sub_1_itch(self.value.size as i64) as usize * GMP_NUMB_BITS as usize;
@@ -82,6 +94,20 @@ mod tests {
 
         assert_eq!(
             BigInteger::from_string("5378190631050168431049573269606".to_string(), 10, 103),
+            x
+        );
+        assert_eq!(x.size_in_bits, 103);
+    }
+
+    #[test]
+    fn test_subtract_reversed() {
+        let mut x = BigInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
+        let y = BigInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+
+        x -= &y;
+
+        assert_eq!(
+            BigInteger::from_string("-5378190631050168431049573269606".to_string(), 10, 103),
             x
         );
         assert_eq!(x.size_in_bits, 103);

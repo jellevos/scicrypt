@@ -7,7 +7,12 @@ use crate::{scratch::Scratch, BigInteger, GMP_NUMB_BITS};
 impl RemAssign<&BigInteger> for BigInteger {
     fn rem_assign(&mut self, rhs: &Self) {
         println!("Reducing {} limbs", self.value.size);
-        debug_assert!(self.value.size.is_positive());
+        debug_assert!(rhs.value.size.is_positive());
+
+        if self.value.size.is_negative() {
+            // FIXME: We should distinguish between signed and unsigned integers, because this makes this operation variable time.
+            todo!("Not implemented yet");
+        }
 
         // Check if this value is already reduced
         if self.value.size < rhs.value.size {
@@ -60,4 +65,34 @@ impl Rem<&BigInteger> for BigInteger {
         self %= rhs;
         self
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::BigInteger;
+
+    #[test]
+    fn test_modulo_assign() {
+        let mut a = BigInteger::new(23, 64);
+        let m = BigInteger::new(14, 64);
+
+        a %= &m;
+        assert_eq!(BigInteger::from(9u64), a);
+    }
+
+    #[test]
+    fn test_modulo() {
+        let a = BigInteger::new(23, 64);
+        let m = BigInteger::new(14, 64);
+
+        assert_eq!(BigInteger::from(9u64), a % &m);
+    }
+
+    // #[test]
+    // fn test_modulo_negative() {
+    //     let a = BigInteger::from_string("-23".to_string(), 10, 64);
+    //     let m = BigInteger::new(14, 64);
+
+    //     assert_eq!(BigInteger::from(5u64), a % &m);
+    // }
 }

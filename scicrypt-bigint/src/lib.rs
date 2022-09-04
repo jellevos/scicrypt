@@ -36,7 +36,7 @@ impl Display for BigInteger {
 
 impl From<u64> for BigInteger {
     fn from(integer: u64) -> Self {
-        let mut res = BigInteger::zero(64);
+        let mut res = BigInteger::zero(64 - integer.leading_zeros());
 
         unsafe {
             gmp::mpz_set_ui(&mut res.value, integer);
@@ -48,7 +48,7 @@ impl From<u64> for BigInteger {
 
 impl From<i64> for BigInteger {
     fn from(integer: i64) -> Self {
-        let mut res = BigInteger::zero(64);
+        let mut res = BigInteger::zero(64 - integer.leading_zeros());
 
         unsafe {
             gmp::mpz_set_si(&mut res.value, integer);
@@ -311,23 +311,6 @@ mod tests {
         let res = a.invert(&m);
 
         assert!(res.is_none());
-    }
-
-    #[test]
-    fn test_modulo_assign() {
-        let mut a = BigInteger::new(23, 64);
-        let m = BigInteger::new(14, 64);
-
-        a %= &m;
-        assert_eq!(BigInteger::from(9u64), a);
-    }
-
-    #[test]
-    fn test_modulo() {
-        let a = BigInteger::new(23, 64);
-        let m = BigInteger::new(14, 64);
-
-        assert_eq!(BigInteger::from(9u64), a % &m);
     }
 }
 

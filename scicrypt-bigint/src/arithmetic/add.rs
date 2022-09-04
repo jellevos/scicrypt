@@ -12,7 +12,22 @@ impl AddAssign<&BigInteger> for BigInteger {
     fn add_assign(&mut self, rhs: &Self) {
         // TODO: Change to debug assert
         if self.value.size.is_negative() {
-            todo!("Adding to a negative number");
+            //todo!("Adding to a negative number");
+            // TODO: This is copied from sub.rs, can we do better?
+            assert!(self.value.size.abs() <= rhs.value.size.abs());
+            if rhs.value.size == 0 {
+                return;
+            }
+    
+            unsafe {
+                gmp::mpn_sub_n(
+                    self.value.d.as_mut(),
+                    rhs.value.d.as_ptr(),
+                    self.value.d.as_ptr(),
+                    -self.value.size as i64,
+                );
+            }
+            return;
         }
         if rhs.value.size.is_negative() {
             todo!("Adding by a negative number");

@@ -213,7 +213,7 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
             .iter()
             .enumerate()
             .map(|(i, share)| {
-                let mut b = BigInteger::from(1u64);
+                let mut b = BigInteger::new(1, 1);
 
                 for i_prime in 0..decryption_shares.len() {
                     if i == i_prime {
@@ -231,14 +231,16 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
                     dbg!(&q);
                     dbg!(&b * &BigInteger::from(decryption_shares[i_prime].id as u64));
                     //dbg!((&b * &BigInteger::new(decryption_shares[i_prime].id as u64, q.size_in_bits())) % &q);
+                    println!("computing {} * {} = {} mod q", b, BigInteger::from(decryption_shares[i_prime].id as u64), (&b * &BigInteger::from(decryption_shares[i_prime].id as u64)) % &q);
                     b = (&b * &BigInteger::from(decryption_shares[i_prime].id as u64)) % &q;
                     b = (&b
-                        * &(BigInteger::from(decryption_shares[i_prime].id as u64)
-                            - &BigInteger::from(decryption_shares[i].id as u64)))
-                        .rem(&q)
-                        .invert_unsecure(&q)
-                        //.invert(&q)
-                        .unwrap();
+                        * &((BigInteger::from(decryption_shares[i_prime].id as u64)
+                            - &BigInteger::from(decryption_shares[i].id as u64))
+                            .rem(&q)
+                            .invert_unsecure(&q)
+                            //.invert(&q)
+                            .unwrap()))
+                        % &q;
                     println!("NEXT");
                 }
 

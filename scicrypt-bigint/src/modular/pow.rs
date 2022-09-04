@@ -18,8 +18,8 @@ impl BigInteger {
         debug_assert!(modulus.value.size.is_positive());
 
         debug_assert_eq!(
-            modulus.size_in_bits as i32,
-            modulus.value.size * GMP_NUMB_BITS as i32,
+            modulus.size_in_bits.div_ceil(GMP_NUMB_BITS),
+            modulus.value.size as u32,
             "the modulus' size in bits must be tight with its actual size"
         );
 

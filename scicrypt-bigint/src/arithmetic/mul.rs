@@ -49,8 +49,9 @@ impl Mul for &BigInteger {
             );
 
             let sign = self.value.size.signum() * rhs.value.size.signum();
-            result.value.size = sign * (self.value.size.abs() + rhs.value.size.abs());
+            //result.value.size = sign * (self.value.size.abs() + rhs.value.size.abs());
             result.size_in_bits = self.size_in_bits + rhs.size_in_bits;
+            result.value.size = sign * (result.size_in_bits.div_ceil(GMP_NUMB_BITS)) as i32;
             result
         }
     }
