@@ -119,22 +119,23 @@ pub trait HomomorphicMultiplication: EncryptionKey {
     /// Combines two ciphertexts so that their decrypted value reflects some multiplication operation
     fn mul(
         &self,
-        ciphertext_a: Self::Ciphertext,
-        ciphertext_b: Self::Ciphertext,
+        ciphertext_a: &Self::Ciphertext,
+        ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext;
+
     /// Applies some operation on a ciphertext so that the decrypted value reflects some exponentiation with `input`
-    fn pow(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext;
+    fn pow(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext;
 }
 
 impl<'pk, C: Associable<PK>, PK: EncryptionKey<Ciphertext = C> + HomomorphicMultiplication> Mul
-    for AssociatedCiphertext<'pk, C, PK>
+    for &AssociatedCiphertext<'pk, C, PK>
 {
     type Output = AssociatedCiphertext<'pk, C, PK>;
 
     fn mul(self, rhs: Self) -> Self::Output {
         debug_assert_eq!(self.public_key, rhs.public_key);
         self.public_key
-            .mul(self.ciphertext, rhs.ciphertext)
+            .mul(&self.ciphertext, &rhs.ciphertext)
             .associate(self.public_key)
     }
 }
@@ -143,9 +144,9 @@ impl<'pk, C: Associable<PK>, PK: EncryptionKey<Ciphertext = C> + HomomorphicMult
     AssociatedCiphertext<'pk, C, PK>
 {
     /// Applies some operation on this ciphertext so that the decrypted value reflects some exponentiation with `input`
-    pub fn pow(self, rhs: PK::Input) -> AssociatedCiphertext<'pk, C, PK> {
+    pub fn pow(&self, rhs: &PK::Input) -> AssociatedCiphertext<'pk, C, PK> {
         self.public_key
-            .pow(self.ciphertext, rhs)
+            .pow(&self.ciphertext, rhs)
             .associate(self.public_key)
     }
 }

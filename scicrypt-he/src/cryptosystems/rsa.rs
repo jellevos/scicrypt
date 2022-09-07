@@ -93,17 +93,17 @@ impl DecryptionKey<RsaPK> for RsaSK {
 impl HomomorphicMultiplication for RsaPK {
     fn mul(
         &self,
-        ciphertext_a: Self::Ciphertext,
-        ciphertext_b: Self::Ciphertext,
+        ciphertext_a: &Self::Ciphertext,
+        ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
         RsaCiphertext {
             c: Integer::from(&ciphertext_a.c * &ciphertext_b.c).rem(&self.n),
         }
     }
 
-    fn pow(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
+    fn pow(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
         RsaCiphertext {
-            c: Integer::from(ciphertext.c.pow_mod_ref(&input, &self.n).unwrap()),
+            c: Integer::from(ciphertext.c.pow_mod_ref(input, &self.n).unwrap()),
         }
     }
 }
@@ -180,7 +180,7 @@ mod tests {
 
         let ciphertext_a = pk.encrypt(&Integer::from(7), &mut rng);
         let ciphertext_b = pk.encrypt(&Integer::from(7), &mut rng);
-        let ciphertext_twice = ciphertext_a * ciphertext_b;
+        let ciphertext_twice = &ciphertext_a * &ciphertext_b;
 
         assert_eq!(49, sk.decrypt(&ciphertext_twice));
     }
@@ -193,7 +193,7 @@ mod tests {
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&Integer::from(9), &mut rng);
-        let ciphertext_twice = ciphertext.pow(Integer::from(4));
+        let ciphertext_twice = ciphertext.pow(&Integer::from(4));
 
         assert_eq!(Integer::from(6561), sk.decrypt(&ciphertext_twice));
     }
