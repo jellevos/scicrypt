@@ -99,7 +99,6 @@ mod tests {
 
         let res = b.pow_mod(&e, &m);
 
-        // TODO: Validate this number
         let expected = UnsignedInteger::from_string("75449268817968422679819900589734348654486644392551728445064418436053449491480437746932914650717830240874061893534937751643365068436165993034818308531811356620889371580247889632561792360083344802209721380578912179116118493677119654295291184624591629851342172735975592027041999972633543293770666292467255672690".to_string(), 10, 1024);
         assert_eq!(res, expected);
     }
@@ -112,7 +111,6 @@ mod tests {
 
         let res = b.pow_mod(&e, &m);
 
-        // TODO: Validate this number
         let expected = UnsignedInteger::from_string("9".to_string(), 10, 1024);
         assert_eq!(res, expected);
     }
@@ -125,7 +123,6 @@ mod tests {
 
         let res = b.pow_mod(&e, &m);
 
-        // TODO: Validate this number
         let expected = UnsignedInteger::from_string("9".to_string(), 10, 1024);
         assert_eq!(res, expected);
     }

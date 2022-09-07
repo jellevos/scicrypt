@@ -235,7 +235,6 @@ mod tests {
 
     #[test]
     fn test_homomorphic_mul() {
-        // TODO: Sometimes fails
         let mut rng = GeneralRng::new(OsRng);
 
         let el_gamal = IntegerElGamal::setup(&Default::default());
