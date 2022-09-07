@@ -226,15 +226,6 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
                         continue;
                     }
 
-                    println!("GOING OVER {} {}", i, i_prime);
-
-                    // dbg!(&b);
-                    // dbg!(UnsignedInteger::from(decryption_shares[i_prime].id as u64));
-                    // dbg!(&q);
-                    // dbg!(&b * &UnsignedInteger::from(decryption_shares[i_prime].id as u64));
-                    //dbg!((&b * &BigInteger::new(decryption_shares[i_prime].id as u64, q.size_in_bits())) % &q);
-                    // println!("computing {} * {} = {} mod q", b, UnsignedInteger::from(decryption_shares[i_prime].id as u64), (&b * &UnsignedInteger::from(decryption_shares[i_prime].id as u64)) % &q);
-
                     b = (b * Integer::from(decryption_shares[i_prime].id)).rem(&q);
                     b = (b
                         * (Integer::from(decryption_shares[i_prime].id)
@@ -251,7 +242,6 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
             .reduce(|a, b| (&a * &b) % &public_key.modulus)
             .unwrap();
 
-        println!("GOING TO OK");
         Ok(
             (&decryption_shares[0].c2 * &multiplied.invert(&public_key.modulus).unwrap())
                 % &public_key.modulus,
@@ -276,24 +266,17 @@ mod tests {
     fn test_encrypt_decrypt_3_of_3() {
         let mut rng = GeneralRng::new(OsRng);
 
-        println!("setup");
         let el_gamal = NOfNIntegerElGamal::setup(&Default::default());
-        println!("generate keys");
         let (pk, sks) = el_gamal.generate_keys(3, &mut rng);
 
         let plaintext = UnsignedInteger::from(25u64);
 
-        println!("encrypt");
         let ciphertext = pk.encrypt(&plaintext.clone(), &mut rng);
 
-        println!("partial decrypt 1");
         let share_1 = sks[0].partial_decrypt(&ciphertext);
-        println!("partial decrypt 2");
         let share_2 = sks[1].partial_decrypt(&ciphertext);
-        println!("partial decrypt 3");
         let share_3 = sks[2].partial_decrypt(&ciphertext);
 
-        println!("combine");
         assert_eq!(
             plaintext,
             NOfNIntegerElGamalShare::combine(&[share_1, share_2, share_3], &pk).unwrap()
@@ -304,22 +287,16 @@ mod tests {
     fn test_encrypt_decrypt_2_of_3() {
         let mut rng = GeneralRng::new(OsRng);
 
-        println!("setup");
         let el_gamal = TOfNIntegerElGamal::setup(&Default::default());
-        println!("generate keys");
         let (pk, sks) = el_gamal.generate_keys(2, 3, &mut rng);
 
         let plaintext = UnsignedInteger::from(2100u64);
 
-        println!("encrypt");
         let ciphertext = pk.encrypt(&plaintext, &mut rng);
 
-        println!("partial decrypt 1");
         let share_1 = sks[0].partial_decrypt(&ciphertext);
-        println!("partial decrypt 2");
         let share_3 = sks[2].partial_decrypt(&ciphertext);
 
-        println!("combine");
         assert_eq!(
             plaintext,
             TOfNIntegerElGamalShare::combine(&[share_1, share_3], &pk).unwrap()

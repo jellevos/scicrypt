@@ -6,14 +6,6 @@ use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 
 impl SubAssign<&UnsignedInteger> for UnsignedInteger {
     fn sub_assign(&mut self, rhs: &UnsignedInteger) {
-        // TODO: Change to debug assert
-        if self.value.size.is_negative() {
-            todo!("Subtracting from a negative number");
-        }
-        if rhs.value.size.is_negative() {
-            todo!("Subtracting by a negative number");
-        }
-
         if self.size_in_bits <= rhs.size_in_bits {
             // Switch the order and reverse the sign of the result
             if self.value.size == 0 {
@@ -93,21 +85,6 @@ mod tests {
 
         assert_eq!(
             UnsignedInteger::from_string("5378190631050168431049573269606".to_string(), 10, 103),
-            x
-        );
-        assert_eq!(x.size_in_bits, 103);
-    }
-
-    #[test]
-    fn test_subtract_reversed() {
-        let mut x = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
-        let y =
-            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
-
-        x -= &y;
-
-        assert_eq!(
-            UnsignedInteger::from_string("-5378190631050168431049573269606".to_string(), 10, 103),
             x
         );
         assert_eq!(x.size_in_bits, 103);

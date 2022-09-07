@@ -7,16 +7,6 @@ use gmp_mpfr_sys::gmp;
 
 use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 
-// impl SignedInteger {
-//     pub fn leaky_add_assign(&mut self, rhs: &Self) {
-//         unsafe {
-//             gmp::mpz_add(&mut self.value, &self.value, &rhs.value);
-//         }
-
-//         self.size_in_bits = self.significant_bits() as u32;
-//     }
-// }
-
 impl AddAssign<&UnsignedInteger> for UnsignedInteger {
     fn add_assign(&mut self, rhs: &Self) {
         debug_assert!(self.size_in_bits >= rhs.size_in_bits);
@@ -124,18 +114,4 @@ mod tests {
         );
         assert_eq!(x.size_in_bits, 103);
     }
-
-    // #[test]
-    // fn test_addition_negative() {
-    //     let mut x = BigInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
-    //     let y = BigInteger::from_string("-49127277414859531000011129".to_string(), 10, 86);
-
-    //     x += &y;
-
-    //     assert_eq!(
-    //         BigInteger::from_string("5378190631050168431049573269606".to_string(), 10, 103),
-    //         x
-    //     );
-    //     assert_eq!(x.size_in_bits, 103);
-    // }
 }

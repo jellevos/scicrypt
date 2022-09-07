@@ -41,17 +41,8 @@ impl Mul for &UnsignedInteger {
                 scratch.as_mut(),
             );
 
-            println!(
-                "{} x {} = {}",
-                self.value.size,
-                rhs.value.size,
-                self.value.size + rhs.value.size
-            );
-
-            let sign = self.value.size.signum() * rhs.value.size.signum();
-            //result.value.size = sign * (self.value.size.abs() + rhs.value.size.abs());
             result.size_in_bits = self.size_in_bits + rhs.size_in_bits;
-            result.value.size = sign * (result.size_in_bits.div_ceil(GMP_NUMB_BITS)) as i32;
+            result.value.size = result.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32;
             result
         }
     }
@@ -102,28 +93,6 @@ mod tests {
     fn test_mul_larger_b() {
         let a = UnsignedInteger::new(12, 64);
         let b = UnsignedInteger::from_string("393530540239137101151".to_string(), 10, 128);
-
-        let c = &a * &b;
-
-        let expected = UnsignedInteger::from_string("4722366482869645213812".to_string(), 10, 128);
-        assert_eq!(expected, c);
-    }
-
-    #[test]
-    fn test_mul_larger_b_negative() {
-        let a = UnsignedInteger::new(12, 64);
-        let b = UnsignedInteger::from_string("-393530540239137101151".to_string(), 10, 128);
-
-        let c = &a * &b;
-
-        let expected = UnsignedInteger::from_string("-4722366482869645213812".to_string(), 10, 128);
-        assert_eq!(expected, c);
-    }
-
-    #[test]
-    fn test_mul_larger_both_negative() {
-        let a = UnsignedInteger::from_string("-12".to_string(), 10, 64);
-        let b = UnsignedInteger::from_string("-393530540239137101151".to_string(), 10, 128);
 
         let c = &a * &b;
 

@@ -71,18 +71,6 @@ impl UnsignedInteger {
     }
 }
 
-// impl From<i64> for SignedInteger {
-//     fn from(integer: i64) -> Self {
-//         let mut res = SignedInteger::zero(64 - integer.leading_zeros());
-
-//         unsafe {
-//             gmp::mpz_set_si(&mut res.value, integer);
-//         }
-
-//         res
-//     }
-// }
-
 impl Debug for UnsignedInteger {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
@@ -100,16 +88,6 @@ pub struct UnsignedInteger {
     size_in_bits: u32,
 }
 
-// impl SignedInteger {
-//     pub fn significant_bits(&self) -> usize {
-//         let size = self.value.size;
-//         if size == 0 {
-//             return 0;
-//         }
-//         unsafe { gmp::mpn_sizeinbase(self.value.d.as_ptr(), self.value.size.abs() as i64, 2) }
-//     }
-// }
-
 impl Drop for UnsignedInteger {
     fn drop(&mut self) {
         unsafe {
@@ -123,7 +101,7 @@ impl UnsignedInteger {
         Self::zero(size_in_limbs.unsigned_abs() * GMP_NUMB_BITS)
     }
 
-    /// The size of the signed/unsiged numbers expressed in bits. This is a reasonably tight upper bound (it cannot exceed the actual value by more than 64 bits).
+    /// The size of the unsiged number expressed in bits. This is a reasonably tight upper bound (it cannot exceed the actual value by more than 64 bits).
     pub fn size_in_bits(&self) -> u32 {
         self.size_in_bits
     }
@@ -154,6 +132,10 @@ impl UnsignedInteger {
     /// Creates a BigInteger from a value given as a `string` in a certain `base`. The `size_in_bits` should not be lower than the actual value encoded.
     pub fn from_string(string: String, base: i32, size_in_bits: u32) -> UnsignedInteger {
         // TODO: debug_assert!() that the size_in_bits is not smaller than the actual value
+        debug_assert!(
+            !string.starts_with('-'),
+            "Only unsigned integers are supported"
+        );
 
         unsafe {
             let mut z = MaybeUninit::uninit();

@@ -142,10 +142,6 @@ impl PartialDecryptionKey<ThresholdPaillierPK> for ThresholdPaillierSK {
         ciphertext: &PaillierCiphertext,
     ) -> ThresholdPaillierShare {
         let n_squared = public_key.modulus.square();
-        println!(
-            "--- exponent: {:?}",
-            (&(&UnsignedInteger::new(2, 2) * &public_key.delta) * &self.key)
-        );
         ThresholdPaillierShare {
             id: self.id,
             share: ciphertext.c.pow_mod(
@@ -174,23 +170,9 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
                         continue;
                     }
 
-                    // lambda = &lambda * &UnsignedInteger::from(decryption_shares[i_prime].id as u64);
-                    // dbg!(&lambda);
-                    // dbg!(UnsignedInteger::from(
-                    //     (decryption_shares[i_prime].id - decryption_shares[i].id) as i64
-                    // ));
-                    // // TODO: Integer overflow in this subtraction
-                    // //let denominator = q + (decryption_shares[i_prime].id - decryption_shares[i].id)
-                    // lambda = lambda
-                    //     / &UnsignedInteger::from(
-                    //         (decryption_shares[i_prime].id - decryption_shares[i].id) as i64,
-                    //     );
                     lambda *= decryption_shares[i_prime].id;
                     lambda /= decryption_shares[i_prime].id - decryption_shares[i].id;
                 }
-
-                // FIXME: lambda becomes zero due to sizing problem in div
-                dbg!(&lambda);
 
                 lambda
             })

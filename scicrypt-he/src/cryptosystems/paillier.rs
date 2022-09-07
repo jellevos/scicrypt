@@ -168,11 +168,8 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        println!("To encrypt");
         let ciphertext = pk.encrypt(&UnsignedInteger::from(15u64), &mut rng);
 
-        println!("To decrypt");
-        println!("dec: {}", sk.decrypt(&ciphertext));
         assert_eq!(UnsignedInteger::from(15u64), sk.decrypt(&ciphertext));
     }
 

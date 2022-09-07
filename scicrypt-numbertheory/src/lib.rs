@@ -114,10 +114,8 @@ pub fn gen_rsa_modulus<R: SecureRng>(
 ) -> (UnsignedInteger, UnsignedInteger) {
     let mut p = gen_safe_prime(bit_length / 2, rng);
     let mut q = gen_safe_prime(bit_length / 2, rng);
-    println!("{:?}", p);
 
     let n = &p * &q;
-    println!("{:?}", n);
 
     p.clear_bit(0);
     q.clear_bit(0);

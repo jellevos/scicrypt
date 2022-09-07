@@ -11,17 +11,17 @@ impl Div<&UnsignedInteger> for UnsignedInteger {
         // TODO: Check the other preconditions
         debug_assert_eq!(
             self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
-            self.value.size.abs(),
+            self.value.size,
             "the operands' size in bits must match their actual size"
         );
         debug_assert_eq!(
             rhs.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
-            rhs.value.size.abs(),
+            rhs.value.size,
             "the operands' size in bits must match their actual size"
         );
 
-        debug_assert!(self.value.size.abs() >= rhs.value.size.abs());
-        debug_assert!(rhs.value.size.abs() >= 1);
+        debug_assert!(self.value.size >= rhs.value.size);
+        debug_assert!(rhs.value.size >= 1);
 
         unsafe {
             let scratch_size =
@@ -41,13 +41,9 @@ impl Div<&UnsignedInteger> for UnsignedInteger {
                 scratch.as_mut(),
             );
 
-            // FIXME: Logic for negative size
-            println!("MSL: {}", most_significant_limb);
-            let sign = self.value.size.signum() * rhs.value.size.signum();
-            let size = self.value.size.abs() - rhs.value.size.abs();
-            res.value.size = sign * (size + (most_significant_limb != 0) as i32);
-            //res.size_in_bits = self.size_in_bits - rhs.size_in_bits + 1;
-            res.size_in_bits = res.value.size.unsigned_abs() * GMP_NUMB_BITS;
+            let size = self.value.size - rhs.value.size;
+            res.value.size = size + (most_significant_limb != 0) as i32;
+            res.size_in_bits = res.value.size as u32 * GMP_NUMB_BITS;
             res.value
                 .d
                 .as_ptr()
@@ -67,11 +63,7 @@ mod test {
         let x = UnsignedInteger::from_string("5".to_string(), 10, 3);
         let y = UnsignedInteger::from_string("3".to_string(), 10, 2);
 
-        dbg!(&x);
-        dbg!(&y);
-
         let q = x / &y;
-        dbg!(&q);
 
         assert_eq!(UnsignedInteger::from_string("1".to_string(), 10, 1), q);
         assert_eq!(q.value.size, 1);
@@ -83,11 +75,7 @@ mod test {
         let x = UnsignedInteger::from_string("4".to_string(), 10, 3);
         let y = UnsignedInteger::from_string("7".to_string(), 10, 3);
 
-        dbg!(&x);
-        dbg!(&y);
-
         let q = x / &y;
-        dbg!(&q);
 
         assert_eq!(UnsignedInteger::from_string("0".to_string(), 10, 1), q);
         assert_eq!(q.value.size, 0);
@@ -100,34 +88,13 @@ mod test {
             UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
         let y = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
 
-        dbg!(&x);
-        dbg!(&y);
-
         let q = x / &y;
-        dbg!(&q);
 
         assert_eq!(
             UnsignedInteger::from_string("109475".to_string(), 10, 17),
             q
         );
         assert_eq!(q.value.size, 1);
-        assert_eq!(q.size_in_bits, 64);
-    }
-
-    #[test]
-    fn test_division_negative() {
-        let x =
-            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
-        let y = UnsignedInteger::from_string("-49127277414859531000011129".to_string(), 10, 86);
-
-        let q = x / &y;
-        dbg!(&q);
-
-        assert_eq!(
-            UnsignedInteger::from_string("-109475".to_string(), 10, 17),
-            q
-        );
-        assert_eq!(q.value.size, -1);
         assert_eq!(q.size_in_bits, 64);
     }
 }

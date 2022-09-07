@@ -28,11 +28,6 @@ impl UnsignedInteger {
             "the modulus' size in bits must be tight with its actual size"
         );
 
-        println!(
-            "Exponent of pow_mod: {} bits ({} limbs)",
-            exponent.size_in_bits, exponent.value.size
-        );
-
         // TODO: Probably we should also assert that the modulus does not contain less limbs than the other operands
 
         let mut result = UnsignedInteger::init(modulus.value.size);

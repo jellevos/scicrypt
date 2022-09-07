@@ -5,7 +5,6 @@ use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 impl UnsignedInteger {
     /// Computes `self^-1 mod modulus`, taking ownership of `self`. Returns None if no inverse exists. `modulus` must be odd.
     pub fn invert(self, modulus: &UnsignedInteger) -> Option<UnsignedInteger> {
-        println!("COMPUTING INVERSE FOR:\n{:?}\nmod\n{:?}", self, modulus);
         // TODO: Verify that the input must be smaller than the modulus (is this indeed true?)
         //assert_eq!(self.supposed_size, modulus.supposed_size);
         //self.supposed_size = modulus.inner.size as i64;
@@ -27,17 +26,10 @@ impl UnsignedInteger {
             "the modulus must have the same size as self"
         );
 
-        // FIXME: This is not constant-time
-        //debug_assert_eq!(modulus.value.size, self.value.size, "the modulus must have the same actual size as self");
-        // if self.value.size != modulus.value.size {
-        //     self += modulus;
-        // }
         debug_assert_eq!(
             modulus.value.size, self.value.size,
             "the modulus must have the same actual size as self"
         );
-
-        //self += modulus;
 
         let mut result = UnsignedInteger::init(modulus.value.size);
 
@@ -47,7 +39,6 @@ impl UnsignedInteger {
 
             let mut scratch = Scratch::new(scratch_size);
 
-            println!("CALLING MPN_SEC_INVERT");
             let is_valid = gmp::mpn_sec_invert(
                 result.value.d.as_mut(),
                 self.value.d.as_ptr(),
@@ -56,11 +47,9 @@ impl UnsignedInteger {
                 (self.size_in_bits + modulus.size_in_bits) as u64,
                 scratch.as_mut(),
             );
-            println!("PROCEED: {}", is_valid);
 
             // Check if an inverse exists
             if is_valid == 0 {
-                println!("INVERSE DID NOT EXIST");
                 return None;
             }
 
