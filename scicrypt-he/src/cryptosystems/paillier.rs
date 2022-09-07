@@ -8,7 +8,6 @@ use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use serde::{Deserialize, Serialize};
-use std::ops::Rem;
 
 /// The Paillier cryptosystem.
 #[derive(Copy, Clone)]
@@ -142,7 +141,7 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
         ciphertext: &<PaillierPK as EncryptionKey>::Ciphertext,
     ) -> bool {
         // TODO: This can be optimized
-        self.decrypt_raw(public_key, ciphertext) == 0
+        self.decrypt_raw(public_key, ciphertext).is_zero_leaky()
     }
 }
 
@@ -157,19 +156,11 @@ impl HomomorphicAddition for PaillierPK {
         }
     }
 
-    fn mul(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
+    fn mul_constant(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
         let modulus = self.n.square();
 
         PaillierCiphertext {
-            c: ciphertext.c.pow_mod(&input, &modulus),
-        }
-    }
-    
-    fn mul_constant(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
-        let modulus = Integer::from(self.n.square_ref());
-
-        PaillierCiphertext {
-            c: Integer::from(ciphertext.c.pow_mod_ref(input, &modulus).unwrap()),
+            c: ciphertext.c.pow_mod(input, &modulus),
         }
     }
 
@@ -178,12 +169,9 @@ impl HomomorphicAddition for PaillierPK {
         ciphertext_a: &Self::Ciphertext,
         ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
-        let modulus = Integer::from(self.n.square_ref());
+        let modulus = self.n.square();
         PaillierCiphertext {
-            c: Integer::from(
-                &ciphertext_a.c * &Integer::from(ciphertext_b.c.invert_ref(&modulus).unwrap()),
-            )
-            .rem(Integer::from(self.n.square_ref())),
+            c: (&ciphertext_a.c * &ciphertext_b.c.clone().invert(&modulus).unwrap()) % &modulus,
         }
     }
 
@@ -192,12 +180,9 @@ impl HomomorphicAddition for PaillierPK {
         ciphertext: &Self::Ciphertext,
         constant: &Self::Plaintext,
     ) -> Self::Ciphertext {
-        let modulus = Integer::from(self.n.square_ref());
+        let modulus = self.n.square();
         PaillierCiphertext {
-            c: Integer::from(
-                &ciphertext.c * &Integer::from(self.g.pow_mod_ref(constant, &modulus).unwrap()),
-            )
-            .rem(Integer::from(self.n.square_ref())),
+            c: (&ciphertext.c * &self.g.pow_mod(constant, &modulus)) % &modulus,
         }
     }
 
@@ -206,17 +191,15 @@ impl HomomorphicAddition for PaillierPK {
         ciphertext: &Self::Ciphertext,
         constant: &Self::Plaintext,
     ) -> Self::Ciphertext {
-        let modulus = Integer::from(self.n.square_ref());
+        let modulus = self.n.square();
         PaillierCiphertext {
-            c: Integer::from(
-                &ciphertext.c
-                    * &Integer::from(
-                        self.g
-                            .pow_mod_ref(&Integer::from(-constant), &modulus)
-                            .unwrap(),
-                    ),
-            )
-            .rem(Integer::from(self.n.square_ref())),
+            c: (&ciphertext.c
+                * &self
+                    .g
+                    .pow_mod(constant, &modulus)
+                    .invert(&modulus)
+                    .unwrap())
+                % &modulus,
         }
     }
 }
@@ -249,7 +232,7 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(0), &mut rng);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(0), &mut rng);
 
         assert!(sk.decrypt_identity(&ciphertext));
     }
@@ -275,11 +258,11 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext_a = pk.encrypt(&Integer::from(7), &mut rng);
-        let ciphertext_b = pk.encrypt(&Integer::from(5), &mut rng);
+        let ciphertext_a = pk.encrypt(&UnsignedInteger::from(7), &mut rng);
+        let ciphertext_b = pk.encrypt(&UnsignedInteger::from(5), &mut rng);
         let ciphertext_res = &ciphertext_a - &ciphertext_b;
 
-        assert_eq!(Integer::from(2), sk.decrypt(&ciphertext_res));
+        assert_eq!(UnsignedInteger::from(2), sk.decrypt(&ciphertext_res));
     }
 
     #[test]
@@ -302,10 +285,10 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(7), &mut rng);
-        let ciphertext_res = &ciphertext + &Integer::from(5);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(7), &mut rng);
+        let ciphertext_res = &ciphertext + &UnsignedInteger::from(5);
 
-        assert_eq!(Integer::from(12), sk.decrypt(&ciphertext_res));
+        assert_eq!(UnsignedInteger::from(12), sk.decrypt(&ciphertext_res));
     }
 
     #[test]
@@ -315,9 +298,9 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(7), &mut rng);
-        let ciphertext_res = &ciphertext - &Integer::from(5);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(7), &mut rng);
+        let ciphertext_res = &ciphertext - &UnsignedInteger::from(5);
 
-        assert_eq!(Integer::from(2), sk.decrypt(&ciphertext_res));
+        assert_eq!(UnsignedInteger::from(2), sk.decrypt(&ciphertext_res));
     }
 }

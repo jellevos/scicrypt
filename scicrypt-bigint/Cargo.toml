@@ -1,7 +1,7 @@
 [package]
 name = "scicrypt-bigint"
 description = "A scicrypt crate implementing *mostly* constant-time bigints for modular integers"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
 edition = "2018"
 license = "MIT"
@@ -11,8 +11,9 @@ readme = "README.md"
 
 [dependencies]
 gmp-mpfr-sys = { version = "1.4", default-features = false }
-scicrypt-traits ={ version = "0.6.0", path = "../scicrypt-traits" }
+scicrypt-traits ={ version = "0.6.1", path = "../scicrypt-traits" }
 rug = { version = "1.13", default-features = false, features = ["integer", "rand", "serde"], optional = true }
+serde = "1.0"
 
 [dev-dependencies]
 rand = "0.8"

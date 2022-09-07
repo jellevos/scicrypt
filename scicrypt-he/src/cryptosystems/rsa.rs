@@ -8,7 +8,6 @@ use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use serde::{Deserialize, Serialize};
-use std::ops::Rem;
 
 /// The RSA cryptosystem.
 #[derive(Copy, Clone)]
@@ -89,7 +88,7 @@ impl DecryptionKey<RsaPK> for RsaSK {
         ciphertext: &<RsaPK as EncryptionKey>::Ciphertext,
     ) -> bool {
         // TODO: This can be optimized
-        self.decrypt_raw(public_key, ciphertext) == 1
+        self.decrypt_raw(public_key, ciphertext) == UnsignedInteger::from(1u64)
     }
 }
 
@@ -169,7 +168,7 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(1), &mut rng);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(1), &mut rng);
 
         assert!(sk.decrypt_identity(&ciphertext));
     }

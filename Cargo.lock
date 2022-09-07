@@ -702,12 +702,13 @@ dependencies = [
 
 [[package]]
 name = "scicrypt-bigint"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "gmp-mpfr-sys",
  "rand",
  "rug",
  "scicrypt-traits",
+ "serde",
 ]
 
 [[package]]

@@ -8,7 +8,6 @@ use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use serde::{Deserialize, Serialize};
-use std::ops::Rem;
 
 /// Multiplicatively homomorphic ElGamal over a safe prime group where the generator is 4.
 ///
@@ -178,12 +177,7 @@ impl DecryptionKey<IntegerElGamalPK> for IntegerElGamalSK {
         public_key: &IntegerElGamalPK,
         ciphertext: &<IntegerElGamalPK as EncryptionKey>::Ciphertext,
     ) -> bool {
-        ciphertext.c2
-            == Integer::from(
-                ciphertext
-                    .c1
-                    .secure_pow_mod_ref(&self.key, &public_key.modulus),
-            )
+        ciphertext.c2 == ciphertext.c1.pow_mod(&self.key, &public_key.modulus)
     }
 }
 
@@ -234,7 +228,7 @@ mod tests {
         let el_gamal = IntegerElGamal::setup(&Default::default());
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(1), &mut rng);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(1), &mut rng);
 
         assert!(sk.decrypt_identity(&ciphertext));
     }

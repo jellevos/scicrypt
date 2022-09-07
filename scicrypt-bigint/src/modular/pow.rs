@@ -9,8 +9,12 @@ impl UnsignedInteger {
         exponent: &UnsignedInteger,
         modulus: &UnsignedInteger,
     ) -> UnsignedInteger {
-        debug_assert!(!self.is_zero(), "the base must not be 0");
-        debug_assert!(!modulus.is_zero(), "the modulus must not be 0");
+        if exponent.value.size == 0 {
+            return UnsignedInteger::new(1, 1);
+        }
+
+        debug_assert!(!self.is_zero_leaky(), "the base must not be 0");
+        debug_assert!(!modulus.is_zero_leaky(), "the modulus must not be 0");
         // TODO: debug_assert!() that the modulus is ODD
         // TODO: debug_assert!() that the exponent's bitsize is smaller than its size_in_bits
         debug_assert!(

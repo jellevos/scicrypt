@@ -19,13 +19,14 @@ use gmp_mpfr_sys::gmp::{self, mpz_fac_ui, mpz_t};
 #[cfg(feature = "rug")]
 use rug::Integer;
 use scicrypt_traits::randomness::{GeneralRng, SecureRng};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 const GMP_NUMB_BITS: u32 = 64;
 
 impl Display for UnsignedInteger {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         unsafe {
-            if self.is_zero() {
+            if self.is_zero_leaky() {
                 return f.pad_integral(true, "", "0");
             }
 
@@ -93,6 +94,20 @@ impl Drop for UnsignedInteger {
         unsafe {
             gmp::mpz_clear(&mut self.value);
         }
+    }
+}
+
+// TODO: Make serde optional, but always enable rug along with it.
+impl Serialize for UnsignedInteger {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        self.clone().to_rug().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for UnsignedInteger {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<UnsignedInteger, D::Error> {
+        let integer = Integer::deserialize(deserializer)?;
+        Ok(UnsignedInteger::from(integer))
     }
 }
 
@@ -198,9 +213,21 @@ impl UnsignedInteger {
         unsafe { gmp::mpz_probab_prime_p(&self.value, 25) > 0 }
     }
 
-    /// Returns true if self == 0. This is faster than checking equality.
-    pub fn is_zero(&self) -> bool {
-        self.value.size == 0
+    /// Returns true if self == 0. This can be faster than checking equality.
+    pub fn is_zero_leaky(&self) -> bool {
+        if self.value.size == 0 {
+            return true;
+        }
+
+        for i in 0..self.value.size {
+            unsafe {
+                if *self.value.d.as_ptr().offset(i as isize) != 0 {
+                    return false;
+                }
+            }
+        }
+
+        true
     }
 
     // Computes the least common multiple between self and other. This function is not constant-time.
