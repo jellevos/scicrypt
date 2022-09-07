@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
 use rand_core::OsRng;
-use rug::Integer;
+use scicrypt_bigint::UnsignedInteger;
 use scicrypt_he::cryptosystems::curve_el_gamal::{CurveElGamal, PrecomputedCurveElGamalPK};
 use scicrypt_he::cryptosystems::integer_el_gamal::{IntegerElGamal, IntegerElGamalPK};
 use scicrypt_he::cryptosystems::paillier::{Paillier, PaillierPK};
@@ -39,11 +39,15 @@ fn cryptosystem_benchmark<PK: EncryptionKey, CS: AsymmetricCryptosystem<PublicKe
 }
 
 fn paillier_benchmark(c: &mut Criterion) {
-    cryptosystem_benchmark::<PaillierPK, Paillier>("paillier", c, Integer::from(123456789u64));
+    cryptosystem_benchmark::<PaillierPK, Paillier>(
+        "paillier",
+        c,
+        UnsignedInteger::from(123456789u64),
+    );
 }
 
 fn rsa_benchmark(c: &mut Criterion) {
-    cryptosystem_benchmark::<RsaPK, Rsa>("rsa", c, Integer::from(123456789u64));
+    cryptosystem_benchmark::<RsaPK, Rsa>("rsa", c, UnsignedInteger::from(123456789u64));
 }
 
 fn curve_elgamal_benchmark(c: &mut Criterion) {
@@ -58,7 +62,7 @@ fn integer_elgamal_benchmark(c: &mut Criterion) {
     cryptosystem_benchmark::<IntegerElGamalPK, IntegerElGamal>(
         "integer_elgamal",
         c,
-        Integer::from(123456789u64),
+        UnsignedInteger::from(123456789u64),
     );
 }
 

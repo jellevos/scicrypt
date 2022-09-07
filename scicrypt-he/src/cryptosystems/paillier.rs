@@ -193,12 +193,7 @@ impl HomomorphicAddition for PaillierPK {
     ) -> Self::Ciphertext {
         let modulus = self.n.square();
         PaillierCiphertext {
-            c: (&ciphertext.c
-                * &self
-                    .g
-                    .pow_mod(constant, &modulus)
-                    .invert(&modulus)
-                    .unwrap())
+            c: (&ciphertext.c * &self.g.pow_mod(constant, &modulus).invert(&modulus).unwrap())
                 % &modulus,
         }
     }
