@@ -231,6 +231,9 @@ mod tests {
         let ciphertext = pk.encrypt(&UnsignedInteger::from(9u64), &mut rng);
         let ciphertext_twice = ciphertext.pow(UnsignedInteger::from(4u64));
 
-        assert_eq!(UnsignedInteger::from(6561u64), sk.decrypt(&ciphertext_twice));
+        assert_eq!(
+            UnsignedInteger::from(6561u64),
+            sk.decrypt(&ciphertext_twice)
+        );
     }
 }

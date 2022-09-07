@@ -97,7 +97,8 @@ mod tests {
 
     #[test]
     fn test_addition() {
-        let mut x = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let mut x =
+            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
         let y = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
 
         x += &y;
@@ -111,7 +112,8 @@ mod tests {
 
     #[test]
     fn test_addition_u64() {
-        let mut x = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let mut x =
+            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
         let y = 14;
 
         x += y;

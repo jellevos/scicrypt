@@ -66,7 +66,7 @@ impl UnsignedInteger {
 
             result.value.size = modulus.value.size;
             result.size_in_bits = modulus.size_in_bits;
-            return Some(result);
+            Some(result)
         }
     }
 

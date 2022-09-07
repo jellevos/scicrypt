@@ -57,7 +57,8 @@ impl NOfNCryptosystem for NOfNIntegerElGamal {
             })
             .collect();
 
-        let master_key: UnsignedInteger = partial_keys.iter().map(|k| &k.key).sum::<UnsignedInteger>() % &q;
+        let master_key: UnsignedInteger =
+            partial_keys.iter().map(|k| &k.key).sum::<UnsignedInteger>() % &q;
         let public_key = UnsignedInteger::new(4, 3).pow_mod(&master_key, &self.modulus);
 
         (
@@ -215,7 +216,7 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
             .enumerate()
             .map(|(i, share)| {
                 let mut b = Integer::from(1);
-                
+
                 for i_prime in 0..decryption_shares.len() {
                     if i == i_prime {
                         continue;
@@ -233,7 +234,7 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
                     // dbg!(&b * &UnsignedInteger::from(decryption_shares[i_prime].id as u64));
                     //dbg!((&b * &BigInteger::new(decryption_shares[i_prime].id as u64, q.size_in_bits())) % &q);
                     // println!("computing {} * {} = {} mod q", b, UnsignedInteger::from(decryption_shares[i_prime].id as u64), (&b * &UnsignedInteger::from(decryption_shares[i_prime].id as u64)) % &q);
-                    
+
                     b = (b * Integer::from(decryption_shares[i_prime].id)).rem(&q);
                     b = (b
                         * (Integer::from(decryption_shares[i_prime].id)
@@ -243,7 +244,9 @@ impl DecryptionShare<IntegerElGamalPK> for TOfNIntegerElGamalShare {
                     .rem(&q);
                 }
 
-                share.c1.pow_mod(&UnsignedInteger::from(b), &public_key.modulus)
+                share
+                    .c1
+                    .pow_mod(&UnsignedInteger::from(b), &public_key.modulus)
             })
             .reduce(|a, b| (&a * &b) % &public_key.modulus)
             .unwrap();

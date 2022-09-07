@@ -116,7 +116,11 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
     /// println!("The decrypted message is {}", secret_key.decrypt(&ciphertext));
     /// // Prints: "The decrypted message is 5".
     /// ```
-    fn decrypt_raw(&self, public_key: &PaillierPK, ciphertext: &PaillierCiphertext) -> UnsignedInteger {
+    fn decrypt_raw(
+        &self,
+        public_key: &PaillierPK,
+        ciphertext: &PaillierCiphertext,
+    ) -> UnsignedInteger {
         let n_squared = public_key.n.square();
 
         let mut inner = ciphertext.c.pow_mod(&self.lambda, &n_squared);

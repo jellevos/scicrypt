@@ -82,8 +82,9 @@ impl TOfNCryptosystem for ThresholdPaillier {
                 let mut key = &beta * &sub_modulus;
 
                 for j in 0..(threshold_t - 1) {
-                    key += &(((&coefficients[j as usize]
-                        * &UnsignedInteger::from(i.pow((j + 1) as u32) as u64))) % &m_times_n);
+                    key += &((&coefficients[j as usize]
+                        * &UnsignedInteger::from(i.pow((j + 1) as u32) as u64))
+                        % &m_times_n);
                 }
 
                 ThresholdPaillierSK {
@@ -203,18 +204,15 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
                 .rem(&n_squared);
         }
 
-        let inverse = (&(&UnsignedInteger::from(4u64) * &public_key.delta.square()) * &public_key.theta)
+        let inverse = (&(&UnsignedInteger::from(4u64) * &public_key.delta.square())
+            * &public_key.theta)
             .rem(&public_key.modulus)
             .invert(&public_key.modulus)
             .unwrap();
 
-        
         product -= 1;
 
-        Result::Ok(
-            (&(product / &public_key.modulus) * &inverse)
-                % &public_key.modulus,
-        )
+        Result::Ok((&(product / &public_key.modulus) * &inverse) % &public_key.modulus)
     }
 }
 

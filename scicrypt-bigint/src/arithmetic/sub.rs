@@ -1,6 +1,4 @@
-use std::{
-    ops::{Sub, SubAssign},
-};
+use std::ops::{Sub, SubAssign};
 
 use gmp_mpfr_sys::gmp;
 
@@ -29,7 +27,7 @@ impl SubAssign<&UnsignedInteger> for UnsignedInteger {
                     self.value.d.as_ptr(),
                     self.value.size as i64,
                 );
-    
+
                 self.value.size = -rhs.value.size;
                 self.size_in_bits = rhs.size_in_bits;
             }
@@ -87,7 +85,8 @@ mod tests {
 
     #[test]
     fn test_subtract() {
-        let mut x = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let mut x =
+            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
         let y = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
 
         x -= &y;
@@ -102,7 +101,8 @@ mod tests {
     #[test]
     fn test_subtract_reversed() {
         let mut x = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
-        let y = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let y =
+            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
 
         x -= &y;
 
@@ -115,7 +115,8 @@ mod tests {
 
     #[test]
     fn test_subtract_u64() {
-        let mut x = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let mut x =
+            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
         let y = 14;
 
         x -= y;

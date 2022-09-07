@@ -4,7 +4,11 @@ use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 
 impl UnsignedInteger {
     /// Compute `self` to the power `exponent` modulo an odd `modulus`. The computation takes time that scales with the specified size of the `exponent` and `modulus`.
-    pub fn pow_mod(&self, exponent: &UnsignedInteger, modulus: &UnsignedInteger) -> UnsignedInteger {
+    pub fn pow_mod(
+        &self,
+        exponent: &UnsignedInteger,
+        modulus: &UnsignedInteger,
+    ) -> UnsignedInteger {
         debug_assert!(!self.is_zero(), "the base must not be 0");
         debug_assert!(!modulus.is_zero(), "the modulus must not be 0");
         // TODO: debug_assert!() that the modulus is ODD

@@ -10,7 +10,7 @@ impl ShrAssign<u32> for UnsignedInteger {
         debug_assert!(self.value.size.is_positive());
 
         assert!(1 <= rhs);
-        assert!(rhs <= GMP_NUMB_BITS - 1);
+        assert!(rhs < GMP_NUMB_BITS);
 
         unsafe {
             gmp::mpn_rshift(
@@ -31,7 +31,7 @@ impl Shr<u32> for &UnsignedInteger {
         debug_assert!(self.value.size.is_positive());
 
         assert!(1 <= rhs);
-        assert!(rhs <= GMP_NUMB_BITS - 1);
+        assert!(rhs < GMP_NUMB_BITS);
 
         let mut result = UnsignedInteger::init(self.value.size);
 

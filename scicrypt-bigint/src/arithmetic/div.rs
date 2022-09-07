@@ -47,13 +47,13 @@ impl Div<&UnsignedInteger> for UnsignedInteger {
             let size = self.value.size.abs() - rhs.value.size.abs();
             res.value.size = sign * (size + (most_significant_limb != 0) as i32);
             //res.size_in_bits = self.size_in_bits - rhs.size_in_bits + 1;
-            res.size_in_bits = res.value.size.abs() as u32 * GMP_NUMB_BITS;
+            res.size_in_bits = res.value.size.unsigned_abs() * GMP_NUMB_BITS;
             res.value
                 .d
                 .as_ptr()
                 .offset(size as isize)
                 .write(most_significant_limb);
-            return res;
+            res
         }
     }
 }
@@ -96,7 +96,8 @@ mod test {
 
     #[test]
     fn test_division() {
-        let x = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let x =
+            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
         let y = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
 
         dbg!(&x);
@@ -105,20 +106,27 @@ mod test {
         let q = x / &y;
         dbg!(&q);
 
-        assert_eq!(UnsignedInteger::from_string("109475".to_string(), 10, 17), q);
+        assert_eq!(
+            UnsignedInteger::from_string("109475".to_string(), 10, 17),
+            q
+        );
         assert_eq!(q.value.size, 1);
         assert_eq!(q.size_in_bits, 64);
     }
 
     #[test]
     fn test_division_negative() {
-        let x = UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let x =
+            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
         let y = UnsignedInteger::from_string("-49127277414859531000011129".to_string(), 10, 86);
 
         let q = x / &y;
         dbg!(&q);
 
-        assert_eq!(UnsignedInteger::from_string("-109475".to_string(), 10, 17), q);
+        assert_eq!(
+            UnsignedInteger::from_string("-109475".to_string(), 10, 17),
+            q
+        );
         assert_eq!(q.value.size, -1);
         assert_eq!(q.size_in_bits, 64);
     }

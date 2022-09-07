@@ -67,7 +67,7 @@ impl UnsignedInteger {
 impl<'a> Product<&'a UnsignedInteger> for UnsignedInteger {
     fn product<I: Iterator<Item = &'a UnsignedInteger>>(mut iter: I) -> Self {
         let initial = iter.next().unwrap().clone();
-        iter.fold(initial, |x, y| &x * &y)
+        iter.fold(initial, |x, y| &x * y)
     }
 }
 
