@@ -131,6 +131,15 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
 
         inner.rem(&public_key.n)
     }
+
+    fn decrypt_identity_raw(
+        &self,
+        public_key: &PaillierPK,
+        ciphertext: &<PaillierPK as EncryptionKey>::Ciphertext,
+    ) -> bool {
+        // TODO: This can be optimized
+        self.decrypt_raw(public_key, ciphertext) == 0
+    }
 }
 
 impl HomomorphicAddition for PaillierPK {
@@ -218,6 +227,18 @@ mod tests {
         let ciphertext = pk.encrypt(&Integer::from(15), &mut rng);
 
         assert_eq!(15, sk.decrypt(&ciphertext));
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_identity() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
+        let (pk, sk) = paillier.generate_keys(&mut rng);
+
+        let ciphertext = pk.encrypt(&Integer::from(0), &mut rng);
+
+        assert!(sk.decrypt_identity(&ciphertext));
     }
 
     #[test]
