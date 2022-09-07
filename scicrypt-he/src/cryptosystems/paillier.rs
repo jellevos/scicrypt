@@ -145,12 +145,36 @@ impl HomomorphicAddition for PaillierPK {
         }
     }
 
-    fn mul(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
+    fn mul_constant(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
         let modulus = Integer::from(self.n.square_ref());
 
         PaillierCiphertext {
             c: Integer::from(ciphertext.c.pow_mod_ref(&input, &modulus).unwrap()),
         }
+    }
+
+    fn sub(
+        &self,
+        _ciphertext_a: Self::Ciphertext,
+        _ciphertext_b: Self::Ciphertext,
+    ) -> Self::Ciphertext {
+        todo!()
+    }
+
+    fn add_constant(
+        &self,
+        _ciphertext: Self::Ciphertext,
+        _constant: &Self::Plaintext,
+    ) -> Self::Ciphertext {
+        todo!()
+    }
+
+    fn sub_constant(
+        &self,
+        _ciphertext: Self::Ciphertext,
+        _constant: &Self::Plaintext,
+    ) -> Self::Ciphertext {
+        todo!()
     }
 }
 
