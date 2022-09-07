@@ -79,6 +79,15 @@ impl DecryptionKey<RsaPK> for RsaSK {
     fn decrypt_raw(&self, public_key: &RsaPK, ciphertext: &RsaCiphertext) -> Integer {
         Integer::from(ciphertext.c.secure_pow_mod_ref(&self.d, &public_key.n))
     }
+
+    fn decrypt_identity_raw(
+        &self,
+        public_key: &RsaPK,
+        ciphertext: &<RsaPK as EncryptionKey>::Ciphertext,
+    ) -> bool {
+        // TODO: This can be optimized
+        self.decrypt_raw(public_key, ciphertext) == 1
+    }
 }
 
 impl HomomorphicMultiplication for RsaPK {
@@ -148,6 +157,18 @@ mod tests {
         let ciphertext = pk.encrypt(&Integer::from(15), &mut rng);
 
         assert_eq!(15, sk.decrypt(&ciphertext));
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_identity() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
+        let (pk, sk) = rsa.generate_keys(&mut rng);
+
+        let ciphertext = pk.encrypt(&Integer::from(1), &mut rng);
+
+        assert!(sk.decrypt_identity(&ciphertext));
     }
 
     #[test]
