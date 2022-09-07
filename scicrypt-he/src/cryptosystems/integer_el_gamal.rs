@@ -175,6 +175,19 @@ impl DecryptionKey<IntegerElGamalPK> for IntegerElGamalSK {
             .unwrap())
         .rem(&public_key.modulus)
     }
+
+    fn decrypt_identity_raw(
+        &self,
+        public_key: &IntegerElGamalPK,
+        ciphertext: &<IntegerElGamalPK as EncryptionKey>::Ciphertext,
+    ) -> bool {
+        ciphertext.c2
+            == Integer::from(
+                ciphertext
+                    .c1
+                    .secure_pow_mod_ref(&self.key, &public_key.modulus),
+            )
+    }
 }
 
 impl HomomorphicMultiplication for IntegerElGamalPK {
@@ -215,6 +228,18 @@ mod tests {
         let ciphertext = pk.encrypt(&Integer::from(19), &mut rng);
 
         assert_eq!(19, sk.decrypt(&ciphertext));
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_identity() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let el_gamal = IntegerElGamal::setup(&Default::default());
+        let (pk, sk) = el_gamal.generate_keys(&mut rng);
+
+        let ciphertext = pk.encrypt(&Integer::from(1), &mut rng);
+
+        assert!(sk.decrypt_identity(&ciphertext));
     }
 
     #[test]

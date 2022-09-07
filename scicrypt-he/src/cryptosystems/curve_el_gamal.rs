@@ -160,6 +160,14 @@ impl DecryptionKey<CurveElGamalPK> for CurveElGamalSK {
     ) -> RistrettoPoint {
         self.decrypt_directly(ciphertext)
     }
+
+    fn decrypt_identity_raw(
+        &self,
+        _public_key: &CurveElGamalPK,
+        ciphertext: &<CurveElGamalPK as EncryptionKey>::Ciphertext,
+    ) -> bool {
+        ciphertext.c2 == self.key * ciphertext.c1
+    }
 }
 
 impl DecryptionKey<PrecomputedCurveElGamalPK> for CurveElGamalSK {
@@ -169,6 +177,14 @@ impl DecryptionKey<PrecomputedCurveElGamalPK> for CurveElGamalSK {
         ciphertext: &CurveElGamalCiphertext,
     ) -> RistrettoPoint {
         self.decrypt_directly(ciphertext)
+    }
+
+    fn decrypt_identity_raw(
+        &self,
+        _public_key: &PrecomputedCurveElGamalPK,
+        ciphertext: &<CurveElGamalPK as EncryptionKey>::Ciphertext,
+    ) -> bool {
+        ciphertext.c2 == self.key * ciphertext.c1
     }
 }
 
@@ -216,7 +232,9 @@ impl HomomorphicAddition for PrecomputedCurveElGamalPK {
 mod tests {
     use crate::cryptosystems::curve_el_gamal::CurveElGamal;
     use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
+    use curve25519_dalek::ristretto::RistrettoPoint;
     use curve25519_dalek::scalar::Scalar;
+    use curve25519_dalek::traits::Identity;
     use rand_core::OsRng;
     use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
@@ -231,6 +249,18 @@ mod tests {
         let ciphertext = pk.encrypt(&RISTRETTO_BASEPOINT_POINT, &mut rng);
 
         assert_eq!(RISTRETTO_BASEPOINT_POINT, sk.decrypt(&ciphertext));
+    }
+
+    #[test]
+    fn test_encrypt_decrypt_identity() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let el_gamal = CurveElGamal::setup(&Default::default());
+        let (pk, sk) = el_gamal.generate_keys(&mut rng);
+
+        let ciphertext = pk.encrypt(&RistrettoPoint::identity(), &mut rng);
+
+        assert!(sk.decrypt_identity(&ciphertext));
     }
 
     #[test]
