@@ -1,5 +1,4 @@
 use std::{
-    cmp::{max, min},
     iter::Sum,
     ops::{Add, AddAssign},
 };
@@ -21,8 +20,9 @@ use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 impl AddAssign<&UnsignedInteger> for UnsignedInteger {
     fn add_assign(&mut self, rhs: &Self) {
         debug_assert!(self.size_in_bits >= rhs.size_in_bits);
+        debug_assert!(self.value.size >= rhs.value.size);
 
-        let n = min(self.value.size, rhs.value.size);
+        let n = rhs.value.size;
 
         if n == 0 {
             return;
@@ -36,10 +36,10 @@ impl AddAssign<&UnsignedInteger> for UnsignedInteger {
                 n as i64,
             );
 
-            let largest_size = max(self.value.size, rhs.value.size) as i32;
+            let largest_size = self.value.size as i32;
 
             self.value.size = largest_size + carry as i32;
-            self.size_in_bits = max(self.size_in_bits, rhs.size_in_bits) + carry as u32;
+            self.size_in_bits = self.size_in_bits + carry as u32;
         }
     }
 }

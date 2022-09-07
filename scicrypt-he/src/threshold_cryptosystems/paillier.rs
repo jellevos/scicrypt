@@ -142,6 +142,10 @@ impl PartialDecryptionKey<ThresholdPaillierPK> for ThresholdPaillierSK {
         ciphertext: &PaillierCiphertext,
     ) -> ThresholdPaillierShare {
         let n_squared = public_key.modulus.square();
+        println!(
+            "--- exponent: {:?}",
+            (&(&UnsignedInteger::new(2, 2) * &public_key.delta) * &self.key)
+        );
         ThresholdPaillierShare {
             id: self.id,
             share: ciphertext.c.pow_mod(
@@ -197,11 +201,17 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
         let mut product = UnsignedInteger::from(1u64);
 
         for (share, lambda) in decryption_shares.iter().zip(lambdas) {
-            product = (&product
-                * &share
-                    .share
-                    .pow_mod(&(UnsignedInteger::from(lambda * 2u64)), &n_squared))
-                .rem(&n_squared);
+            let lambda_is_negative = lambda < 0;
+
+            let mut part = share
+                .share
+                .pow_mod(&(UnsignedInteger::from(lambda.abs() * 2u64)), &n_squared);
+
+            if lambda_is_negative {
+                part = part.invert(&n_squared).unwrap();
+            }
+
+            product = (&product * &part) % &n_squared;
         }
 
         let inverse = (&(&UnsignedInteger::from(4u64) * &public_key.delta.square())

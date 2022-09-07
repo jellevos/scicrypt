@@ -53,6 +53,7 @@ impl From<u64> for UnsignedInteger {
 #[cfg(feature = "rug")]
 impl From<Integer> for UnsignedInteger {
     fn from(integer: Integer) -> Self {
+        debug_assert!(integer >= 0);
         let size_in_bits = integer.significant_bits();
         UnsignedInteger {
             value: integer.into_raw(),

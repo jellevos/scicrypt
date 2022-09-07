@@ -76,12 +76,12 @@ impl EncryptionKey for PaillierPK {
     /// # use scicrypt_he::cryptosystems::paillier::Paillier;
     /// # use scicrypt_traits::security::BitsOfSecurity;
     /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
-    /// # use rug::Integer;
+    /// # use scicrypt_bigint::UnsignedInteger;
     /// # use rand_core::OsRng;
     /// # let mut rng = GeneralRng::new(OsRng);
     /// # let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
     /// # let (public_key, secret_key) = paillier.generate_keys(&mut rng);
-    /// let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
+    /// let ciphertext = public_key.encrypt(&UnsignedInteger::from(5), &mut rng);
     /// ```
     fn encrypt_raw<R: SecureRng>(
         &self,
@@ -107,12 +107,12 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
     /// # use scicrypt_he::cryptosystems::paillier::Paillier;
     /// # use scicrypt_traits::security::BitsOfSecurity;
     /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
-    /// # use rug::Integer;
+    /// # use scicrypt_bigint::UnsignedInteger;
     /// # use rand_core::OsRng;
     /// # let mut rng = GeneralRng::new(OsRng);
     /// # let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
     /// # let (public_key, secret_key) = paillier.generate_keys(&mut rng);
-    /// # let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
+    /// # let ciphertext = public_key.encrypt(&UnsignedInteger::from(5), &mut rng);
     /// println!("The decrypted message is {}", secret_key.decrypt(&ciphertext));
     /// // Prints: "The decrypted message is 5".
     /// ```

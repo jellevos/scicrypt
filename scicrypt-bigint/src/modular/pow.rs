@@ -17,6 +17,7 @@ impl UnsignedInteger {
             exponent.size_in_bits > 0,
             "the exponent must be larger than 0"
         );
+        debug_assert!(exponent.value.size.is_positive());
 
         debug_assert!(self.value.size.is_positive());
         debug_assert!(modulus.value.size.is_positive());

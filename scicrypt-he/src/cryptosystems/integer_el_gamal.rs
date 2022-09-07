@@ -16,13 +16,14 @@ use scicrypt_traits::security::BitsOfSecurity;
 /// # use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
 /// # use scicrypt_traits::security::BitsOfSecurity;
 /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
+/// # use scicrypt_bigint::UnsignedInteger;
 /// # use rand_core::OsRng;
 /// let mut rng = GeneralRng::new(OsRng);
 /// let el_gamal = IntegerElGamal::setup(&Default::default());
 /// let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
 ///
-/// let ciphertext_1 = public_key.encrypt(&Integer::from(4), &mut rng);
-/// let ciphertext_2 = public_key.encrypt(&Integer::from(6), &mut rng);
+/// let ciphertext_1 = public_key.encrypt(&UnsignedInteger::from(4), &mut rng);
+/// let ciphertext_2 = public_key.encrypt(&UnsignedInteger::from(6), &mut rng);
 ///
 /// println!("[4] * [6] = [{}]", secret_key.decrypt(&(ciphertext_1 * ciphertext_2)));
 /// // Prints: "[4] * [6] = [24]".
@@ -114,11 +115,11 @@ impl EncryptionKey for IntegerElGamalPK {
     /// # use scicrypt_traits::security::BitsOfSecurity;
     /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
     /// # use rand_core::OsRng;
-    /// # use rug::Integer;
+    /// # use scicrypt_bigint::UnsignedInteger;
     /// # let mut rng = GeneralRng::new(OsRng);
     /// # let el_gamal = IntegerElGamal::setup(&Default::default());
     /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
-    /// let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
+    /// let ciphertext = public_key.encrypt(&UnsignedInteger::from(5), &mut rng);
     /// ```
     fn encrypt_raw<R: SecureRng>(
         &self,
@@ -142,12 +143,12 @@ impl DecryptionKey<IntegerElGamalPK> for IntegerElGamalSK {
     /// # use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
     /// # use scicrypt_traits::security::BitsOfSecurity;
     /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey, DecryptionKey};
-    /// # use rug::Integer;
+    /// # use scicrypt_bigint::UnsignedInteger;
     /// # use rand_core::OsRng;
     /// # let mut rng = GeneralRng::new(OsRng);
     /// # let el_gamal = IntegerElGamal::setup(&Default::default());
     /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
-    /// # let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
+    /// # let ciphertext = public_key.encrypt(&UnsignedInteger::from(5), &mut rng);
     /// println!("The decrypted message is {}", secret_key.decrypt(&ciphertext));
     /// // Prints: "The decrypted message is 5".
     /// ```
