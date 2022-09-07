@@ -246,7 +246,7 @@ impl UnsignedInteger {
 impl PartialEq for UnsignedInteger {
     fn eq(&self, other: &Self) -> bool {
         let n = min(self.value.size, other.value.size);
-
+        
         unsafe { gmp::mpn_cmp(self.value.d.as_ptr(), other.value.d.as_ptr(), n as i64) == 0 }
     }
 }
@@ -299,6 +299,22 @@ mod tests {
         a >>= 3;
 
         assert_eq!(UnsignedInteger::from(16u64), a);
+    }
+
+    #[test]
+    fn test_factorial() {
+        let a = UnsignedInteger::factorial(9);
+        let b = UnsignedInteger::from_string("87178291200".to_string(), 10, 37);
+
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn test_factorial_large() {
+        let a = UnsignedInteger::factorial(21);
+        let b = UnsignedInteger::from_string("51090942171709440000".to_string(), 10, 66);
+
+        assert_eq!(a, b);
     }
 
     // #[test]
