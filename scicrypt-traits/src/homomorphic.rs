@@ -53,8 +53,12 @@ impl<'pk, C: Associable<PK>, PK: EncryptionKey<Ciphertext = C> + HomomorphicAddi
     }
 }
 
-impl<'pk, P: PotentialInput, C: Associable<PK>, PK: EncryptionKey<Ciphertext = C, Plaintext = P> + HomomorphicAddition>
-    Add<&P> for &AssociatedCiphertext<'pk, C, PK>
+impl<
+        'pk,
+        P: PotentialInput,
+        C: Associable<PK>,
+        PK: EncryptionKey<Ciphertext = C, Plaintext = P> + HomomorphicAddition,
+    > Add<&P> for &AssociatedCiphertext<'pk, C, PK>
 {
     type Output = AssociatedCiphertext<'pk, C, PK>;
 
@@ -78,8 +82,12 @@ impl<'pk, C: Associable<PK>, PK: EncryptionKey<Ciphertext = C> + HomomorphicAddi
     }
 }
 
-impl<'pk, P: PotentialInput, C: Associable<PK>, PK: EncryptionKey<Ciphertext = C, Plaintext = P> + HomomorphicAddition>
-    Sub<&P> for &AssociatedCiphertext<'pk, C, PK>
+impl<
+        'pk,
+        P: PotentialInput,
+        C: Associable<PK>,
+        PK: EncryptionKey<Ciphertext = C, Plaintext = P> + HomomorphicAddition,
+    > Sub<&P> for &AssociatedCiphertext<'pk, C, PK>
 {
     type Output = AssociatedCiphertext<'pk, C, PK>;
 

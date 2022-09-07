@@ -169,8 +169,10 @@ impl HomomorphicAddition for PaillierPK {
     ) -> Self::Ciphertext {
         let modulus = Integer::from(self.n.square_ref());
         PaillierCiphertext {
-            c: Integer::from(&ciphertext_a.c * &Integer::from(ciphertext_b.c.invert_ref(&modulus).unwrap()))
-                .rem(Integer::from(self.n.square_ref())),
+            c: Integer::from(
+                &ciphertext_a.c * &Integer::from(ciphertext_b.c.invert_ref(&modulus).unwrap()),
+            )
+            .rem(Integer::from(self.n.square_ref())),
         }
     }
 
