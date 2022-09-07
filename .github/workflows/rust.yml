@@ -82,6 +82,6 @@ jobs:
       - uses: actions/checkout@v2
       - run: "cargo bench | tee bench_result"
       # Check if there were no errors
-      - run: "! grep -q error bench_result"
+      - run: "if grep -q error bench_result; then exit 1; fi"
       # Check if there is no regression
-      - run: "! grep -q regressed bench_result"
+      - run: "if grep -q regressed bench_result; then exit 1; fi"

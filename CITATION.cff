@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software in your paper, please cite it as below."
+authors:
+- family-names: "Vos"
+  given-names: "Jelle"
+  orcid: "https://orcid.org/0000-0002-3979-9740"
+title: "scicrypt"
+version: 0.6.1
+date-released: 2022-09-07
+url: "https://github.com/jellevos/scicrypt"

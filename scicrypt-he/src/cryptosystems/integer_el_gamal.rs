@@ -7,6 +7,8 @@ use scicrypt_traits::homomorphic::HomomorphicMultiplication;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
+use serde::{Deserialize, Serialize};
+use std::ops::Rem;
 
 /// Multiplicatively homomorphic ElGamal over a safe prime group where the generator is 4.
 ///
@@ -25,7 +27,7 @@ use scicrypt_traits::security::BitsOfSecurity;
 /// let ciphertext_1 = public_key.encrypt(&UnsignedInteger::from(4), &mut rng);
 /// let ciphertext_2 = public_key.encrypt(&UnsignedInteger::from(6), &mut rng);
 ///
-/// println!("[4] * [6] = [{}]", secret_key.decrypt(&(ciphertext_1 * ciphertext_2)));
+/// println!("[4] * [6] = [{}]", secret_key.decrypt(&(&ciphertext_1 * &ciphertext_2)));
 /// // Prints: "[4] * [6] = [24]".
 /// ```
 #[derive(Clone)]
@@ -34,16 +36,21 @@ pub struct IntegerElGamal {
 }
 
 /// Public key containing the ElGamal encryption key and the modulus of the group.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct IntegerElGamalPK {
-    pub(crate) h: UnsignedInteger,
-    pub(crate) modulus: UnsignedInteger,
+    /// Generator for encrypting
+    pub h: UnsignedInteger,
+    /// Modulus of public key
+    pub modulus: UnsignedInteger,
 }
 
 /// ElGamal ciphertext of integers.
+#[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct IntegerElGamalCiphertext {
-    pub(crate) c1: UnsignedInteger,
-    pub(crate) c2: UnsignedInteger,
+    /// First part of ciphertext
+    pub c1: UnsignedInteger,
+    /// Second part of ciphertext
+    pub c2: UnsignedInteger,
 }
 
 impl Associable<IntegerElGamalPK> for IntegerElGamalCiphertext {}
@@ -165,13 +172,26 @@ impl DecryptionKey<IntegerElGamalPK> for IntegerElGamalSK {
                 .unwrap())
             % &public_key.modulus
     }
+
+    fn decrypt_identity_raw(
+        &self,
+        public_key: &IntegerElGamalPK,
+        ciphertext: &<IntegerElGamalPK as EncryptionKey>::Ciphertext,
+    ) -> bool {
+        ciphertext.c2
+            == Integer::from(
+                ciphertext
+                    .c1
+                    .secure_pow_mod_ref(&self.key, &public_key.modulus),
+            )
+    }
 }
 
 impl HomomorphicMultiplication for IntegerElGamalPK {
     fn mul(
         &self,
-        ciphertext_a: Self::Ciphertext,
-        ciphertext_b: Self::Ciphertext,
+        ciphertext_a: &Self::Ciphertext,
+        ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
         IntegerElGamalCiphertext {
             c1: (&ciphertext_a.c1 * &ciphertext_b.c1) % &self.modulus,
@@ -179,10 +199,10 @@ impl HomomorphicMultiplication for IntegerElGamalPK {
         }
     }
 
-    fn pow(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
+    fn pow(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
         IntegerElGamalCiphertext {
-            c1: ciphertext.c1.pow_mod(&input, &self.modulus),
-            c2: ciphertext.c2.pow_mod(&input, &self.modulus),
+            c1: ciphertext.c1.pow_mod(input, &self.modulus),
+            c2: ciphertext.c2.pow_mod(input, &self.modulus),
         }
     }
 }
@@ -208,6 +228,18 @@ mod tests {
     }
 
     #[test]
+    fn test_encrypt_decrypt_identity() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let el_gamal = IntegerElGamal::setup(&Default::default());
+        let (pk, sk) = el_gamal.generate_keys(&mut rng);
+
+        let ciphertext = pk.encrypt(&Integer::from(1), &mut rng);
+
+        assert!(sk.decrypt_identity(&ciphertext));
+    }
+
+    #[test]
     fn test_homomorphic_mul() {
         // TODO: Sometimes fails
         let mut rng = GeneralRng::new(OsRng);
@@ -217,7 +249,7 @@ mod tests {
 
         let ciphertext_a = pk.encrypt(&UnsignedInteger::from(7u64), &mut rng);
         let ciphertext_b = pk.encrypt(&UnsignedInteger::from(7u64), &mut rng);
-        let ciphertext_twice = ciphertext_a * ciphertext_b;
+        let ciphertext_twice = &ciphertext_a * &ciphertext_b;
 
         assert_eq!(UnsignedInteger::from(49u64), sk.decrypt(&ciphertext_twice));
     }
@@ -230,7 +262,7 @@ mod tests {
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&UnsignedInteger::from(9u64), &mut rng);
-        let ciphertext_twice = ciphertext.pow(UnsignedInteger::from(4u64));
+        let ciphertext_twice = ciphertext.pow(&UnsignedInteger::from(4u64));
 
         assert_eq!(
             UnsignedInteger::from(6561u64),

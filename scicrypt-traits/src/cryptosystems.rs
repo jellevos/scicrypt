@@ -12,9 +12,9 @@ use std::fmt::Debug;
 /// deciding the level of security. As such, each cryptosystem should clearly indicate these.
 pub trait AsymmetricCryptosystem {
     /// The public key, used for encrypting plaintexts.
-    type PublicKey;
+    type PublicKey: EncryptionKey;
     /// The secret key, used for decrypting ciphertexts.
-    type SecretKey;
+    type SecretKey: DecryptionKey<Self::PublicKey>;
 
     /// Sets up an instance of this cryptosystem with parameters satisfying the security parameter.
     fn setup(security_parameter: &BitsOfSecurity) -> Self;
@@ -65,8 +65,19 @@ pub trait DecryptionKey<PK: EncryptionKey> {
         self.decrypt_raw(ciphertext.public_key, &ciphertext.ciphertext)
     }
 
+    /// Returns true if the associated ciphertext encrypts the identity. This is typically faster than a full decryption.
+    fn decrypt_identity<'pk>(
+        &self,
+        ciphertext: &AssociatedCiphertext<'pk, PK::Ciphertext, PK>,
+    ) -> bool {
+        self.decrypt_identity_raw(ciphertext.public_key, &ciphertext.ciphertext)
+    }
+
     /// Decrypt the ciphertext using the secret key and its related public key.
     fn decrypt_raw(&self, public_key: &PK, ciphertext: &PK::Ciphertext) -> PK::Plaintext;
+
+    /// Returns true if the encrypted value equals the identity. This is typically faster than a full decryption.
+    fn decrypt_identity_raw(&self, public_key: &PK, ciphertext: &PK::Ciphertext) -> bool;
 }
 
 #[derive(PartialEq, Eq, Debug)]
