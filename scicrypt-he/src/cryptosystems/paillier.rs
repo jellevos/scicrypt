@@ -145,8 +145,8 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
 impl HomomorphicAddition for PaillierPK {
     fn add(
         &self,
-        ciphertext_a: Self::Ciphertext,
-        ciphertext_b: Self::Ciphertext,
+        ciphertext_a: &Self::Ciphertext,
+        ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
         PaillierCiphertext {
             c: Integer::from(&ciphertext_a.c * &ciphertext_b.c)
@@ -154,29 +154,31 @@ impl HomomorphicAddition for PaillierPK {
         }
     }
 
-    fn mul_constant(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
+    fn mul_constant(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
         let modulus = Integer::from(self.n.square_ref());
 
         PaillierCiphertext {
-            c: Integer::from(ciphertext.c.pow_mod_ref(&input, &modulus).unwrap()),
+            c: Integer::from(ciphertext.c.pow_mod_ref(input, &modulus).unwrap()),
         }
     }
 
     fn sub(
         &self,
-        ciphertext_a: Self::Ciphertext,
-        ciphertext_b: Self::Ciphertext,
+        ciphertext_a: &Self::Ciphertext,
+        ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
         let modulus = Integer::from(self.n.square_ref());
         PaillierCiphertext {
-            c: Integer::from(&ciphertext_a.c * &ciphertext_b.c.invert(&modulus).unwrap())
-                .rem(Integer::from(self.n.square_ref())),
+            c: Integer::from(
+                &ciphertext_a.c * &Integer::from(ciphertext_b.c.invert_ref(&modulus).unwrap()),
+            )
+            .rem(Integer::from(self.n.square_ref())),
         }
     }
 
     fn add_constant(
         &self,
-        ciphertext: Self::Ciphertext,
+        ciphertext: &Self::Ciphertext,
         constant: &Self::Plaintext,
     ) -> Self::Ciphertext {
         let modulus = Integer::from(self.n.square_ref());
@@ -190,7 +192,7 @@ impl HomomorphicAddition for PaillierPK {
 
     fn sub_constant(
         &self,
-        ciphertext: Self::Ciphertext,
+        ciphertext: &Self::Ciphertext,
         constant: &Self::Plaintext,
     ) -> Self::Ciphertext {
         let modulus = Integer::from(self.n.square_ref());
@@ -250,7 +252,7 @@ mod tests {
 
         let ciphertext_a = pk.encrypt(&Integer::from(7), &mut rng);
         let ciphertext_b = pk.encrypt(&Integer::from(7), &mut rng);
-        let ciphertext_twice = ciphertext_a + ciphertext_b;
+        let ciphertext_twice = &ciphertext_a + &ciphertext_b;
 
         assert_eq!(Integer::from(14), sk.decrypt(&ciphertext_twice));
     }
@@ -264,7 +266,7 @@ mod tests {
 
         let ciphertext_a = pk.encrypt(&Integer::from(7), &mut rng);
         let ciphertext_b = pk.encrypt(&Integer::from(5), &mut rng);
-        let ciphertext_res = ciphertext_a - ciphertext_b;
+        let ciphertext_res = &ciphertext_a - &ciphertext_b;
 
         assert_eq!(Integer::from(2), sk.decrypt(&ciphertext_res));
     }
@@ -277,7 +279,7 @@ mod tests {
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&Integer::from(9), &mut rng);
-        let ciphertext_twice = ciphertext * Integer::from(16);
+        let ciphertext_twice = &ciphertext * &Integer::from(16);
 
         assert_eq!(144, sk.decrypt(&ciphertext_twice));
     }
@@ -290,7 +292,7 @@ mod tests {
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&Integer::from(7), &mut rng);
-        let ciphertext_res = ciphertext + &Integer::from(5);
+        let ciphertext_res = &ciphertext + &Integer::from(5);
 
         assert_eq!(Integer::from(12), sk.decrypt(&ciphertext_res));
     }
@@ -303,7 +305,7 @@ mod tests {
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&Integer::from(7), &mut rng);
-        let ciphertext_res = ciphertext - &Integer::from(5);
+        let ciphertext_res = &ciphertext - &Integer::from(5);
 
         assert_eq!(Integer::from(2), sk.decrypt(&ciphertext_res));
     }

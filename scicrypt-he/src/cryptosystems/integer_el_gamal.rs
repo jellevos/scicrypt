@@ -27,7 +27,7 @@ use std::ops::Rem;
 /// let ciphertext_1 = public_key.encrypt(&Integer::from(4), &mut rng);
 /// let ciphertext_2 = public_key.encrypt(&Integer::from(6), &mut rng);
 ///
-/// println!("[4] * [6] = [{}]", secret_key.decrypt(&(ciphertext_1 * ciphertext_2)));
+/// println!("[4] * [6] = [{}]", secret_key.decrypt(&(&ciphertext_1 * &ciphertext_2)));
 /// // Prints: "[4] * [6] = [24]".
 /// ```
 #[derive(Clone)]
@@ -193,8 +193,8 @@ impl DecryptionKey<IntegerElGamalPK> for IntegerElGamalSK {
 impl HomomorphicMultiplication for IntegerElGamalPK {
     fn mul(
         &self,
-        ciphertext_a: Self::Ciphertext,
-        ciphertext_b: Self::Ciphertext,
+        ciphertext_a: &Self::Ciphertext,
+        ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
         IntegerElGamalCiphertext {
             c1: Integer::from(&ciphertext_a.c1 * &ciphertext_b.c1).rem(&self.modulus),
@@ -202,10 +202,10 @@ impl HomomorphicMultiplication for IntegerElGamalPK {
         }
     }
 
-    fn pow(&self, ciphertext: Self::Ciphertext, input: Self::Input) -> Self::Ciphertext {
+    fn pow(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
         IntegerElGamalCiphertext {
-            c1: Integer::from(ciphertext.c1.pow_mod_ref(&input, &self.modulus).unwrap()),
-            c2: Integer::from(ciphertext.c2.pow_mod_ref(&input, &self.modulus).unwrap()),
+            c1: Integer::from(ciphertext.c1.pow_mod_ref(input, &self.modulus).unwrap()),
+            c2: Integer::from(ciphertext.c2.pow_mod_ref(input, &self.modulus).unwrap()),
         }
     }
 }
@@ -251,7 +251,7 @@ mod tests {
 
         let ciphertext_a = pk.encrypt(&Integer::from(7), &mut rng);
         let ciphertext_b = pk.encrypt(&Integer::from(7), &mut rng);
-        let ciphertext_twice = ciphertext_a * ciphertext_b;
+        let ciphertext_twice = &ciphertext_a * &ciphertext_b;
 
         assert_eq!(49, sk.decrypt(&ciphertext_twice));
     }
@@ -264,7 +264,7 @@ mod tests {
         let (pk, sk) = el_gamal.generate_keys(&mut rng);
 
         let ciphertext = pk.encrypt(&Integer::from(9), &mut rng);
-        let ciphertext_twice = ciphertext.pow(Integer::from(4));
+        let ciphertext_twice = ciphertext.pow(&Integer::from(4));
 
         assert_eq!(6561, sk.decrypt(&ciphertext_twice));
     }
