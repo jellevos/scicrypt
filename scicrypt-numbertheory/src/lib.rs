@@ -10,8 +10,6 @@ mod primes;
 
 use crate::primes::FIRST_PRIMES;
 use scicrypt_bigint::UnsignedInteger;
-//use rug::integer::IsPrime;
-//use rug::Integer;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 
