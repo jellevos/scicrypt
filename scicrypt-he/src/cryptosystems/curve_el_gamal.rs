@@ -126,10 +126,10 @@ impl EncryptionKey for CurveElGamalPK {
         ciphertext: Self::Ciphertext,
         randomness: &Self::Input,
     ) -> Self::Ciphertext {
-        return CurveElGamalCiphertext {
+        CurveElGamalCiphertext {
             c1: randomness * &RISTRETTO_BASEPOINT_TABLE,
             c2: ciphertext.c2 + randomness * self.point,
-        };
+        }
     }
 }
 
@@ -178,10 +178,10 @@ impl EncryptionKey for PrecomputedCurveElGamalPK {
         ciphertext: Self::Ciphertext,
         randomness: &Self::Input,
     ) -> Self::Ciphertext {
-        return CurveElGamalCiphertext {
+        CurveElGamalCiphertext {
             c1: randomness * &RISTRETTO_BASEPOINT_TABLE,
             c2: ciphertext.c2 + randomness * &self.point,
-        };
+        }
     }
 }
 

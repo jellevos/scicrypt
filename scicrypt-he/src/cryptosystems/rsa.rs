@@ -69,7 +69,7 @@ impl EncryptionKey for RsaPK {
         plaintext: &Integer,
         _rng: &mut GeneralRng<R>,
     ) -> RsaCiphertext {
-        self.encrypt_determinstic(&plaintext)
+        self.encrypt_determinstic(plaintext)
     }
     fn encrypt_determinstic(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         RsaCiphertext {

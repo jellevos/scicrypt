@@ -151,12 +151,12 @@ impl EncryptionKey for IntegerElGamalPK {
         ciphertext: Self::Ciphertext,
         randomness: &Self::Input,
     ) -> Self::Ciphertext {
-        return IntegerElGamalCiphertext {
+        IntegerElGamalCiphertext {
             c1: Integer::from(Integer::from(4).secure_pow_mod_ref(randomness, &self.modulus)),
             c2: (ciphertext.c2
                 * Integer::from(self.h.secure_pow_mod_ref(randomness, &self.modulus)))
             .rem(&self.modulus),
-        };
+        }
     }
 }
 

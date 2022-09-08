@@ -147,9 +147,9 @@ impl EncryptionKey for ThresholdPaillierPK {
             .to_owned()
             .secure_pow_mod(&self.modulus, &n_squared);
 
-        return PaillierCiphertext {
+        PaillierCiphertext {
             c: (ciphertext.c * randomizer).rem(&n_squared),
-        };
+        }
     }
 }
 

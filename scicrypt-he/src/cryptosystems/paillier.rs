@@ -116,9 +116,9 @@ impl EncryptionKey for PaillierPK {
 
         let randomizer = randomness.to_owned().secure_pow_mod(&self.n, &n_squared);
 
-        return PaillierCiphertext {
+        PaillierCiphertext {
             c: Integer::from(&ciphertext.c * &randomizer).rem(n_squared),
-        };
+        }
     }
 }
 
