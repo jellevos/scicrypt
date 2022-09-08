@@ -53,6 +53,19 @@ pub trait EncryptionKey: Sized + Debug + PartialEq {
         plaintext: &Self::Plaintext,
         rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext;
+
+    /// Encrypt the plaintext using the public key and (WARNING!) determinstic randomness. Should be used directly with randomize to control randomness.
+    fn encrypt_determinstic(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext;
+
+    /// Randomizes the ciphertext using supplied randomness.
+    #[allow(unused_variables)]
+    fn randomize(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Input,
+    ) -> Self::Ciphertext {
+        ciphertext
+    }
 }
 
 /// The decryption key.

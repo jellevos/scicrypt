@@ -136,11 +136,27 @@ impl EncryptionKey for IntegerElGamalPK {
         let q = Integer::from(&self.modulus >> 1);
         let y = q.random_below(&mut rng.rug_rng());
 
+        let message = self.encrypt_determinstic(plaintext);
+
+        self.randomize(message, &y)
+    }
+    fn encrypt_determinstic(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         IntegerElGamalCiphertext {
-            c1: Integer::from(Integer::from(4).secure_pow_mod_ref(&y, &self.modulus)),
-            c2: (plaintext * Integer::from(self.h.secure_pow_mod_ref(&y, &self.modulus)))
-                .rem(&self.modulus),
+            c1: Integer::from(1),
+            c2: plaintext.to_owned().rem(&self.modulus),
         }
+    }
+    fn randomize(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Input,
+    ) -> Self::Ciphertext {
+        return IntegerElGamalCiphertext {
+            c1: Integer::from(Integer::from(4).secure_pow_mod_ref(randomness, &self.modulus)),
+            c2: (ciphertext.c2
+                * Integer::from(self.h.secure_pow_mod_ref(randomness, &self.modulus)))
+            .rem(&self.modulus),
+        };
     }
 }
 

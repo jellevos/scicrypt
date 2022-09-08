@@ -96,12 +96,29 @@ impl EncryptionKey for PaillierPK {
         let n_squared = Integer::from(self.n.square_ref());
         let r = gen_coprime(&n_squared, rng);
 
-        let first = Integer::from(self.g.pow_mod_ref(&plaintext.into(), &n_squared).unwrap());
-        let second = r.secure_pow_mod(&self.n, &n_squared);
+        let ciphertext = self.encrypt_determinstic(plaintext);
+        self.randomize(ciphertext, &r)
+    }
+
+    fn encrypt_determinstic(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
+        let n_squared = Integer::from(self.n.square_ref());
 
         PaillierCiphertext {
-            c: (first * second).rem(&n_squared),
+            c: Integer::from(self.g.pow_mod_ref(&plaintext.into(), &n_squared).unwrap()),
         }
+    }
+    fn randomize(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Input,
+    ) -> Self::Ciphertext {
+        let n_squared = Integer::from(self.n.square_ref());
+
+        let randomizer = randomness.to_owned().secure_pow_mod(&self.n, &n_squared);
+
+        return PaillierCiphertext {
+            c: Integer::from(&ciphertext.c * &randomizer).rem(n_squared),
+        };
     }
 }
 

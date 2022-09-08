@@ -1,3 +1,4 @@
+use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::{RistrettoBasepointTable, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
@@ -9,6 +10,7 @@ use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use serde::{Deserialize, Serialize};
+use std::convert::identity;
 use std::fmt::{Debug, Formatter};
 
 /// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
@@ -108,10 +110,26 @@ impl EncryptionKey for CurveElGamalPK {
     ) -> CurveElGamalCiphertext {
         let y = Scalar::random(rng.rng());
 
+        let message = self.encrypt_determinstic(plaintext);
+
+        self.randomize(message, &y)
+    }
+    fn encrypt_determinstic(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         CurveElGamalCiphertext {
-            c1: &y * &RISTRETTO_BASEPOINT_TABLE,
-            c2: plaintext + y * self.point,
+            c1: identity(RISTRETTO_BASEPOINT_POINT),
+            c2: plaintext.to_owned(),
         }
+    }
+
+    fn randomize(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Input,
+    ) -> Self::Ciphertext {
+        return CurveElGamalCiphertext {
+            c1: randomness * &RISTRETTO_BASEPOINT_TABLE,
+            c2: ciphertext.c2 + randomness * self.point,
+        };
     }
 }
 
@@ -144,11 +162,26 @@ impl EncryptionKey for PrecomputedCurveElGamalPK {
         rng: &mut GeneralRng<R>,
     ) -> CurveElGamalCiphertext {
         let y = Scalar::random(rng.rng());
+        let message = self.encrypt_determinstic(plaintext);
 
+        self.randomize(message, &y)
+    }
+    fn encrypt_determinstic(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         CurveElGamalCiphertext {
-            c1: &y * &RISTRETTO_BASEPOINT_TABLE,
-            c2: plaintext + &y * &self.point,
+            c1: identity(RISTRETTO_BASEPOINT_POINT),
+            c2: plaintext.to_owned(),
         }
+    }
+
+    fn randomize(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Input,
+    ) -> Self::Ciphertext {
+        return CurveElGamalCiphertext {
+            c1: randomness * &RISTRETTO_BASEPOINT_TABLE,
+            c2: ciphertext.c2 + randomness * &self.point,
+        };
     }
 }
 
