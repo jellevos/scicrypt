@@ -1,7 +1,7 @@
 [package]
 name = "scicrypt-bigint"
 description = "A scicrypt crate implementing *mostly* constant-time bigints for modular integers"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
 edition = "2018"
 license = "MIT"
