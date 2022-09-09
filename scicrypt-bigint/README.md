@@ -8,6 +8,7 @@ If the crate is not working as expected, consider running with `--debug` to hit 
 Exceptions:
 - Initializing from strings using `from_string`
 - Equality checks (`PartialEq`)
+- Ordering (`PartialOrd`)
 - Computing `lcm` 
 - `random`
 - `mod_u`

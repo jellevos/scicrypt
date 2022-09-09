@@ -14,6 +14,8 @@ use std::{
     ptr::null_mut,
 };
 
+use std::cmp::Ordering::{Equal, Greater, Less};
+
 use gmp_mpfr_sys::gmp::{self, mpz_fac_ui, mpz_t};
 
 #[cfg(feature = "rug")]
@@ -187,8 +189,14 @@ impl UnsignedInteger {
 
     /// Generates a random unsigned number below `limit`.
     pub fn random_below<R: SecureRng>(limit: &UnsignedInteger, rng: &mut GeneralRng<R>) -> Self {
-        // FIXME: This is completely not secure
-        UnsignedInteger::random(limit.size_in_bits, rng) % limit
+        // Simple rejection sampling, not constant_time
+        loop {
+            let random = UnsignedInteger::random(limit.size_in_bits, rng);
+
+            if &random < limit {
+                break random;
+            }
+        }
     }
 
     pub fn set_bit(&mut self, bit_index: u32) {
@@ -264,6 +272,20 @@ impl PartialEq for UnsignedInteger {
 }
 
 impl Eq for UnsignedInteger {}
+
+impl PartialOrd for UnsignedInteger {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        let n = min(self.value.size, other.value.size);
+
+        unsafe {
+            match gmp::mpn_cmp(self.value.d.as_ptr(), other.value.d.as_ptr(), n as i64) {
+                0 => Some(Equal),
+                1.. => Some(Greater),
+                _ => Some(Less),
+            }
+        }
+    }
+}
 
 impl Clone for UnsignedInteger {
     fn clone(&self) -> Self {
