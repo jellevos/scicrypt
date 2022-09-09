@@ -1,7 +1,7 @@
 [package]
 name = "scicrypt-traits"
 description = "A scicrypt crate defining general traits for cryptographic systems and functionalities"
-version = "0.6.1"
+version = "0.6.2"
 authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
 edition = "2018"
 license = "MIT"
