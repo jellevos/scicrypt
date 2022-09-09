@@ -38,6 +38,9 @@ pub trait EncryptionKey: Sized + Debug + PartialEq {
     /// The type of an encrypted plaintext, i.e. a ciphertext.
     type Ciphertext: Associable<Self>;
 
+    /// The type of the randomness used.
+    type Randomness;
+
     /// Encrypt the plaintext using the public key and a cryptographic RNG and immediately associate it with the public key.
     fn encrypt<'pk, R: SecureRng>(
         &'pk self,
@@ -52,20 +55,28 @@ pub trait EncryptionKey: Sized + Debug + PartialEq {
         &self,
         plaintext: &Self::Plaintext,
         rng: &mut GeneralRng<R>,
-    ) -> Self::Ciphertext;
+    ) -> Self::Ciphertext {
+        let message = self.encrypt_without_randomness(plaintext);
+
+        self.randomize(message, rng)
+    }
 
     /// Encrypt the plaintext using the public key and (WARNING!) determinstic randomness. Should be used directly with randomize to control randomness.
-    fn encrypt_determinstic(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext;
+    fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext;
 
-    /// Randomizes the ciphertext using supplied randomness.
-    #[allow(unused_variables)]
-    fn randomize(
+    /// Randomizes the ciphertext with the supplied rng.
+    fn randomize<R: SecureRng>(
         &self,
         ciphertext: Self::Ciphertext,
-        randomness: &Self::Input,
-    ) -> Self::Ciphertext {
-        ciphertext
-    }
+        rng: &mut GeneralRng<R>,
+    ) -> Self::Ciphertext;
+
+    /// Randomizes the ciphertext with the user supplied randomness.
+    fn randomize_with(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Randomness,
+    ) -> Self::Ciphertext;
 }
 
 /// The decryption key.

@@ -114,6 +114,7 @@ impl EncryptionKey for IntegerElGamalPK {
     type Input = Integer;
     type Plaintext = Integer;
     type Ciphertext = IntegerElGamalCiphertext;
+    type Randomness = Integer;
 
     /// Encrypts an integer using the public key.
     /// ```
@@ -128,28 +129,27 @@ impl EncryptionKey for IntegerElGamalPK {
     /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
     /// let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
     /// ```
-    fn encrypt_raw<R: SecureRng>(
-        &self,
-        plaintext: &Integer,
-        rng: &mut GeneralRng<R>,
-    ) -> IntegerElGamalCiphertext {
-        let q = Integer::from(&self.modulus >> 1);
-        let y = q.random_below(&mut rng.rug_rng());
 
-        let message = self.encrypt_determinstic(plaintext);
-
-        self.randomize(message, &y)
-    }
-    fn encrypt_determinstic(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
+    fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         IntegerElGamalCiphertext {
             c1: Integer::from(1),
             c2: plaintext.to_owned().rem(&self.modulus),
         }
     }
-    fn randomize(
+    fn randomize<R: SecureRng>(
         &self,
         ciphertext: Self::Ciphertext,
-        randomness: &Self::Input,
+        rng: &mut GeneralRng<R>,
+    ) -> Self::Ciphertext {
+        let q = Integer::from(&self.modulus >> 1);
+        let y = q.random_below(&mut rng.rug_rng());
+
+        self.randomize_with(ciphertext, &y)
+    }
+    fn randomize_with(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Randomness,
     ) -> Self::Ciphertext {
         IntegerElGamalCiphertext {
             c1: Integer::from(Integer::from(4).secure_pow_mod_ref(randomness, &self.modulus)),

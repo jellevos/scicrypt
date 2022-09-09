@@ -110,24 +110,10 @@ impl EncryptionKey for ThresholdPaillierPK {
     type Input = Integer;
     type Plaintext = Integer;
     type Ciphertext = PaillierCiphertext;
+    type Randomness = Integer;
 
-    fn encrypt_raw<R: SecureRng>(
-        &self,
-        plaintext: &Integer,
-        rng: &mut GeneralRng<R>,
-    ) -> PaillierCiphertext
-    where
-        Self: Sized,
-    {
+    fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         let n_squared = Integer::from(self.modulus.square_ref());
-        let r = gen_coprime(&n_squared, rng);
-
-        let ciphertext = self.encrypt_determinstic(plaintext);
-        self.randomize(ciphertext, &r)
-    }
-    fn encrypt_determinstic(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
-        let n_squared = Integer::from(self.modulus.square_ref());
-
         PaillierCiphertext {
             c: Integer::from(
                 self.generator
@@ -136,19 +122,28 @@ impl EncryptionKey for ThresholdPaillierPK {
             ),
         }
     }
-    fn randomize(
+    fn randomize<R: SecureRng>(
         &self,
         ciphertext: Self::Ciphertext,
-        randomness: &Self::Input,
+        rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext {
         let n_squared = Integer::from(self.modulus.square_ref());
+        let r = gen_coprime(&n_squared, rng);
 
+        self.randomize_with(ciphertext, &r)
+    }
+    fn randomize_with(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Randomness,
+    ) -> Self::Ciphertext {
+        let n_squared = Integer::from(self.modulus.square_ref());
         let randomizer = randomness
             .to_owned()
             .secure_pow_mod(&self.modulus, &n_squared);
 
         PaillierCiphertext {
-            c: (ciphertext.c * randomizer).rem(&n_squared),
+            c: Integer::from(&ciphertext.c * &randomizer).rem(n_squared),
         }
     }
 }
