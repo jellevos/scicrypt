@@ -78,6 +78,7 @@ impl EncryptionKey for RsaPK {
             c: Integer::from(plaintext.pow_mod_ref(&self.e, &self.n).unwrap()),
         }
     }
+
     fn randomize<R: SecureRng>(
         &self,
         _ciphertext: Self::Ciphertext,
@@ -85,6 +86,7 @@ impl EncryptionKey for RsaPK {
     ) -> Self::Ciphertext {
         panic!("Not possible to randomize Rsa ciphertext")
     }
+
     fn randomize_with(
         &self,
         _ciphertext: Self::Ciphertext,

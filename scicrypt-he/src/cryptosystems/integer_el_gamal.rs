@@ -136,6 +136,7 @@ impl EncryptionKey for IntegerElGamalPK {
             c2: plaintext.to_owned().rem(&self.modulus),
         }
     }
+
     fn randomize<R: SecureRng>(
         &self,
         ciphertext: Self::Ciphertext,
@@ -146,6 +147,7 @@ impl EncryptionKey for IntegerElGamalPK {
 
         self.randomize_with(ciphertext, &y)
     }
+
     fn randomize_with(
         &self,
         ciphertext: Self::Ciphertext,

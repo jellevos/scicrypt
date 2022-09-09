@@ -104,15 +104,6 @@ impl EncryptionKey for CurveElGamalPK {
     type Ciphertext = CurveElGamalCiphertext;
     type Randomness = Scalar;
 
-    fn encrypt_raw<R: SecureRng>(
-        &self,
-        plaintext: &RistrettoPoint,
-        rng: &mut GeneralRng<R>,
-    ) -> CurveElGamalCiphertext {
-        let message = self.encrypt_without_randomness(plaintext);
-
-        self.randomize(message, rng)
-    }
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         CurveElGamalCiphertext {
             c1: identity(RISTRETTO_BASEPOINT_POINT),
@@ -129,6 +120,7 @@ impl EncryptionKey for CurveElGamalPK {
 
         self.randomize_with(ciphertext, &randomness)
     }
+
     fn randomize_with(
         &self,
         ciphertext: Self::Ciphertext,
@@ -165,15 +157,6 @@ impl EncryptionKey for PrecomputedCurveElGamalPK {
     type Ciphertext = CurveElGamalCiphertext;
     type Randomness = Scalar;
 
-    fn encrypt_raw<R: SecureRng>(
-        &self,
-        plaintext: &RistrettoPoint,
-        rng: &mut GeneralRng<R>,
-    ) -> CurveElGamalCiphertext {
-        let message = self.encrypt_without_randomness(plaintext);
-
-        self.randomize(message, rng)
-    }
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         CurveElGamalCiphertext {
             c1: identity(RISTRETTO_BASEPOINT_POINT),
@@ -190,6 +173,7 @@ impl EncryptionKey for PrecomputedCurveElGamalPK {
 
         self.randomize_with(ciphertext, &randomness)
     }
+
     fn randomize_with(
         &self,
         ciphertext: Self::Ciphertext,

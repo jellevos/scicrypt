@@ -75,6 +75,7 @@ impl EncryptionKey for PaillierPK {
     type Plaintext = Integer;
     type Ciphertext = PaillierCiphertext;
     type Randomness = Integer;
+
     /// Encrypts a plaintext integer using the Paillier public key.
     /// ```
     /// # use scicrypt_traits::randomness::GeneralRng;
@@ -95,6 +96,7 @@ impl EncryptionKey for PaillierPK {
             c: Integer::from(self.g.pow_mod_ref(&plaintext.into(), &n_squared).unwrap()),
         }
     }
+
     fn randomize<R: SecureRng>(
         &self,
         ciphertext: Self::Ciphertext,
@@ -105,6 +107,7 @@ impl EncryptionKey for PaillierPK {
 
         self.randomize_with(ciphertext, &r)
     }
+
     fn randomize_with(
         &self,
         ciphertext: Self::Ciphertext,
