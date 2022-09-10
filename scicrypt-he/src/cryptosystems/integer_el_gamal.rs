@@ -6,7 +6,7 @@
 //! use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
 //! use rand_core::OsRng;
 //! use rug::Integer;
-//! 
+//!
 //! let mut rng = GeneralRng::new(OsRng);
 //! let el_gamal = IntegerElGamal::setup(&Default::default());
 //! let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);

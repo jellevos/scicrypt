@@ -6,7 +6,7 @@
 //! use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
 //! use rug::Integer;
 //! use rand_core::OsRng;
-//! 
+//!
 //! let mut rng = GeneralRng::new(OsRng);
 //! let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
 //! let (public_key, secret_key) = paillier.generate_keys(&mut rng);
