@@ -1,3 +1,18 @@
+//! Here is an example of how to generates a key pair and encrypt a plaintext integer using the ElGamal public key.
+//! ```
+//! use scicrypt_traits::randomness::GeneralRng;
+//! use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
+//! use scicrypt_traits::security::BitsOfSecurity;
+//! use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
+//! use rand_core::OsRng;
+//! use rug::Integer;
+//! 
+//! let mut rng = GeneralRng::new(OsRng);
+//! let el_gamal = IntegerElGamal::setup(&Default::default());
+//! let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
+//! let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
+//! ```
+
 use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 use rug::Integer;
 use scicrypt_traits::cryptosystems::{
@@ -115,20 +130,6 @@ impl EncryptionKey for IntegerElGamalPK {
     type Plaintext = Integer;
     type Ciphertext = IntegerElGamalCiphertext;
     type Randomness = Integer;
-
-    /// Encrypts an integer using the public key.
-    /// ```
-    /// # use scicrypt_traits::randomness::GeneralRng;
-    /// # use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
-    /// # use scicrypt_traits::security::BitsOfSecurity;
-    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
-    /// # use rand_core::OsRng;
-    /// # use rug::Integer;
-    /// # let mut rng = GeneralRng::new(OsRng);
-    /// # let el_gamal = IntegerElGamal::setup(&Default::default());
-    /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
-    /// let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
-    /// ```
 
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         IntegerElGamalCiphertext {

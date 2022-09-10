@@ -61,7 +61,7 @@ pub trait EncryptionKey: Sized + Debug + PartialEq {
         self.randomize(message, rng)
     }
 
-    /// Encrypt the plaintext using the public key and (WARNING!) determinstic randomness. Should be used directly with randomize to control randomness.
+    /// **WARNING: This is not a full encryption. The resulting ciphertext is completely insecure.** 'Encrypts' the plaintext using the public key deterministically, essentially creating a trivial ciphertext. The encryption is not secure until you call `randomize` or `randomize_with` with suitable randomness.
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext;
 
     /// Randomizes the ciphertext with the supplied rng.
