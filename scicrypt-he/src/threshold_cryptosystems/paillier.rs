@@ -1,6 +1,7 @@
 use rug::Integer;
 use scicrypt_numbertheory::{gen_coprime, gen_safe_prime};
 use scicrypt_traits::cryptosystems::{Associable, EncryptionKey};
+use scicrypt_traits::homomorphic::HomomorphicAddition;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -109,27 +110,109 @@ impl EncryptionKey for ThresholdPaillierPK {
     type Input = Integer;
     type Plaintext = Integer;
     type Ciphertext = PaillierCiphertext;
+    type Randomness = Integer;
 
-    fn encrypt_raw<R: SecureRng>(
+    fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
+        let n_squared = Integer::from(self.modulus.square_ref());
+        PaillierCiphertext {
+            c: Integer::from(
+                self.generator
+                    .pow_mod_ref(&plaintext.into(), &n_squared)
+                    .unwrap(),
+            ),
+        }
+    }
+    fn randomize<R: SecureRng>(
         &self,
-        plaintext: &Integer,
+        ciphertext: Self::Ciphertext,
         rng: &mut GeneralRng<R>,
-    ) -> PaillierCiphertext
-    where
-        Self: Sized,
-    {
+    ) -> Self::Ciphertext {
         let n_squared = Integer::from(self.modulus.square_ref());
         let r = gen_coprime(&n_squared, rng);
 
-        let first = Integer::from(
-            self.generator
-                .pow_mod_ref(&plaintext.into(), &n_squared)
-                .unwrap(),
-        );
-        let second = r.secure_pow_mod(&self.modulus, &n_squared);
+        self.randomize_with(ciphertext, &r)
+    }
+    fn randomize_with(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Randomness,
+    ) -> Self::Ciphertext {
+        let n_squared = Integer::from(self.modulus.square_ref());
+        let randomizer = randomness
+            .to_owned()
+            .secure_pow_mod(&self.modulus, &n_squared);
 
         PaillierCiphertext {
-            c: (first * second).rem(&n_squared),
+            c: Integer::from(&ciphertext.c * &randomizer).rem(n_squared),
+        }
+    }
+}
+
+impl HomomorphicAddition for ThresholdPaillierPK {
+    fn add(
+        &self,
+        ciphertext_a: &Self::Ciphertext,
+        ciphertext_b: &Self::Ciphertext,
+    ) -> Self::Ciphertext {
+        PaillierCiphertext {
+            c: Integer::from(&ciphertext_a.c * &ciphertext_b.c)
+                .rem(Integer::from(self.modulus.square_ref())),
+        }
+    }
+
+    fn mul_constant(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
+        let modulus = Integer::from(self.modulus.square_ref());
+
+        PaillierCiphertext {
+            c: Integer::from(ciphertext.c.pow_mod_ref(input, &modulus).unwrap()),
+        }
+    }
+
+    fn sub(
+        &self,
+        ciphertext_a: &Self::Ciphertext,
+        ciphertext_b: &Self::Ciphertext,
+    ) -> Self::Ciphertext {
+        let modulus = Integer::from(self.modulus.square_ref());
+        PaillierCiphertext {
+            c: Integer::from(
+                &ciphertext_a.c * &Integer::from(ciphertext_b.c.invert_ref(&modulus).unwrap()),
+            )
+            .rem(Integer::from(self.modulus.square_ref())),
+        }
+    }
+
+    fn add_constant(
+        &self,
+        ciphertext: &Self::Ciphertext,
+        constant: &Self::Plaintext,
+    ) -> Self::Ciphertext {
+        let modulus = Integer::from(self.modulus.square_ref());
+        PaillierCiphertext {
+            c: Integer::from(
+                &ciphertext.c
+                    * &Integer::from(self.generator.pow_mod_ref(constant, &modulus).unwrap()),
+            )
+            .rem(Integer::from(self.modulus.square_ref())),
+        }
+    }
+
+    fn sub_constant(
+        &self,
+        ciphertext: &Self::Ciphertext,
+        constant: &Self::Plaintext,
+    ) -> Self::Ciphertext {
+        let modulus = Integer::from(self.modulus.square_ref());
+        PaillierCiphertext {
+            c: Integer::from(
+                &ciphertext.c
+                    * &Integer::from(
+                        self.generator
+                            .pow_mod_ref(&Integer::from(-constant), &modulus)
+                            .unwrap(),
+                    ),
+            )
+            .rem(Integer::from(self.modulus.square_ref())),
         }
     }
 }

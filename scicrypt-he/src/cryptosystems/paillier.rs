@@ -1,3 +1,18 @@
+//! Here is an example of how to generates a key pair and encrypt a plaintext integer using the Paillier public key.
+//! ```
+//! use scicrypt_traits::randomness::GeneralRng;
+//! use scicrypt_he::cryptosystems::paillier::Paillier;
+//! use scicrypt_traits::security::BitsOfSecurity;
+//! use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
+//! use rug::Integer;
+//! use rand_core::OsRng;
+//!
+//! let mut rng = GeneralRng::new(OsRng);
+//! let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
+//! let (public_key, secret_key) = paillier.generate_keys(&mut rng);
+//! let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
+//! ```
+
 use rug::Integer;
 use scicrypt_numbertheory::{gen_coprime, gen_rsa_modulus};
 use scicrypt_traits::cryptosystems::{
@@ -74,33 +89,36 @@ impl EncryptionKey for PaillierPK {
     type Input = Integer;
     type Plaintext = Integer;
     type Ciphertext = PaillierCiphertext;
+    type Randomness = Integer;
 
-    /// Encrypts a plaintext integer using the Paillier public key.
-    /// ```
-    /// # use scicrypt_traits::randomness::GeneralRng;
-    /// # use scicrypt_he::cryptosystems::paillier::Paillier;
-    /// # use scicrypt_traits::security::BitsOfSecurity;
-    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
-    /// # use rug::Integer;
-    /// # use rand_core::OsRng;
-    /// # let mut rng = GeneralRng::new(OsRng);
-    /// # let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
-    /// # let (public_key, secret_key) = paillier.generate_keys(&mut rng);
-    /// let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
-    /// ```
-    fn encrypt_raw<R: SecureRng>(
+    fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
+        let n_squared = Integer::from(self.n.square_ref());
+        PaillierCiphertext {
+            c: Integer::from(self.g.pow_mod_ref(&plaintext.into(), &n_squared).unwrap()),
+        }
+    }
+
+    fn randomize<R: SecureRng>(
         &self,
-        plaintext: &Integer,
+        ciphertext: Self::Ciphertext,
         rng: &mut GeneralRng<R>,
-    ) -> PaillierCiphertext {
+    ) -> Self::Ciphertext {
         let n_squared = Integer::from(self.n.square_ref());
         let r = gen_coprime(&n_squared, rng);
 
-        let first = Integer::from(self.g.pow_mod_ref(&plaintext.into(), &n_squared).unwrap());
-        let second = r.secure_pow_mod(&self.n, &n_squared);
+        self.randomize_with(ciphertext, &r)
+    }
+
+    fn randomize_with(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Randomness,
+    ) -> Self::Ciphertext {
+        let n_squared = Integer::from(self.n.square_ref());
+        let randomizer = randomness.to_owned().secure_pow_mod(&self.n, &n_squared);
 
         PaillierCiphertext {
-            c: (first * second).rem(&n_squared),
+            c: Integer::from(&ciphertext.c * &randomizer).rem(n_squared),
         }
     }
 }

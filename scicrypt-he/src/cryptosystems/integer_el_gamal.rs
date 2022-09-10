@@ -1,3 +1,18 @@
+//! Here is an example of how to generates a key pair and encrypt a plaintext integer using the ElGamal public key.
+//! ```
+//! use scicrypt_traits::randomness::GeneralRng;
+//! use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
+//! use scicrypt_traits::security::BitsOfSecurity;
+//! use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
+//! use rand_core::OsRng;
+//! use rug::Integer;
+//!
+//! let mut rng = GeneralRng::new(OsRng);
+//! let el_gamal = IntegerElGamal::setup(&Default::default());
+//! let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
+//! let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
+//! ```
+
 use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 use rug::Integer;
 use scicrypt_traits::cryptosystems::{
@@ -114,32 +129,36 @@ impl EncryptionKey for IntegerElGamalPK {
     type Input = Integer;
     type Plaintext = Integer;
     type Ciphertext = IntegerElGamalCiphertext;
+    type Randomness = Integer;
 
-    /// Encrypts an integer using the public key.
-    /// ```
-    /// # use scicrypt_traits::randomness::GeneralRng;
-    /// # use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
-    /// # use scicrypt_traits::security::BitsOfSecurity;
-    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
-    /// # use rand_core::OsRng;
-    /// # use rug::Integer;
-    /// # let mut rng = GeneralRng::new(OsRng);
-    /// # let el_gamal = IntegerElGamal::setup(&Default::default());
-    /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
-    /// let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
-    /// ```
-    fn encrypt_raw<R: SecureRng>(
+    fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
+        IntegerElGamalCiphertext {
+            c1: Integer::from(1),
+            c2: plaintext.to_owned().rem(&self.modulus),
+        }
+    }
+
+    fn randomize<R: SecureRng>(
         &self,
-        plaintext: &Integer,
+        ciphertext: Self::Ciphertext,
         rng: &mut GeneralRng<R>,
-    ) -> IntegerElGamalCiphertext {
+    ) -> Self::Ciphertext {
         let q = Integer::from(&self.modulus >> 1);
         let y = q.random_below(&mut rng.rug_rng());
 
+        self.randomize_with(ciphertext, &y)
+    }
+
+    fn randomize_with(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Randomness,
+    ) -> Self::Ciphertext {
         IntegerElGamalCiphertext {
-            c1: Integer::from(Integer::from(4).secure_pow_mod_ref(&y, &self.modulus)),
-            c2: (plaintext * Integer::from(self.h.secure_pow_mod_ref(&y, &self.modulus)))
-                .rem(&self.modulus),
+            c1: Integer::from(Integer::from(4).secure_pow_mod_ref(randomness, &self.modulus)),
+            c2: (ciphertext.c2
+                * Integer::from(self.h.secure_pow_mod_ref(randomness, &self.modulus)))
+            .rem(&self.modulus),
         }
     }
 }
