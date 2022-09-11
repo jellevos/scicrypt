@@ -1,4 +1,4 @@
-use rug::Integer;
+use scicrypt_bigint::UnsignedInteger;
 use scicrypt_numbertheory::gen_rsa_modulus;
 use scicrypt_traits::cryptosystems::{
     Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey, SigningKey, VerificationKey,
@@ -8,7 +8,6 @@ use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use serde::{Deserialize, Serialize};
-use std::ops::Rem;
 
 /// The RSA cryptosystem.
 #[derive(Copy, Clone)]
@@ -20,21 +19,21 @@ pub struct Rsa {
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct RsaPK {
     /// Public modulus
-    pub n: Integer,
+    pub n: UnsignedInteger,
     /// Public exponentation factor
-    pub e: Integer,
+    pub e: UnsignedInteger,
 }
 
 /// Decryption key for RSA
 pub struct RsaSK {
-    d: Integer,
+    d: UnsignedInteger,
 }
 
 /// Ciphertext of the RSA cryptosystem, which is multiplicatively homomorphic.
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct RsaCiphertext {
     /// Ciphertext as an Integer
-    pub c: Integer,
+    pub c: UnsignedInteger,
 }
 
 impl Associable<RsaPK> for RsaCiphertext {}
@@ -52,22 +51,25 @@ impl AsymmetricCryptosystem for Rsa {
     fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (RsaPK, RsaSK) {
         let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
 
-        let e = Integer::from(65537);
-        let d = Integer::from(e.invert_ref(&lambda).unwrap());
+        let e = UnsignedInteger::new(65537, 17);
+        let d = e
+            .clone()
+            .invert_leaky(&lambda)
+            .expect("e should always be invertible mod lambda.");
 
         (RsaPK { n, e }, RsaSK { d })
     }
 }
 
 impl EncryptionKey for RsaPK {
-    type Input = Integer;
-    type Plaintext = Integer;
+    type Input = UnsignedInteger;
+    type Plaintext = UnsignedInteger;
     type Ciphertext = RsaCiphertext;
-    type Randomness = Integer;
+    type Randomness = UnsignedInteger;
 
     fn encrypt_raw<R: SecureRng>(
         &self,
-        plaintext: &Self::Plaintext,
+        plaintext: &UnsignedInteger,
         _rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext {
         self.encrypt_without_randomness(plaintext)
@@ -75,7 +77,7 @@ impl EncryptionKey for RsaPK {
 
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         RsaCiphertext {
-            c: Integer::from(plaintext.pow_mod_ref(&self.e, &self.n).unwrap()),
+            c: plaintext.pow_mod(&self.e, &self.n),
         }
     }
 
@@ -97,8 +99,8 @@ impl EncryptionKey for RsaPK {
 }
 
 impl DecryptionKey<RsaPK> for RsaSK {
-    fn decrypt_raw(&self, public_key: &RsaPK, ciphertext: &RsaCiphertext) -> Integer {
-        Integer::from(ciphertext.c.secure_pow_mod_ref(&self.d, &public_key.n))
+    fn decrypt_raw(&self, public_key: &RsaPK, ciphertext: &RsaCiphertext) -> UnsignedInteger {
+        ciphertext.c.pow_mod(&self.d, &public_key.n)
     }
 
     fn decrypt_identity_raw(
@@ -107,7 +109,7 @@ impl DecryptionKey<RsaPK> for RsaSK {
         ciphertext: &<RsaPK as EncryptionKey>::Ciphertext,
     ) -> bool {
         // TODO: This can be optimized
-        self.decrypt_raw(public_key, ciphertext) == 1
+        self.decrypt_raw(public_key, ciphertext) == UnsignedInteger::from(1u64)
     }
 }
 
@@ -118,13 +120,13 @@ impl HomomorphicMultiplication for RsaPK {
         ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
         RsaCiphertext {
-            c: Integer::from(&ciphertext_a.c * &ciphertext_b.c).rem(&self.n),
+            c: (&ciphertext_a.c * &ciphertext_b.c) % &self.n,
         }
     }
 
     fn pow(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
         RsaCiphertext {
-            c: Integer::from(ciphertext.c.pow_mod_ref(input, &self.n).unwrap()),
+            c: ciphertext.c.pow_mod(input, &self.n),
         }
     }
 }
@@ -132,15 +134,15 @@ impl HomomorphicMultiplication for RsaPK {
 #[derive(PartialEq, Eq, Debug, Serialize, Deserialize, Clone)]
 pub struct RsaSignature {
     /// Signature as an Integer
-    pub s: Integer,
+    pub s: UnsignedInteger,
 }
 
 impl VerificationKey for RsaPK {
-    type Plaintext = Integer;
+    type Plaintext = UnsignedInteger;
     type Signature = RsaSignature;
 
     fn verify(&self, signature: &Self::Signature, plaintext: &Self::Plaintext) -> bool {
-        return &Integer::from(signature.s.pow_mod_ref(&self.e, &self.n).unwrap()) == plaintext;
+        signature.s.pow_mod(&self.e, &self.n) == *plaintext
     }
 }
 
@@ -152,7 +154,7 @@ impl SigningKey<RsaPK> for RsaSK {
         _rng: &mut GeneralRng<R>,
     ) -> RsaSignature {
         RsaSignature {
-            s: Integer::from(plaintext.pow_mod_ref(&self.d, &public_key.n).unwrap()),
+            s: plaintext.pow_mod(&self.d, &public_key.n),
         }
     }
 }
@@ -161,7 +163,7 @@ impl SigningKey<RsaPK> for RsaSK {
 mod tests {
     use crate::cryptosystems::rsa::Rsa;
     use rand_core::OsRng;
-    use rug::Integer;
+    use scicrypt_bigint::UnsignedInteger;
     use scicrypt_traits::cryptosystems::{
         AsymmetricCryptosystem, DecryptionKey, EncryptionKey, SigningKey, VerificationKey,
     };
@@ -175,9 +177,9 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(15), &mut rng);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(15u64), &mut rng);
 
-        assert_eq!(15, sk.decrypt(&ciphertext));
+        assert_eq!(UnsignedInteger::from(15u64), sk.decrypt(&ciphertext));
     }
 
     #[test]
@@ -187,7 +189,7 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(1), &mut rng);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(1), &mut rng);
 
         assert!(sk.decrypt_identity(&ciphertext));
     }
@@ -199,11 +201,11 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext_a = pk.encrypt(&Integer::from(7), &mut rng);
-        let ciphertext_b = pk.encrypt(&Integer::from(7), &mut rng);
+        let ciphertext_a = pk.encrypt(&UnsignedInteger::from(7u64), &mut rng);
+        let ciphertext_b = pk.encrypt(&UnsignedInteger::from(7u64), &mut rng);
         let ciphertext_twice = &ciphertext_a * &ciphertext_b;
 
-        assert_eq!(49, sk.decrypt(&ciphertext_twice));
+        assert_eq!(UnsignedInteger::from(49u64), sk.decrypt(&ciphertext_twice));
     }
 
     #[test]
@@ -213,10 +215,13 @@ mod tests {
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(9), &mut rng);
-        let ciphertext_twice = ciphertext.pow(&Integer::from(4));
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(9u64), &mut rng);
+        let ciphertext_twice = ciphertext.pow(&UnsignedInteger::from(4u64));
 
-        assert_eq!(Integer::from(6561), sk.decrypt(&ciphertext_twice));
+        assert_eq!(
+            UnsignedInteger::from(6561u64),
+            sk.decrypt(&ciphertext_twice)
+        );
     }
 
     #[test]
@@ -225,7 +230,7 @@ mod tests {
 
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
-        let plaintext = Integer::from(10);
+        let plaintext = UnsignedInteger::from(10u64);
 
         let signature = sk.sign(&plaintext, &pk, &mut rng);
 
@@ -238,10 +243,10 @@ mod tests {
 
         let rsa = Rsa::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = rsa.generate_keys(&mut rng);
-        let plaintext = Integer::from(10);
+        let plaintext = UnsignedInteger::from(10u64);
 
         let signature = sk.sign(&plaintext, &pk, &mut rng);
 
-        assert!(!pk.verify(&signature, &Integer::from(11)));
+        assert!(!pk.verify(&signature, &UnsignedInteger::from(11u64)));
     }
 }

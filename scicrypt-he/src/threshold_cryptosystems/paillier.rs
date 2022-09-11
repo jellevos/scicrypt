@@ -1,5 +1,6 @@
 use rug::Integer;
-use scicrypt_numbertheory::{gen_coprime, gen_safe_prime};
+use scicrypt_bigint::UnsignedInteger;
+use scicrypt_numbertheory::gen_safe_prime;
 use scicrypt_traits::cryptosystems::{Associable, EncryptionKey};
 use scicrypt_traits::homomorphic::HomomorphicAddition;
 use scicrypt_traits::randomness::GeneralRng;
@@ -23,22 +24,22 @@ pub struct ThresholdPaillier {
 /// The public key for encryption.
 #[derive(PartialEq, Eq, Debug)]
 pub struct ThresholdPaillierPK {
-    generator: Integer,
-    modulus: Integer,
-    theta: Integer,
-    delta: Integer,
+    generator: UnsignedInteger,
+    modulus: UnsignedInteger,
+    theta: UnsignedInteger,
+    delta: UnsignedInteger,
 }
 
 /// One of the partial keys, of which t must be used to decrypt successfully.
 pub struct ThresholdPaillierSK {
     id: i32,
-    key: Integer,
+    key: UnsignedInteger,
 }
 
 /// A partially decrypted ciphertext, of which t must be combined to decrypt successfully.
 pub struct ThresholdPaillierShare {
     id: i32,
-    share: Integer,
+    share: UnsignedInteger,
 }
 
 impl TOfNCryptosystem for ThresholdPaillier {
@@ -60,34 +61,36 @@ impl TOfNCryptosystem for ThresholdPaillier {
         let prime_p = gen_safe_prime(self.modulus_size / 2, rng);
         let prime_q = gen_safe_prime(self.modulus_size / 2, rng);
 
-        let subprime_p = Integer::from(&prime_p >> 1);
-        let subprime_q = Integer::from(&prime_q >> 1);
+        let subprime_p = &prime_p >> 1;
+        let subprime_q = &prime_q >> 1;
 
-        let modulus = Integer::from(&prime_p * &prime_q);
-        let sub_modulus = Integer::from(&subprime_p * &subprime_q);
+        let modulus = &prime_p * &prime_q;
+        let sub_modulus = &subprime_p * &subprime_q;
 
-        let generator = Integer::from(&modulus + 1);
+        let generator = modulus.clone() + 1;
 
-        let beta = gen_coprime(&modulus, rng);
-        let theta = Integer::from(&sub_modulus * &beta).rem(&modulus);
-        let delta = Integer::from(Integer::factorial(key_count_n as u32));
+        let beta = UnsignedInteger::random_below(&modulus, rng);
+        let theta = (&sub_modulus * &beta) % &modulus;
+        let delta = UnsignedInteger::factorial_leaky(key_count_n as u64);
 
-        let m_times_n = Integer::from(&sub_modulus * &modulus);
-        let coefficients: Vec<Integer> = (0..(threshold_t - 1))
-            .map(|_| Integer::from(m_times_n.random_below_ref(&mut rng.rug_rng())))
+        let m_times_n = &sub_modulus * &modulus;
+        let coefficients: Vec<UnsignedInteger> = (0..(threshold_t - 1))
+            .map(|_| UnsignedInteger::random_below(&m_times_n, rng))
             .collect();
 
         let partial_keys: Vec<ThresholdPaillierSK> = (1..=key_count_n)
             .map(|i| {
-                let mut key = Integer::from(&beta * &sub_modulus);
+                let mut key = &beta * &sub_modulus;
 
                 for j in 0..(threshold_t - 1) {
-                    key += &coefficients[j as usize] * i.pow((j + 1) as u32) as u64;
+                    key += &((&coefficients[j as usize]
+                        * &UnsignedInteger::from(i.pow((j + 1) as u32) as u64))
+                        % &m_times_n);
                 }
 
                 ThresholdPaillierSK {
                     id: i as i32,
-                    key: key.rem(&m_times_n),
+                    key: key % &m_times_n,
                 }
             })
             .collect();
@@ -107,43 +110,42 @@ impl TOfNCryptosystem for ThresholdPaillier {
 impl Associable<ThresholdPaillierPK> for PaillierCiphertext {}
 
 impl EncryptionKey for ThresholdPaillierPK {
-    type Input = Integer;
-    type Plaintext = Integer;
+    type Input = UnsignedInteger;
+    type Plaintext = UnsignedInteger;
     type Ciphertext = PaillierCiphertext;
-    type Randomness = Integer;
+    type Randomness = UnsignedInteger;
 
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
-        let n_squared = Integer::from(self.modulus.square_ref());
+        let n_squared = self.modulus.square();
         PaillierCiphertext {
-            c: Integer::from(
-                self.generator
-                    .pow_mod_ref(&plaintext.into(), &n_squared)
-                    .unwrap(),
-            ),
+            c: self.generator.pow_mod(plaintext, &n_squared),
         }
     }
+
     fn randomize<R: SecureRng>(
         &self,
-        ciphertext: Self::Ciphertext,
+        ciphertext: PaillierCiphertext,
         rng: &mut GeneralRng<R>,
-    ) -> Self::Ciphertext {
-        let n_squared = Integer::from(self.modulus.square_ref());
-        let r = gen_coprime(&n_squared, rng);
+    ) -> PaillierCiphertext
+    where
+        Self: Sized,
+    {
+        let n_squared = self.modulus.square();
+        let r = UnsignedInteger::random_below(&n_squared, rng);
 
         self.randomize_with(ciphertext, &r)
     }
+
     fn randomize_with(
         &self,
         ciphertext: Self::Ciphertext,
         randomness: &Self::Randomness,
     ) -> Self::Ciphertext {
-        let n_squared = Integer::from(self.modulus.square_ref());
-        let randomizer = randomness
-            .to_owned()
-            .secure_pow_mod(&self.modulus, &n_squared);
+        let n_squared = self.modulus.square();
+        let randomizer = randomness.pow_mod(&self.modulus, &n_squared);
 
         PaillierCiphertext {
-            c: Integer::from(&ciphertext.c * &randomizer).rem(n_squared),
+            c: (&ciphertext.c * &randomizer) % &n_squared,
         }
     }
 }
@@ -155,16 +157,15 @@ impl HomomorphicAddition for ThresholdPaillierPK {
         ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
         PaillierCiphertext {
-            c: Integer::from(&ciphertext_a.c * &ciphertext_b.c)
-                .rem(Integer::from(self.modulus.square_ref())),
+            c: (&ciphertext_a.c * &ciphertext_b.c) % &self.modulus.square(),
         }
     }
 
     fn mul_constant(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
-        let modulus = Integer::from(self.modulus.square_ref());
+        let modulus = self.modulus.square();
 
         PaillierCiphertext {
-            c: Integer::from(ciphertext.c.pow_mod_ref(input, &modulus).unwrap()),
+            c: ciphertext.c.pow_mod(input, &modulus),
         }
     }
 
@@ -173,12 +174,9 @@ impl HomomorphicAddition for ThresholdPaillierPK {
         ciphertext_a: &Self::Ciphertext,
         ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
-        let modulus = Integer::from(self.modulus.square_ref());
+        let modulus = self.modulus.square();
         PaillierCiphertext {
-            c: Integer::from(
-                &ciphertext_a.c * &Integer::from(ciphertext_b.c.invert_ref(&modulus).unwrap()),
-            )
-            .rem(Integer::from(self.modulus.square_ref())),
+            c: (&ciphertext_a.c * &ciphertext_b.c.clone().invert(&modulus).unwrap()) % &modulus,
         }
     }
 
@@ -187,13 +185,9 @@ impl HomomorphicAddition for ThresholdPaillierPK {
         ciphertext: &Self::Ciphertext,
         constant: &Self::Plaintext,
     ) -> Self::Ciphertext {
-        let modulus = Integer::from(self.modulus.square_ref());
+        let modulus = self.modulus.square();
         PaillierCiphertext {
-            c: Integer::from(
-                &ciphertext.c
-                    * &Integer::from(self.generator.pow_mod_ref(constant, &modulus).unwrap()),
-            )
-            .rem(Integer::from(self.modulus.square_ref())),
+            c: (&ciphertext.c * &self.generator.pow_mod(constant, &modulus)) % &modulus,
         }
     }
 
@@ -202,17 +196,15 @@ impl HomomorphicAddition for ThresholdPaillierPK {
         ciphertext: &Self::Ciphertext,
         constant: &Self::Plaintext,
     ) -> Self::Ciphertext {
-        let modulus = Integer::from(self.modulus.square_ref());
+        let modulus = self.modulus.square();
         PaillierCiphertext {
-            c: Integer::from(
-                &ciphertext.c
-                    * &Integer::from(
-                        self.generator
-                            .pow_mod_ref(&Integer::from(-constant), &modulus)
-                            .unwrap(),
-                    ),
-            )
-            .rem(Integer::from(self.modulus.square_ref())),
+            c: (&ciphertext.c
+                * &self
+                    .generator
+                    .pow_mod(constant, &modulus)
+                    .invert(&modulus)
+                    .unwrap())
+                % &modulus,
         }
     }
 }
@@ -225,13 +217,13 @@ impl PartialDecryptionKey<ThresholdPaillierPK> for ThresholdPaillierSK {
         public_key: &ThresholdPaillierPK,
         ciphertext: &PaillierCiphertext,
     ) -> ThresholdPaillierShare {
-        let n_squared = Integer::from(public_key.modulus.square_ref());
+        let n_squared = public_key.modulus.square();
         ThresholdPaillierShare {
             id: self.id,
-            share: Integer::from(ciphertext.c.secure_pow_mod_ref(
-                &(Integer::from(2) * &public_key.delta * &self.key),
+            share: ciphertext.c.pow_mod(
+                &(&(&UnsignedInteger::new(2, 2) * &public_key.delta) * &self.key),
                 &n_squared,
-            )),
+            ),
         }
     }
 }
@@ -240,10 +232,10 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
     fn combine(
         decryption_shares: &[Self],
         public_key: &ThresholdPaillierPK,
-    ) -> Result<Integer, DecryptionError> {
+    ) -> Result<UnsignedInteger, DecryptionError> {
         let lambdas: Vec<Integer> = (0..decryption_shares.len())
             .map(|i| {
-                let mut lambda = Integer::from(&public_key.delta);
+                let mut lambda = public_key.delta.clone().to_rug();
 
                 for i_prime in 0..decryption_shares.len() {
                     if i == i_prime {
@@ -262,30 +254,33 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
             })
             .collect();
 
-        let n_squared = Integer::from(public_key.modulus.square_ref());
+        let n_squared = public_key.modulus.square();
 
-        let mut product = Integer::from(1);
+        let mut product = UnsignedInteger::from(1u64);
 
         for (share, lambda) in decryption_shares.iter().zip(lambdas) {
-            product = (product
-                * Integer::from(
-                    share
-                        .share
-                        .pow_mod_ref(&(Integer::from(2) * lambda), &n_squared)
-                        .unwrap(),
-                ))
-            .rem(&n_squared);
+            let lambda_is_negative = lambda < 0;
+
+            let mut part = share
+                .share
+                .pow_mod(&(UnsignedInteger::from(lambda.abs() * 2u64)), &n_squared);
+
+            if lambda_is_negative {
+                part = part.invert(&n_squared).unwrap();
+            }
+
+            product = (&product * &part) % &n_squared;
         }
 
-        let inverse =
-            (Integer::from(4) * Integer::from(public_key.delta.square_ref()) * &public_key.theta)
-                .invert(&public_key.modulus)
-                .unwrap();
+        let inverse = (&(&UnsignedInteger::from(4u64) * &public_key.delta.square())
+            * &public_key.theta)
+            .rem(&public_key.modulus)
+            .invert(&public_key.modulus)
+            .unwrap();
 
-        Result::Ok(
-            (((product - Integer::from(1)) / &public_key.modulus) * inverse)
-                .rem(&public_key.modulus),
-        )
+        product -= 1;
+
+        Result::Ok((&(product / &public_key.modulus) * &inverse) % &public_key.modulus)
     }
 }
 
@@ -293,7 +288,7 @@ impl DecryptionShare<ThresholdPaillierPK> for ThresholdPaillierShare {
 mod tests {
     use crate::threshold_cryptosystems::paillier::{ThresholdPaillier, ThresholdPaillierShare};
     use rand_core::OsRng;
-    use rug::Integer;
+    use scicrypt_bigint::UnsignedInteger;
     use scicrypt_traits::cryptosystems::EncryptionKey;
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
@@ -308,13 +303,13 @@ mod tests {
         let paillier = ThresholdPaillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sks) = paillier.generate_keys(2, 3, &mut rng);
 
-        let ciphertext = pk.encrypt(&Integer::from(19), &mut rng);
+        let ciphertext = pk.encrypt(&UnsignedInteger::from(19u64), &mut rng);
 
         let share_1 = sks[0].partial_decrypt(&ciphertext);
         let share_3 = sks[2].partial_decrypt(&ciphertext);
 
         assert_eq!(
-            Integer::from(19),
+            UnsignedInteger::from(19u64),
             ThresholdPaillierShare::combine(&[share_1, share_3], &pk).unwrap()
         );
     }

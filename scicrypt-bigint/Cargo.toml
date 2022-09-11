@@ -1,0 +1,26 @@
+[package]
+name = "scicrypt-bigint"
+description = "A scicrypt crate implementing *mostly* constant-time bigints for modular integers"
+version = "0.7.0"
+authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
+edition = "2018"
+license = "MIT"
+homepage = "https://crates.io/crates/scicrypt-bigint"
+repository = "https://github.com/jellevos/scicrypt"
+readme = "README.md"
+
+[dependencies]
+gmp-mpfr-sys = { version = "1.4", default-features = false }
+scicrypt-traits ={ version = "0.7.0", path = "../scicrypt-traits" }
+rug = { version = "1.13", default-features = false, features = ["integer", "rand", "serde"], optional = true }
+serde = "1.0"
+
+[dev-dependencies]
+rand = "0.8"
+
+[package.metadata.docs.rs]
+rustdoc-args = [ "--html-in-header", "katex-header.html" ]
+
+[features]
+default = ["rug"]
+rug = ["dep:rug"]

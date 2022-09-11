@@ -693,22 +693,35 @@ dependencies = [
 
 [[package]]
 name = "scicrypt"
-version = "0.6.2"
+version = "0.7.0"
 dependencies = [
+ "scicrypt-bigint",
  "scicrypt-he",
  "scicrypt-numbertheory",
  "scicrypt-traits",
 ]
 
 [[package]]
+name = "scicrypt-bigint"
+version = "0.7.0"
+dependencies = [
+ "gmp-mpfr-sys",
+ "rand",
+ "rug",
+ "scicrypt-traits",
+ "serde",
+]
+
+[[package]]
 name = "scicrypt-he"
-version = "0.6.2"
+version = "0.7.0"
 dependencies = [
  "bincode",
  "criterion",
  "curve25519-dalek",
  "rand_core",
  "rug",
+ "scicrypt-bigint",
  "scicrypt-numbertheory",
  "scicrypt-traits",
  "serde",
@@ -716,7 +729,7 @@ dependencies = [
 
 [[package]]
 name = "scicrypt-numbertheory"
-version = "0.6.2"
+version = "0.7.0"
 dependencies = [
  "criterion",
  "glass_pumpkin",
@@ -725,12 +738,13 @@ dependencies = [
  "rand",
  "rand_core",
  "rug",
+ "scicrypt-bigint",
  "scicrypt-traits",
 ]
 
 [[package]]
 name = "scicrypt-traits"
-version = "0.6.2"
+version = "0.7.0"
 dependencies = [
  "rand_core",
  "rug",
