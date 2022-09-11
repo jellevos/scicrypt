@@ -30,14 +30,14 @@ impl Div<&UnsignedInteger> for UnsignedInteger {
 
             let mut scratch = Scratch::new(scratch_size);
 
-            let mut res = UnsignedInteger::init(self.value.size.abs() - rhs.value.size.abs() + 1);
+            let mut res = UnsignedInteger::init(self.value.size - rhs.value.size + 1);
 
             let most_significant_limb = gmp::mpn_sec_div_qr(
                 res.value.d.as_mut(),
                 self.value.d.as_mut(),
-                self.value.size.abs() as i64,
+                self.value.size as i64,
                 rhs.value.d.as_ptr(),
-                rhs.value.size.abs() as i64,
+                rhs.value.size as i64,
                 scratch.as_mut(),
             );
 

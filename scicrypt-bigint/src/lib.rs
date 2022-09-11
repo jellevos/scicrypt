@@ -87,8 +87,7 @@ impl Debug for UnsignedInteger {
         write!(
             f,
             "{self} <{} bits as {}x{GMP_NUMB_BITS}-bit limbs>",
-            self.size_in_bits,
-            self.value.size.abs()
+            self.size_in_bits, self.value.size
         )
     }
 }

@@ -8,22 +8,22 @@ impl Mul for &UnsignedInteger {
     type Output = UnsignedInteger;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        if rhs.value.size.abs() > self.value.size.abs() {
+        if rhs.value.size > self.value.size {
             return rhs * self;
         }
 
         debug_assert_eq!(
             self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
-            self.value.size.abs(),
+            self.value.size,
             "the operands' size in bits must match their actual size"
         );
         debug_assert_eq!(
             rhs.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
-            rhs.value.size.abs(),
+            rhs.value.size,
             "the operands' size in bits must match their actual size"
         );
 
-        let mut result = UnsignedInteger::init(self.value.size.abs() + rhs.value.size.abs());
+        let mut result = UnsignedInteger::init(self.value.size + rhs.value.size);
 
         unsafe {
             let scratch_size = gmp::mpn_sec_mul_itch(self.value.size as i64, rhs.value.size as i64)
@@ -35,9 +35,9 @@ impl Mul for &UnsignedInteger {
             gmp::mpn_sec_mul(
                 result.value.d.as_mut(),
                 self.value.d.as_ptr(),
-                self.value.size.abs() as i64,
+                self.value.size as i64,
                 rhs.value.d.as_ptr(),
-                rhs.value.size.abs() as i64,
+                rhs.value.size as i64,
                 scratch.as_mut(),
             );
 
@@ -51,8 +51,33 @@ impl Mul for &UnsignedInteger {
 impl UnsignedInteger {
     /// Computes $x^2$, where $x$ is `self`. This is typically faster than performing a multiplication.
     pub fn square(&self) -> UnsignedInteger {
-        // TODO: Switch to more efficient squaring function
-        self * self
+        debug_assert_ne!(self.value.size, 0);
+
+        debug_assert_eq!(
+            self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
+            self.value.size,
+            "the operands' size in bits must match their actual size"
+        );
+
+        let mut result = UnsignedInteger::init(self.value.size * 2);
+
+        unsafe {
+            let scratch_size =
+                gmp::mpn_sec_sqr_itch(self.value.size as i64) as usize * GMP_NUMB_BITS as usize;
+
+            let mut scratch = Scratch::new(scratch_size);
+
+            gmp::mpn_sec_sqr(
+                result.value.d.as_mut(),
+                self.value.d.as_ptr(),
+                self.value.size as i64,
+                scratch.as_mut(),
+            );
+
+            result.size_in_bits = self.size_in_bits * 2;
+            result.value.size = result.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32; // TODO: Check if this does not cause a memory leak
+            result
+        }
     }
 }
 
@@ -66,6 +91,15 @@ impl<'a> Product<&'a UnsignedInteger> for UnsignedInteger {
 #[cfg(test)]
 mod tests {
     use crate::UnsignedInteger;
+
+    #[test]
+    fn test_square() {
+        let x = UnsignedInteger::new(23, 64);
+
+        let res = x.square();
+
+        assert_eq!(UnsignedInteger::from(23u64 * 23), res);
+    }
 
     #[test]
     fn test_mul_equal_size() {
