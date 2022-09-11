@@ -5,12 +5,12 @@
 //! use scicrypt_traits::security::BitsOfSecurity;
 //! use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
 //! use rand_core::OsRng;
-//! use rug::Integer;
+//! use scicrypt_bigint::UnsignedInteger;
 //!
 //! let mut rng = GeneralRng::new(OsRng);
 //! let el_gamal = IntegerElGamal::setup(&Default::default());
 //! let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
-//! let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
+//! let ciphertext = public_key.encrypt(&UnsignedInteger::from(5), &mut rng);
 //! ```
 
 use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
@@ -156,8 +156,7 @@ impl EncryptionKey for IntegerElGamalPK {
         // FIXME: C1 should also be multiplied, otherwise this is only a valid randomization when c1 = 1.
         IntegerElGamalCiphertext {
             c1: UnsignedInteger::from(4u64).pow_mod(randomness, &self.modulus),
-            c2: (&ciphertext.c2
-                * &self.h.pow_mod(randomness, &self.modulus)) % &self.modulus,
+            c2: (&ciphertext.c2 * &self.h.pow_mod(randomness, &self.modulus)) % &self.modulus,
         }
     }
 }

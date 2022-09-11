@@ -4,13 +4,13 @@
 //! use scicrypt_he::cryptosystems::paillier::Paillier;
 //! use scicrypt_traits::security::BitsOfSecurity;
 //! use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
-//! use rug::Integer;
+//! use scicrypt_bigint::UnsignedInteger;
 //! use rand_core::OsRng;
 //!
 //! let mut rng = GeneralRng::new(OsRng);
 //! let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
 //! let (public_key, secret_key) = paillier.generate_keys(&mut rng);
-//! let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
+//! let ciphertext = public_key.encrypt(&UnsignedInteger::from(5), &mut rng);
 //! ```
 use scicrypt_bigint::UnsignedInteger;
 use scicrypt_numbertheory::gen_rsa_modulus;
@@ -88,7 +88,7 @@ impl EncryptionKey for PaillierPK {
     type Plaintext = UnsignedInteger;
     type Ciphertext = PaillierCiphertext;
     type Randomness = UnsignedInteger;
-    
+
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         let n_squared = self.n.square();
         PaillierCiphertext {

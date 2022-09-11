@@ -198,7 +198,12 @@ impl HomomorphicAddition for ThresholdPaillierPK {
     ) -> Self::Ciphertext {
         let modulus = self.modulus.square();
         PaillierCiphertext {
-            c: (&ciphertext.c * &self.generator.pow_mod(constant, &modulus).invert(&modulus).unwrap())
+            c: (&ciphertext.c
+                * &self
+                    .generator
+                    .pow_mod(constant, &modulus)
+                    .invert(&modulus)
+                    .unwrap())
                 % &modulus,
         }
     }
