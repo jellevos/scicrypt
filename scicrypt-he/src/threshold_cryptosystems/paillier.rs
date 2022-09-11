@@ -2,6 +2,7 @@ use rug::Integer;
 use scicrypt_bigint::UnsignedInteger;
 use scicrypt_numbertheory::gen_safe_prime;
 use scicrypt_traits::cryptosystems::{Associable, EncryptionKey};
+use scicrypt_traits::homomorphic::HomomorphicAddition;
 use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
@@ -112,10 +113,18 @@ impl EncryptionKey for ThresholdPaillierPK {
     type Input = UnsignedInteger;
     type Plaintext = UnsignedInteger;
     type Ciphertext = PaillierCiphertext;
+    type Randomness = UnsignedInteger;
 
-    fn encrypt_raw<R: SecureRng>(
+    fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
+        let n_squared = self.modulus.square();
+        PaillierCiphertext {
+            c: self.generator.pow_mod(plaintext, &n_squared),
+        }
+    }
+
+    fn randomize<R: SecureRng>(
         &self,
-        plaintext: &UnsignedInteger,
+        ciphertext: PaillierCiphertext,
         rng: &mut GeneralRng<R>,
     ) -> PaillierCiphertext
     where
@@ -124,11 +133,73 @@ impl EncryptionKey for ThresholdPaillierPK {
         let n_squared = self.modulus.square();
         let r = UnsignedInteger::random_below(&n_squared, rng);
 
-        let first = self.generator.pow_mod(plaintext, &n_squared);
-        let second = r.pow_mod(&self.modulus, &n_squared);
+        self.randomize_with(ciphertext, &r)
+    }
+
+    fn randomize_with(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Randomness,
+    ) -> Self::Ciphertext {
+        let n_squared = self.modulus.square();
+        let randomizer = randomness.pow_mod(&self.modulus, &n_squared);
 
         PaillierCiphertext {
-            c: (&first * &second) % &n_squared,
+            c: (&ciphertext.c * &randomizer) % &n_squared,
+        }
+    }
+}
+
+impl HomomorphicAddition for ThresholdPaillierPK {
+    fn add(
+        &self,
+        ciphertext_a: &Self::Ciphertext,
+        ciphertext_b: &Self::Ciphertext,
+    ) -> Self::Ciphertext {
+        PaillierCiphertext {
+            c: (&ciphertext_a.c * &ciphertext_b.c) % &self.modulus.square(),
+        }
+    }
+
+    fn mul_constant(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
+        let modulus = self.modulus.square();
+
+        PaillierCiphertext {
+            c: ciphertext.c.pow_mod(input, &modulus),
+        }
+    }
+
+    fn sub(
+        &self,
+        ciphertext_a: &Self::Ciphertext,
+        ciphertext_b: &Self::Ciphertext,
+    ) -> Self::Ciphertext {
+        let modulus = self.modulus.square();
+        PaillierCiphertext {
+            c: (&ciphertext_a.c * &ciphertext_b.c.clone().invert(&modulus).unwrap()) % &modulus,
+        }
+    }
+
+    fn add_constant(
+        &self,
+        ciphertext: &Self::Ciphertext,
+        constant: &Self::Plaintext,
+    ) -> Self::Ciphertext {
+        let modulus = self.modulus.square();
+        PaillierCiphertext {
+            c: (&ciphertext.c * &self.generator.pow_mod(constant, &modulus)) % &modulus,
+        }
+    }
+
+    fn sub_constant(
+        &self,
+        ciphertext: &Self::Ciphertext,
+        constant: &Self::Plaintext,
+    ) -> Self::Ciphertext {
+        let modulus = self.modulus.square();
+        PaillierCiphertext {
+            c: (&ciphertext.c * &self.generator.pow_mod(constant, &modulus).invert(&modulus).unwrap())
+                % &modulus,
         }
     }
 }

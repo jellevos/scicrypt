@@ -65,15 +65,36 @@ impl EncryptionKey for RsaPK {
     type Input = UnsignedInteger;
     type Plaintext = UnsignedInteger;
     type Ciphertext = RsaCiphertext;
+    type Randomness = UnsignedInteger;
 
     fn encrypt_raw<R: SecureRng>(
         &self,
         plaintext: &UnsignedInteger,
         _rng: &mut GeneralRng<R>,
-    ) -> RsaCiphertext {
+    ) -> Self::Ciphertext {
+        self.encrypt_without_randomness(plaintext)
+    }
+
+    fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         RsaCiphertext {
             c: plaintext.pow_mod(&self.e, &self.n),
         }
+    }
+
+    fn randomize<R: SecureRng>(
+        &self,
+        _ciphertext: Self::Ciphertext,
+        _rng: &mut GeneralRng<R>,
+    ) -> Self::Ciphertext {
+        panic!("Not possible to randomize Rsa ciphertext")
+    }
+
+    fn randomize_with(
+        &self,
+        _ciphertext: Self::Ciphertext,
+        _randomness: &Self::Randomness,
+    ) -> Self::Ciphertext {
+        panic!("Not possible to randomize Rsa ciphertext")
     }
 }
 

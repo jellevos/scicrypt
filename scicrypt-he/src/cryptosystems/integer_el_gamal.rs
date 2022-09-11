@@ -1,3 +1,18 @@
+//! Here is an example of how to generates a key pair and encrypt a plaintext integer using the ElGamal public key.
+//! ```
+//! use scicrypt_traits::randomness::GeneralRng;
+//! use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
+//! use scicrypt_traits::security::BitsOfSecurity;
+//! use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
+//! use rand_core::OsRng;
+//! use rug::Integer;
+//!
+//! let mut rng = GeneralRng::new(OsRng);
+//! let el_gamal = IntegerElGamal::setup(&Default::default());
+//! let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
+//! let ciphertext = public_key.encrypt(&Integer::from(5), &mut rng);
+//! ```
+
 use crate::constants::{SAFE_PRIME_1024, SAFE_PRIME_2048, SAFE_PRIME_3072};
 use scicrypt_bigint::UnsignedInteger;
 use scicrypt_traits::cryptosystems::{
@@ -113,31 +128,36 @@ impl EncryptionKey for IntegerElGamalPK {
     type Input = UnsignedInteger;
     type Plaintext = UnsignedInteger;
     type Ciphertext = IntegerElGamalCiphertext;
+    type Randomness = UnsignedInteger;
 
-    /// Encrypts an integer using the public key.
-    /// ```
-    /// # use scicrypt_traits::randomness::GeneralRng;
-    /// # use scicrypt_he::cryptosystems::integer_el_gamal::IntegerElGamal;
-    /// # use scicrypt_traits::security::BitsOfSecurity;
-    /// # use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, EncryptionKey};
-    /// # use rand_core::OsRng;
-    /// # use scicrypt_bigint::UnsignedInteger;
-    /// # let mut rng = GeneralRng::new(OsRng);
-    /// # let el_gamal = IntegerElGamal::setup(&Default::default());
-    /// # let (public_key, secret_key) = el_gamal.generate_keys(&mut rng);
-    /// let ciphertext = public_key.encrypt(&UnsignedInteger::from(5), &mut rng);
-    /// ```
-    fn encrypt_raw<R: SecureRng>(
+    fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
+        IntegerElGamalCiphertext {
+            c1: UnsignedInteger::new(1, 1),
+            c2: plaintext.clone() % &self.modulus,
+        }
+    }
+
+    fn randomize<R: SecureRng>(
         &self,
-        plaintext: &UnsignedInteger,
+        ciphertext: Self::Ciphertext,
         rng: &mut GeneralRng<R>,
-    ) -> IntegerElGamalCiphertext {
+    ) -> Self::Ciphertext {
         let q = &self.modulus >> 1;
         let y = UnsignedInteger::random_below(&q, rng);
 
+        self.randomize_with(ciphertext, &y)
+    }
+
+    fn randomize_with(
+        &self,
+        ciphertext: Self::Ciphertext,
+        randomness: &Self::Randomness,
+    ) -> Self::Ciphertext {
+        // FIXME: C1 should also be multiplied, otherwise this is only a valid randomization when c1 = 1.
         IntegerElGamalCiphertext {
-            c1: UnsignedInteger::from(4u64).pow_mod(&y, &self.modulus),
-            c2: (plaintext * &self.h.pow_mod(&y, &self.modulus)) % &self.modulus,
+            c1: UnsignedInteger::from(4u64).pow_mod(randomness, &self.modulus),
+            c2: (&ciphertext.c2
+                * &self.h.pow_mod(randomness, &self.modulus)) % &self.modulus,
         }
     }
 }
