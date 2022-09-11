@@ -228,7 +228,7 @@ impl UnsignedInteger {
     }
 
     /// Returns true when this number is prime. This function is not constant-time. Internally it uses Baille-PSW.
-    pub fn is_probably_prime(&self) -> bool {
+    pub fn is_probably_prime_leaky(&self) -> bool {
         unsafe { gmp::mpz_probab_prime_p(&self.value, 25) > 0 }
     }
 

@@ -9,12 +9,11 @@ Exceptions:
 - Initializing from strings using `from_string`
 - Equality checks (`PartialEq`)
 - Ordering (`PartialOrd`)
-- Computing `lcm` 
-- `random`
-- `mod_u`
-- `set_bit` and `clear_bit`
-- `is_probably_prime`
-- Right shifts
-- `rem` for negative numbers
+- `lcm_leaky`
+- `mod_u_leaky`
+- `set_bit_leaky` and `clear_bit_leaky`
+- `is_probably_prime_leaky`
 
-Note that division may leak some information about the size of the resulting value.
+
+We are unsure about random number generation.
+Also note that division may leak some information about the size of the resulting value.

@@ -50,7 +50,7 @@ pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> Unsi
         };
 
         // Ensure that we have a prime with a stronger primality test
-        if candidate.is_probably_prime() {
+        if candidate.is_probably_prime_leaky() {
             return candidate;
         }
     }
@@ -93,10 +93,10 @@ pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) ->
         };
 
         // Ensure that we have a prime with a stronger primality test
-        if candidate.is_probably_prime() {
+        if candidate.is_probably_prime_leaky() {
             // Ensure that p for 2p = 1 is also a prime with the stronger primality test
             let candidate_reduced = &candidate >> 1;
-            if candidate_reduced.is_probably_prime() {
+            if candidate_reduced.is_probably_prime_leaky() {
                 return candidate;
             }
         }
