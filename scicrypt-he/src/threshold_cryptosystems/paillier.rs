@@ -71,7 +71,7 @@ impl TOfNCryptosystem for ThresholdPaillier {
 
         let beta = UnsignedInteger::random_below(&modulus, rng);
         let theta = (&sub_modulus * &beta) % &modulus;
-        let delta = UnsignedInteger::factorial(key_count_n as u64);
+        let delta = UnsignedInteger::factorial_leaky(key_count_n as u64);
 
         let m_times_n = &sub_modulus * &modulus;
         let coefficients: Vec<UnsignedInteger> = (0..(threshold_t - 1))

@@ -49,6 +49,7 @@ impl Mul for &UnsignedInteger {
 }
 
 impl UnsignedInteger {
+    /// Computes $x^2$, where $x$ is `self`. This is typically faster than performing a multiplication.
     pub fn square(&self) -> UnsignedInteger {
         // TODO: Switch to more efficient squaring function
         self * self

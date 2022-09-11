@@ -54,7 +54,7 @@ impl AsymmetricCryptosystem for Rsa {
         let e = UnsignedInteger::new(65537, 17);
         let d = e
             .clone()
-            .invert_unsecure(&lambda)
+            .invert_leaky(&lambda)
             .expect("e should always be invertible mod lambda.");
 
         (RsaPK { n, e }, RsaSK { d })

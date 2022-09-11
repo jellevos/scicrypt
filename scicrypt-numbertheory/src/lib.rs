@@ -18,14 +18,14 @@ use scicrypt_traits::randomness::SecureRng;
 pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> UnsignedInteger {
     'outer: loop {
         let mut candidate = UnsignedInteger::random(bit_length, rng);
-        candidate.set_bit(bit_length - 1);
-        candidate.set_bit(0);
+        candidate.set_bit_leaky(bit_length - 1);
+        candidate.set_bit_leaky(0);
 
         // A heuristic that closely follows OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
         let prime_count: usize = bit_length as usize / 3;
         let mods: Vec<u64> = FIRST_PRIMES[..prime_count]
             .iter()
-            .map(|p| candidate.mod_u(*p))
+            .map(|p| candidate.mod_u_leaky(*p))
             .collect();
 
         let mut delta = 0;
@@ -61,14 +61,14 @@ pub fn gen_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> Unsi
 pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) -> UnsignedInteger {
     'outer: loop {
         let mut candidate = UnsignedInteger::random(bit_length, rng);
-        candidate.set_bit(bit_length - 1);
-        candidate.set_bit(0);
+        candidate.set_bit_leaky(bit_length - 1);
+        candidate.set_bit_leaky(0);
 
         // A heuristic that closely follows OpenSSL (https://github.com/openssl/openssl/blob/4cedf30e995f9789cf6bb103e248d33285a84067/crypto/bn/bn_prime.c)
         let prime_count: usize = bit_length as usize / 3;
         let mods: Vec<u64> = FIRST_PRIMES[..prime_count]
             .iter()
-            .map(|p| candidate.mod_u(*p))
+            .map(|p| candidate.mod_u_leaky(*p))
             .collect();
 
         let mut delta = 0;
@@ -115,10 +115,10 @@ pub fn gen_rsa_modulus<R: SecureRng>(
 
     let n = &p * &q;
 
-    p.clear_bit(0);
-    q.clear_bit(0);
+    p.clear_bit_leaky(0);
+    q.clear_bit_leaky(0);
 
-    let lambda = p.lcm(&q);
+    let lambda = p.lcm_leaky(&q);
 
     (n, lambda)
 }
@@ -134,7 +134,7 @@ mod tests {
         let (_, hi) = primal::estimate_nth_prime(100_000);
         for prime in primal::Sieve::new(hi as usize).primes_from(0) {
             assert!(
-                integer.mod_u(prime as u64) != 0,
+                integer.mod_u_leaky(prime as u64) != 0,
                 "{} is divisible by {}",
                 integer,
                 prime

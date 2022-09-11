@@ -1,5 +1,12 @@
 #![feature(int_roundings)]
 #![feature(test)]
+#![warn(missing_docs, unused_imports)]
+
+//! _This is a part of **scicrypt**. For more information, head to the
+//! [scicrypt](https://crates.io/crates/scicrypt) crate homepage._
+//!
+//! This crate implements a `BigInteger`, for which most arithmetic operations take a constant amount of time given the specified sizes. This crate is nothing more than a convenient wrapper around the low-level constant-time functions from GMP.
+
 mod scratch;
 
 mod arithmetic;
@@ -67,6 +74,7 @@ impl From<Integer> for UnsignedInteger {
 
 #[cfg(feature = "rug")]
 impl UnsignedInteger {
+    /// Transforms this `UnsignedInteger` into a rug `Integer`.
     pub fn to_rug(self) -> Integer {
         let value = self.value;
         let _ = ManuallyDrop::new(self);
@@ -123,6 +131,7 @@ impl UnsignedInteger {
         self.size_in_bits
     }
 
+    /// Creates a new `UnsignedInteger` that equals `integer` with the given `size_in_bits`. `size_in_bits` must be a tight estimate; it may only exceed the actual number of bits until the next multiple of 64.
     pub fn new(integer: u64, size_in_bits: u32) -> Self {
         let mut res = UnsignedInteger::zero(size_in_bits);
 
@@ -199,20 +208,22 @@ impl UnsignedInteger {
         }
     }
 
-    pub fn set_bit(&mut self, bit_index: u32) {
+    /// Sets the bit at `bit_index` to 1. This function is not constant-time.
+    pub fn set_bit_leaky(&mut self, bit_index: u32) {
         unsafe {
             gmp::mpz_setbit(&mut self.value, bit_index as u64);
         }
     }
 
-    pub fn clear_bit(&mut self, bit_index: u32) {
+    /// Sets the bit at `bit_index` to 0. This function is not constant-time.
+    pub fn clear_bit_leaky(&mut self, bit_index: u32) {
         unsafe {
             gmp::mpz_clrbit(&mut self.value, bit_index as u64);
         }
     }
 
     /// Computes self modulo a u64 number. This function is not constant-time.
-    pub fn mod_u(&self, modulus: u64) -> u64 {
+    pub fn mod_u_leaky(&self, modulus: u64) -> u64 {
         unsafe { gmp::mpz_fdiv_ui(&self.value, modulus) }
     }
 
@@ -238,8 +249,8 @@ impl UnsignedInteger {
         true
     }
 
-    // Computes the least common multiple between self and other. This function is not constant-time.
-    pub fn lcm(&self, other: &UnsignedInteger) -> UnsignedInteger {
+    /// Computes the least common multiple between self and other. This function is not constant-time.
+    pub fn lcm_leaky(&self, other: &UnsignedInteger) -> UnsignedInteger {
         let mut result = UnsignedInteger::init(self.value.size);
 
         unsafe {
@@ -250,7 +261,8 @@ impl UnsignedInteger {
         result
     }
 
-    pub fn factorial(n: u64) -> Self {
+    /// Computes $n!$. This function is not constant-time.
+    pub fn factorial_leaky(n: u64) -> Self {
         let mut res = UnsignedInteger::init(0);
 
         unsafe {
@@ -391,7 +403,7 @@ mod tests {
 
     #[test]
     fn test_factorial() {
-        let a = UnsignedInteger::factorial(9);
+        let a = UnsignedInteger::factorial_leaky(9);
         let b = UnsignedInteger::from_string("87178291200".to_string(), 10, 37);
 
         assert_ne!(a, b);
@@ -399,7 +411,7 @@ mod tests {
 
     #[test]
     fn test_factorial_large() {
-        let a = UnsignedInteger::factorial(21);
+        let a = UnsignedInteger::factorial_leaky(21);
         let b = UnsignedInteger::from_string("51090942171709440000".to_string(), 10, 66);
 
         assert_eq!(a, b);

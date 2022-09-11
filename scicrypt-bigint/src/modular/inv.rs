@@ -57,7 +57,8 @@ impl UnsignedInteger {
         }
     }
 
-    pub fn invert_unsecure(mut self, modulus: &UnsignedInteger) -> Option<UnsignedInteger> {
+    /// Computes `self^-1 mod modulus`, taking ownership of `self`. Returns None if no inverse exists. `modulus` must be odd. This function is not constant-time.
+    pub fn invert_leaky(mut self, modulus: &UnsignedInteger) -> Option<UnsignedInteger> {
         unsafe {
             let is_valid = mpz_invert(&mut self.value, &self.value, &modulus.value);
 
