@@ -695,6 +695,7 @@ dependencies = [
 name = "scicrypt"
 version = "0.6.2"
 dependencies = [
+ "scicrypt-bigint",
  "scicrypt-he",
  "scicrypt-numbertheory",
  "scicrypt-traits",
