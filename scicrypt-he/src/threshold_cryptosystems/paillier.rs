@@ -289,7 +289,7 @@ mod tests {
     use crate::threshold_cryptosystems::paillier::{ThresholdPaillier, ThresholdPaillierShare};
     use rand_core::OsRng;
     use scicrypt_bigint::UnsignedInteger;
-    use scicrypt_traits::cryptosystems::EncryptionKey;
+    use scicrypt_traits::cryptosystems::{Associable, EncryptionKey};
     use scicrypt_traits::randomness::GeneralRng;
     use scicrypt_traits::security::BitsOfSecurity;
     use scicrypt_traits::threshold_cryptosystems::{
@@ -310,6 +310,27 @@ mod tests {
 
         assert_eq!(
             UnsignedInteger::from(19u64),
+            ThresholdPaillierShare::combine(&[share_1, share_3], &pk).unwrap()
+        );
+    }
+    #[test]
+    fn test_randomize() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let paillier = ThresholdPaillier::setup(&BitsOfSecurity::ToyParameters);
+        let (pk, sks) = paillier.generate_keys(2, 3, &mut rng);
+
+        let ciphertext = pk.encrypt_raw(&UnsignedInteger::from(42), &mut rng);
+        let ciphertext_randomized = pk.randomize(ciphertext.clone(), &mut rng);
+
+        assert_ne!(ciphertext, ciphertext_randomized);
+
+        let ciphertext_associated = ciphertext_randomized.associate(&pk);
+        let share_1 = sks[0].partial_decrypt(&ciphertext_associated);
+        let share_3 = sks[2].partial_decrypt(&ciphertext_associated);
+
+        assert_eq!(
+            UnsignedInteger::from(42),
             ThresholdPaillierShare::combine(&[share_1, share_3], &pk).unwrap()
         );
     }
