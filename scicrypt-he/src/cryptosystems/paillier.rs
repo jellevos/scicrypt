@@ -23,10 +23,30 @@ use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use serde::{Deserialize, Serialize};
 
+// FIXME: Consider adding a Paillier cryptosystem with CustomGen (custom generator)
+
 /// The Paillier cryptosystem.
 #[derive(Copy, Clone)]
 pub struct Paillier {
     modulus_size: u32,
+}
+
+/// A minimal version of the public key for Paillier, which can be expanded to be more computationally efficient.
+pub struct MinimalPaillierPK {
+    /// Public modulus n for encryption
+    pub n: UnsignedInteger,
+}
+
+impl MinimalPaillierPK {
+    /// Expands this minimal key by precomputing some values. The resulting public key is faster to use but takes slightly more space.
+    pub fn expand(self) -> PaillierPK {
+        let n_squared = self.n.square();
+
+        PaillierPK {
+            n: self.n,
+            n_squared,
+        }
+    }
 }
 
 /// Public key for the Paillier cryptosystem.
@@ -34,9 +54,17 @@ pub struct Paillier {
 pub struct PaillierPK {
     /// Public modulus n for encryption
     pub n: UnsignedInteger,
-    /// Public generator g for encryption
-    pub g: UnsignedInteger,
+    /// The modulus squared, i.e. n^2
+    pub n_squared: UnsignedInteger,
 }
+
+impl PaillierPK {
+    /// Minimizes the public key so that only the essential information is kept. This is useful if the public key must be transmitted or stored somewhere.
+    pub fn minimize(&self) -> MinimalPaillierPK {
+        MinimalPaillierPK { n: self.n.clone() }
+    }
+}
+
 /// Decryption key for the Paillier cryptosystem.
 pub struct PaillierSK {
     lambda: UnsignedInteger,
@@ -74,12 +102,14 @@ impl AsymmetricCryptosystem for Paillier {
     /// let (public_key, secret_key) = paillier.generate_keys(&mut rng);
     /// ```
     fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (PaillierPK, PaillierSK) {
-        let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
+        let (n, p, q) = gen_rsa_modulus(self.modulus_size, rng);
 
-        let g = n.clone() + 1;
-        let mu = (lambda.clone() % &n).invert(&n).unwrap();
+        // The generator g is implicit: n + 1
 
-        (PaillierPK { n, g }, PaillierSK { lambda, mu })
+        let lambda = &(p - 1) * &(q - 1);
+        let mu = lambda.clone().invert(&n).unwrap();
+
+        (MinimalPaillierPK { n }.expand(), PaillierSK { lambda, mu })
     }
 }
 
@@ -90,9 +120,8 @@ impl EncryptionKey for PaillierPK {
     type Randomness = UnsignedInteger;
 
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
-        let n_squared = self.n.square();
         PaillierCiphertext {
-            c: self.g.pow_mod(plaintext, &n_squared),
+            c: ((&self.n * plaintext) + 1) % &self.n_squared,
         }
     }
 
@@ -101,8 +130,9 @@ impl EncryptionKey for PaillierPK {
         ciphertext: Self::Ciphertext,
         rng: &mut GeneralRng<R>,
     ) -> Self::Ciphertext {
-        let n_squared = self.n.square();
-        let r = UnsignedInteger::random_below(&n_squared, rng);
+        // r must be coprime with n_squared but this only fails with probability 2^(1 - n_in_bits)
+        // 0 also only occurs with extremely low probability, so we can simply sample randomly s.t. 0 < r < n
+        let r = UnsignedInteger::random_below(&self.n, rng);
 
         self.randomize_with(ciphertext, &r)
     }
@@ -112,11 +142,10 @@ impl EncryptionKey for PaillierPK {
         ciphertext: Self::Ciphertext,
         randomness: &Self::Randomness,
     ) -> Self::Ciphertext {
-        let n_squared = self.n.square();
-        let randomizer = randomness.pow_mod(&self.n, &n_squared);
+        let randomizer = randomness.pow_mod(&self.n, &self.n_squared);
 
         PaillierCiphertext {
-            c: (&ciphertext.c * &randomizer) % &n_squared,
+            c: (&ciphertext.c * &randomizer) % &self.n_squared,
         }
     }
 }
@@ -142,9 +171,7 @@ impl DecryptionKey<PaillierPK> for PaillierSK {
         public_key: &PaillierPK,
         ciphertext: &PaillierCiphertext,
     ) -> UnsignedInteger {
-        let n_squared = public_key.n.square();
-
-        let mut inner = ciphertext.c.pow_mod(&self.lambda, &n_squared);
+        let mut inner = ciphertext.c.pow_mod(&self.lambda, &public_key.n_squared);
         inner -= 1;
         inner = inner / &public_key.n;
         inner = &inner * &self.mu;
@@ -169,15 +196,13 @@ impl HomomorphicAddition for PaillierPK {
         ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
         PaillierCiphertext {
-            c: (&ciphertext_a.c * &ciphertext_b.c) % &self.n.square(),
+            c: (&ciphertext_a.c * &ciphertext_b.c) % &self.n_squared,
         }
     }
 
     fn mul_constant(&self, ciphertext: &Self::Ciphertext, input: &Self::Input) -> Self::Ciphertext {
-        let modulus = self.n.square();
-
         PaillierCiphertext {
-            c: ciphertext.c.pow_mod(input, &modulus),
+            c: ciphertext.c.pow_mod(input, &self.n_squared),
         }
     }
 
@@ -186,9 +211,9 @@ impl HomomorphicAddition for PaillierPK {
         ciphertext_a: &Self::Ciphertext,
         ciphertext_b: &Self::Ciphertext,
     ) -> Self::Ciphertext {
-        let modulus = self.n.square();
         PaillierCiphertext {
-            c: (&ciphertext_a.c * &ciphertext_b.c.clone().invert(&modulus).unwrap()) % &modulus,
+            c: (&ciphertext_a.c * &ciphertext_b.c.clone().invert(&self.n_squared).unwrap())
+                % &self.n_squared,
         }
     }
 
@@ -197,9 +222,8 @@ impl HomomorphicAddition for PaillierPK {
         ciphertext: &Self::Ciphertext,
         constant: &Self::Plaintext,
     ) -> Self::Ciphertext {
-        let modulus = self.n.square();
         PaillierCiphertext {
-            c: (&ciphertext.c * &self.g.pow_mod(constant, &modulus)) % &modulus,
+            c: (&ciphertext.c * &((&self.n * constant + 1) % &self.n_squared)) % &self.n_squared,
         }
     }
 
@@ -208,10 +232,13 @@ impl HomomorphicAddition for PaillierPK {
         ciphertext: &Self::Ciphertext,
         constant: &Self::Plaintext,
     ) -> Self::Ciphertext {
-        let modulus = self.n.square();
+        // FIXME: We should not have to use `invert_leaky` here
         PaillierCiphertext {
-            c: (&ciphertext.c * &self.g.pow_mod(constant, &modulus).invert(&modulus).unwrap())
-                % &modulus,
+            c: (&ciphertext.c
+                * &((&self.n * constant + 1) % &self.n_squared)
+                    .invert_leaky(&self.n_squared)
+                    .unwrap())
+                % &self.n_squared,
         }
     }
 }

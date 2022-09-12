@@ -6,25 +6,8 @@ use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 
 impl SubAssign<&UnsignedInteger> for UnsignedInteger {
     fn sub_assign(&mut self, rhs: &UnsignedInteger) {
-        if self.size_in_bits <= rhs.size_in_bits {
-            // Switch the order and reverse the sign of the result
-            if self.value.size == 0 {
-                return;
-            }
-
-            unsafe {
-                gmp::mpn_sub_n(
-                    self.value.d.as_mut(),
-                    rhs.value.d.as_ptr(),
-                    self.value.d.as_ptr(),
-                    self.value.size as i64,
-                );
-
-                self.value.size = -rhs.value.size;
-                self.size_in_bits = rhs.size_in_bits;
-            }
-            return;
-        }
+        debug_assert!(self.size_in_bits >= rhs.size_in_bits);
+        debug_assert!(self.value.size >= rhs.value.size);
 
         if rhs.value.size == 0 {
             return;
@@ -45,6 +28,15 @@ impl Sub<&UnsignedInteger> for UnsignedInteger {
     type Output = UnsignedInteger;
 
     fn sub(mut self, rhs: &UnsignedInteger) -> Self::Output {
+        self -= rhs;
+        self
+    }
+}
+
+impl Sub<u64> for UnsignedInteger {
+    type Output = UnsignedInteger;
+
+    fn sub(mut self, rhs: u64) -> Self::Output {
         self -= rhs;
         self
     }

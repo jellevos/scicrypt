@@ -130,8 +130,9 @@ impl EncryptionKey for ThresholdPaillierPK {
     where
         Self: Sized,
     {
-        let n_squared = self.modulus.square();
-        let r = UnsignedInteger::random_below(&n_squared, rng);
+        // r must be coprime with n_squared but this only fails with probability 2^(1 - n_in_bits)
+        // 0 also only occurs with extremely low probability, so we can simply sample randomly s.t. 0 < r < n
+        let r = UnsignedInteger::random_below(&self.modulus, rng);
 
         self.randomize_with(ciphertext, &r)
     }

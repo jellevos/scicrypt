@@ -49,7 +49,10 @@ impl AsymmetricCryptosystem for Rsa {
     }
 
     fn generate_keys<R: SecureRng>(&self, rng: &mut GeneralRng<R>) -> (RsaPK, RsaSK) {
-        let (n, lambda) = gen_rsa_modulus(self.modulus_size, rng);
+        let (n, p, q) = gen_rsa_modulus(self.modulus_size, rng);
+
+        // TODO: Is this the right choice?
+        let lambda = (p - 1).lcm_leaky(&(q - 1));
 
         let e = UnsignedInteger::new(65537, 17);
         let d = e
