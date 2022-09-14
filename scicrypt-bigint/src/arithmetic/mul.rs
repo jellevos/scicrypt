@@ -112,6 +112,22 @@ mod tests {
     }
 
     #[test]
+    fn test_mul_equal_size_reduce() {
+        let a = UnsignedInteger::new(23, 64);
+        let b = UnsignedInteger::new(14, 64);
+
+        let mut c = &a * &b;
+        assert_eq!(UnsignedInteger::from(23u64 * 14), c);
+        assert_eq!(2, c.value.size);
+        assert_eq!(128, c.size_in_bits);
+
+        c.reduce_leaky();
+        assert_eq!(UnsignedInteger::from(23u64 * 14), c);
+        assert_eq!(1, c.value.size);
+        assert_eq!(64, c.size_in_bits);
+    }
+
+    #[test]
     fn test_mul_larger_a() {
         let a = UnsignedInteger::from_string_leaky("125789402190859323905892".to_string(), 10, 128);
         let b = UnsignedInteger::new(102, 7);

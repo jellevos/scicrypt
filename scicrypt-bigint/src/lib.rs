@@ -75,7 +75,8 @@ impl From<Integer> for UnsignedInteger {
 #[cfg(feature = "rug")]
 impl UnsignedInteger {
     /// Transforms this `UnsignedInteger` into a rug `Integer`.
-    pub fn to_rug(self) -> Integer {
+    pub fn to_rug(mut self) -> Integer {
+        self.reduce_leaky();
         let value = self.value;
         let _ = ManuallyDrop::new(self);
         unsafe { Integer::from_raw(value) }
@@ -270,6 +271,21 @@ impl UnsignedInteger {
 
         res.size_in_bits = (res.value.size * GMP_NUMB_BITS as i32) as u32;
         res
+    }
+
+    /// Reduces `self` so that there are no leading zero-limbs. In other words, the representation becomes as small as possible to represent this value. This leaks the actual size of the encoded value.
+    pub fn reduce_leaky(&mut self) {
+        unsafe {
+            loop {
+                if *self.value.d.as_ptr().offset(self.value.size as isize - 1) != 0 {
+                    break;
+                }
+
+                self.value.size -= 1;
+            }
+        }
+
+        self.size_in_bits = self.value.size as u32 * GMP_NUMB_BITS;
     }
 }
 
