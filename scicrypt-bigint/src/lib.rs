@@ -99,6 +99,8 @@ pub struct UnsignedInteger {
     size_in_bits: u32,
 }
 
+unsafe impl Send for UnsignedInteger {}
+
 impl Drop for UnsignedInteger {
     fn drop(&mut self) {
         unsafe {

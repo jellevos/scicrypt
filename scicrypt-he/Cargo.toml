@@ -1,7 +1,7 @@
 [package]
 name = "scicrypt-he"
 description = "A scicrypt crate implementing several well-known partially homomorphic (threshold) cryptosystems"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
 edition = "2018"
 license = "MIT"
@@ -13,9 +13,9 @@ readme = "README.md"
 bench = false  # Disable default bench (we use criterion)
 
 [dependencies]
-scicrypt-traits = { version = "0.7.0", path = "../scicrypt-traits" }
-scicrypt-numbertheory = { version = "0.7.0", path = "../scicrypt-numbertheory" }
-scicrypt-bigint = { version = "0.7.0", path = "../scicrypt-bigint" }
+scicrypt-traits = { version = "0.7.1", path = "../scicrypt-traits" }
+scicrypt-numbertheory = { version = "0.7.1", path = "../scicrypt-numbertheory" }
+scicrypt-bigint = { version = "0.7.1", path = "../scicrypt-bigint" }
 curve25519-dalek = { package = "curve25519-dalek", version = "4.0.0-pre.2", features = ["serde"] }
 rug = { version = "1.13", default-features = false, features = ["integer", "rand", "serde"]}
 rand_core = "0.6"
