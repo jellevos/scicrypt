@@ -5,6 +5,6 @@ authors:
   given-names: "Jelle"
   orcid: "https://orcid.org/0000-0002-3979-9740"
 title: "scicrypt"
-version: 0.7.0
-date-released: 2022-09-08
+version: 0.7.1
+date-released: 2022-09-14
 url: "https://github.com/jellevos/scicrypt"

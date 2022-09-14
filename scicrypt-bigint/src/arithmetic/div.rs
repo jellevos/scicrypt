@@ -4,10 +4,9 @@ use gmp_mpfr_sys::gmp;
 
 use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
 
-impl Div<&UnsignedInteger> for UnsignedInteger {
-    type Output = UnsignedInteger;
-
-    fn div(mut self, rhs: &UnsignedInteger) -> UnsignedInteger {
+impl UnsignedInteger {
+    /// Divides `self` by `rhs` and returns the quotient and remainder (in that order).
+    pub fn div_rem(mut self, rhs: &UnsignedInteger) -> (UnsignedInteger, UnsignedInteger) {
         // TODO: Check the other preconditions
         debug_assert_eq!(
             self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
@@ -49,8 +48,20 @@ impl Div<&UnsignedInteger> for UnsignedInteger {
                 .as_ptr()
                 .offset(size as isize)
                 .write(most_significant_limb);
-            res
+
+            self.value.size = rhs.value.size;
+            self.size_in_bits = rhs.size_in_bits;
+
+            (res, self)
         }
+    }
+}
+
+impl Div<&UnsignedInteger> for UnsignedInteger {
+    type Output = UnsignedInteger;
+
+    fn div(self, rhs: &UnsignedInteger) -> UnsignedInteger {
+        self.div_rem(rhs).0
     }
 }
 
@@ -59,39 +70,71 @@ mod test {
     use crate::UnsignedInteger;
 
     #[test]
+    fn test_divrem_small() {
+        let x = UnsignedInteger::from_string_leaky("5".to_string(), 10, 3);
+        let y = UnsignedInteger::from_string_leaky("3".to_string(), 10, 2);
+
+        let (q, r) = x.div_rem(&y);
+
+        assert_eq!(
+            UnsignedInteger::from_string_leaky("1".to_string(), 10, 1),
+            q
+        );
+        assert_eq!(q.value.size, 1);
+        assert_eq!(q.size_in_bits, 64);
+
+        assert_eq!(
+            UnsignedInteger::from_string_leaky("2".to_string(), 10, 1),
+            r
+        );
+        assert_eq!(r.value.size, 1);
+        assert_eq!(r.size_in_bits, 2);
+    }
+
+    #[test]
     fn test_division_small() {
-        let x = UnsignedInteger::from_string("5".to_string(), 10, 3);
-        let y = UnsignedInteger::from_string("3".to_string(), 10, 2);
+        let x = UnsignedInteger::from_string_leaky("5".to_string(), 10, 3);
+        let y = UnsignedInteger::from_string_leaky("3".to_string(), 10, 2);
 
         let q = x / &y;
 
-        assert_eq!(UnsignedInteger::from_string("1".to_string(), 10, 1), q);
+        assert_eq!(
+            UnsignedInteger::from_string_leaky("1".to_string(), 10, 1),
+            q
+        );
         assert_eq!(q.value.size, 1);
         assert_eq!(q.size_in_bits, 64);
     }
 
     #[test]
     fn test_division_small_zero() {
-        let x = UnsignedInteger::from_string("4".to_string(), 10, 3);
-        let y = UnsignedInteger::from_string("7".to_string(), 10, 3);
+        let x = UnsignedInteger::from_string_leaky("4".to_string(), 10, 3);
+        let y = UnsignedInteger::from_string_leaky("7".to_string(), 10, 3);
 
         let q = x / &y;
 
-        assert_eq!(UnsignedInteger::from_string("0".to_string(), 10, 1), q);
+        assert_eq!(
+            UnsignedInteger::from_string_leaky("0".to_string(), 10, 1),
+            q
+        );
         assert_eq!(q.value.size, 0);
         assert_eq!(q.size_in_bits, 0);
     }
 
     #[test]
     fn test_division() {
-        let x =
-            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
-        let y = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
+        let x = UnsignedInteger::from_string_leaky(
+            "5378239758327583290580573280735".to_string(),
+            10,
+            103,
+        );
+        let y =
+            UnsignedInteger::from_string_leaky("49127277414859531000011129".to_string(), 10, 86);
 
         let q = x / &y;
 
         assert_eq!(
-            UnsignedInteger::from_string("109475".to_string(), 10, 17),
+            UnsignedInteger::from_string_leaky("109475".to_string(), 10, 17),
             q
         );
         assert_eq!(q.value.size, 1);
