@@ -18,6 +18,7 @@ use std::{
     cmp::min,
     ffi::{CStr, CString},
     fmt::{Debug, Display},
+    hash::Hash,
     mem::{ManuallyDrop, MaybeUninit},
     ptr::null_mut,
 };
@@ -313,8 +314,23 @@ impl Clone for UnsignedInteger {
     }
 }
 
+impl Hash for UnsignedInteger {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        unsafe {
+            for i in 0..self.value.size as isize {
+                (*self.value.d.as_ptr().offset(i)).hash(state);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::{
+        collections::hash_map::DefaultHasher,
+        hash::{Hash, Hasher},
+    };
+
     use rand::rngs::OsRng;
     use scicrypt_traits::randomness::GeneralRng;
 
@@ -373,6 +389,34 @@ mod tests {
             // Unused values
             test::black_box(b.pow_mod(&e, &m));
         });
+    }
+
+    #[test]
+    fn test_hash_eq() {
+        let a = UnsignedInteger::from(123u64);
+        let b = UnsignedInteger::from(123u64);
+
+        let mut hasher_a = DefaultHasher::new();
+        a.hash(&mut hasher_a);
+
+        let mut hasher_b = DefaultHasher::new();
+        b.hash(&mut hasher_b);
+
+        assert_eq!(hasher_a.finish(), hasher_b.finish())
+    }
+
+    #[test]
+    fn test_hash_neq() {
+        let a = UnsignedInteger::from(123u64);
+        let b = UnsignedInteger::from(124u64);
+
+        let mut hasher_a = DefaultHasher::new();
+        a.hash(&mut hasher_a);
+
+        let mut hasher_b = DefaultHasher::new();
+        b.hash(&mut hasher_b);
+
+        assert_ne!(hasher_a.finish(), hasher_b.finish())
     }
 
     #[test]
