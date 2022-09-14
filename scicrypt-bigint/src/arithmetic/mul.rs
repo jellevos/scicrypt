@@ -113,13 +113,13 @@ mod tests {
 
     #[test]
     fn test_mul_larger_a() {
-        let a = UnsignedInteger::from_string("125789402190859323905892".to_string(), 10, 128);
+        let a = UnsignedInteger::from_string_leaky("125789402190859323905892".to_string(), 10, 128);
         let b = UnsignedInteger::new(102, 7);
 
         let c = &a * &b;
 
         assert_eq!(
-            UnsignedInteger::from_string("12830519023467651038400984".to_string(), 10, 128),
+            UnsignedInteger::from_string_leaky("12830519023467651038400984".to_string(), 10, 128),
             c
         );
     }
@@ -127,11 +127,12 @@ mod tests {
     #[test]
     fn test_mul_larger_b() {
         let a = UnsignedInteger::new(12, 64);
-        let b = UnsignedInteger::from_string("393530540239137101151".to_string(), 10, 128);
+        let b = UnsignedInteger::from_string_leaky("393530540239137101151".to_string(), 10, 128);
 
         let c = &a * &b;
 
-        let expected = UnsignedInteger::from_string("4722366482869645213812".to_string(), 10, 128);
+        let expected =
+            UnsignedInteger::from_string_leaky("4722366482869645213812".to_string(), 10, 128);
         assert_eq!(expected, c);
     }
 }
