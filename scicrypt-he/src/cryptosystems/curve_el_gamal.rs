@@ -1,7 +1,7 @@
-use curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
 use curve25519_dalek::constants::RISTRETTO_BASEPOINT_TABLE;
 use curve25519_dalek::ristretto::{RistrettoBasepointTable, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::traits::Identity;
 use scicrypt_traits::cryptosystems::{
     Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
 };
@@ -10,7 +10,6 @@ use scicrypt_traits::randomness::GeneralRng;
 use scicrypt_traits::randomness::SecureRng;
 use scicrypt_traits::security::BitsOfSecurity;
 use serde::{Deserialize, Serialize};
-use std::convert::identity;
 use std::fmt::{Debug, Formatter};
 
 /// ElGamal over the Ristretto-encoded Curve25519 elliptic curve. The curve is provided by the
@@ -106,7 +105,7 @@ impl EncryptionKey for CurveElGamalPK {
 
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         CurveElGamalCiphertext {
-            c1: identity(RISTRETTO_BASEPOINT_POINT),
+            c1: RistrettoPoint::identity(),
             c2: plaintext.to_owned(),
         }
     }
@@ -127,7 +126,7 @@ impl EncryptionKey for CurveElGamalPK {
         randomness: &Self::Randomness,
     ) -> Self::Ciphertext {
         CurveElGamalCiphertext {
-            c1: randomness * &RISTRETTO_BASEPOINT_TABLE,
+            c1: ciphertext.c1 + randomness * &RISTRETTO_BASEPOINT_TABLE,
             c2: ciphertext.c2 + randomness * self.point,
         }
     }
@@ -159,7 +158,7 @@ impl EncryptionKey for PrecomputedCurveElGamalPK {
 
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         CurveElGamalCiphertext {
-            c1: identity(RISTRETTO_BASEPOINT_POINT),
+            c1: RistrettoPoint::identity(),
             c2: plaintext.to_owned(),
         }
     }
@@ -180,7 +179,7 @@ impl EncryptionKey for PrecomputedCurveElGamalPK {
         randomness: &Self::Randomness,
     ) -> Self::Ciphertext {
         CurveElGamalCiphertext {
-            c1: randomness * &RISTRETTO_BASEPOINT_TABLE,
+            c1: ciphertext.c1 + randomness * &RISTRETTO_BASEPOINT_TABLE,
             c2: ciphertext.c2 + randomness * &self.point,
         }
     }
@@ -336,7 +335,9 @@ mod tests {
     use curve25519_dalek::scalar::Scalar;
     use curve25519_dalek::traits::Identity;
     use rand_core::OsRng;
-    use scicrypt_traits::cryptosystems::{AsymmetricCryptosystem, DecryptionKey, EncryptionKey};
+    use scicrypt_traits::cryptosystems::{
+        Associable, AsymmetricCryptosystem, DecryptionKey, EncryptionKey,
+    };
     use scicrypt_traits::randomness::GeneralRng;
 
     #[test]
@@ -464,6 +465,49 @@ mod tests {
         assert_eq!(
             &Scalar::from(3u64) * &RISTRETTO_BASEPOINT_POINT,
             sk.decrypt(&ciphertext_thrice)
+        );
+    }
+
+    #[test]
+    fn test_randomize() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let el_gamal = CurveElGamal::setup(&Default::default());
+        let (pk, sk) = el_gamal.generate_keys(&mut rng);
+        let pk = pk.compress();
+
+        let ciphertext = pk.encrypt_raw(
+            &(&Scalar::from(42u64) * &RISTRETTO_BASEPOINT_POINT),
+            &mut rng,
+        );
+        let randomized_ciphertext = pk.randomize(ciphertext.clone(), &mut rng);
+
+        assert_ne!(ciphertext, randomized_ciphertext);
+
+        assert_eq!(
+            &(&Scalar::from(42u64) * &RISTRETTO_BASEPOINT_POINT),
+            &sk.decrypt(&randomized_ciphertext.associate(&pk))
+        );
+    }
+
+    #[test]
+    fn test_randomize_precomputed() {
+        let mut rng = GeneralRng::new(OsRng);
+
+        let el_gamal = CurveElGamal::setup(&Default::default());
+        let (pk, sk) = el_gamal.generate_keys(&mut rng);
+
+        let ciphertext = pk.encrypt_raw(
+            &(&Scalar::from(42u64) * &RISTRETTO_BASEPOINT_POINT),
+            &mut rng,
+        );
+        let randomized_ciphertext = pk.randomize(ciphertext.clone(), &mut rng);
+
+        assert_ne!(ciphertext, randomized_ciphertext);
+
+        assert_eq!(
+            &(&Scalar::from(42u64) * &RISTRETTO_BASEPOINT_POINT),
+            &sk.decrypt(&randomized_ciphertext.associate(&pk))
         );
     }
 }

@@ -1,7 +1,7 @@
 [package]
 name = "scicrypt-numbertheory"
 description = "A scicrypt crate implementing number theoretic algorithms such as random (safe) prime generation"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Jelle Vos <scicrypt@jelle-vos.nl>"]
 edition = "2018"
 license = "MIT"
@@ -13,8 +13,8 @@ readme = "README.md"
 bench = false  # Disable default bench (we use criterion)
 
 [dependencies]
-scicrypt-traits = { version = "0.7.0", path = "../scicrypt-traits" }
-scicrypt-bigint = { version = "0.7.0", path = "../scicrypt-bigint" }
+scicrypt-traits = { version = "0.7.1", path = "../scicrypt-traits" }
+scicrypt-bigint = { version = "0.7.1", path = "../scicrypt-bigint" }
 rug = { version = "1.13", default-features = false, features = ["integer", "rand"]}
 rand_core = "0.6"
 

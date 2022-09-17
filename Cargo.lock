@@ -693,7 +693,7 @@ dependencies = [
 
 [[package]]
 name = "scicrypt"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "scicrypt-bigint",
  "scicrypt-he",
@@ -703,7 +703,7 @@ dependencies = [
 
 [[package]]
 name = "scicrypt-bigint"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "gmp-mpfr-sys",
  "rand",
@@ -714,7 +714,7 @@ dependencies = [
 
 [[package]]
 name = "scicrypt-he"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "bincode",
  "criterion",
@@ -729,7 +729,7 @@ dependencies = [
 
 [[package]]
 name = "scicrypt-numbertheory"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "criterion",
  "glass_pumpkin",
@@ -744,7 +744,7 @@ dependencies = [
 
 [[package]]
 name = "scicrypt-traits"
-version = "0.7.0"
+version = "0.7.1"
 dependencies = [
  "rand_core",
  "rug",

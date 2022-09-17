@@ -69,14 +69,22 @@ mod tests {
 
     #[test]
     fn test_subtract() {
-        let mut x =
-            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
-        let y = UnsignedInteger::from_string("49127277414859531000011129".to_string(), 10, 86);
+        let mut x = UnsignedInteger::from_string_leaky(
+            "5378239758327583290580573280735".to_string(),
+            10,
+            103,
+        );
+        let y =
+            UnsignedInteger::from_string_leaky("49127277414859531000011129".to_string(), 10, 86);
 
         x -= &y;
 
         assert_eq!(
-            UnsignedInteger::from_string("5378190631050168431049573269606".to_string(), 10, 103),
+            UnsignedInteger::from_string_leaky(
+                "5378190631050168431049573269606".to_string(),
+                10,
+                103
+            ),
             x
         );
         assert_eq!(x.size_in_bits, 103);
@@ -84,14 +92,21 @@ mod tests {
 
     #[test]
     fn test_subtract_u64() {
-        let mut x =
-            UnsignedInteger::from_string("5378239758327583290580573280735".to_string(), 10, 103);
+        let mut x = UnsignedInteger::from_string_leaky(
+            "5378239758327583290580573280735".to_string(),
+            10,
+            103,
+        );
         let y = 14;
 
         x -= y;
 
         assert_eq!(
-            UnsignedInteger::from_string("5378239758327583290580573280721".to_string(), 10, 103),
+            UnsignedInteger::from_string_leaky(
+                "5378239758327583290580573280721".to_string(),
+                10,
+                103
+            ),
             x
         );
         assert_eq!(x.size_in_bits, 103);
