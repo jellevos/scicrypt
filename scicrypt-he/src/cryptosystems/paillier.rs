@@ -121,7 +121,7 @@ impl EncryptionKey for PaillierPK {
 
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         PaillierCiphertext {
-            c: ((&self.n * plaintext) + 1) % &self.n_squared,
+            c: ((&self.n * &(self.n.clone() + plaintext)) + 1) % &self.n_squared,
         }
     }
 
@@ -273,7 +273,7 @@ mod tests {
         let paillier = Paillier::setup(&BitsOfSecurity::ToyParameters);
         let (pk, sk) = paillier.generate_keys(&mut rng);
 
-        let ciphertext = pk.encrypt(&UnsignedInteger::from(0), &mut rng);
+        let ciphertext = pk.encrypt(&UnsignedInteger::zero(0), &mut rng);
 
         assert!(sk.decrypt_identity(&ciphertext));
     }
