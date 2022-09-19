@@ -104,23 +104,17 @@ pub fn gen_safe_prime<R: SecureRng>(bit_length: u32, rng: &mut GeneralRng<R>) ->
 }
 
 /// Generates a uniformly random RSA modulus, which is the product of two safe primes $p$ and $q$.
-/// This method returns both the modulus and $\lambda$, which is the least common multiple of
-/// $p - 1$ and $q - 1$.
+/// This method returns the modulus $n = p q$, and $p$ & $q$ itself.
 pub fn gen_rsa_modulus<R: SecureRng>(
     bit_length: u32,
     rng: &mut GeneralRng<R>,
-) -> (UnsignedInteger, UnsignedInteger) {
-    let mut p = gen_safe_prime(bit_length / 2, rng);
-    let mut q = gen_safe_prime(bit_length / 2, rng);
+) -> (UnsignedInteger, UnsignedInteger, UnsignedInteger) {
+    let p = gen_safe_prime(bit_length / 2, rng);
+    let q = gen_safe_prime(bit_length / 2, rng);
 
     let n = &p * &q;
 
-    p.clear_bit_leaky(0);
-    q.clear_bit_leaky(0);
-
-    let lambda = p.lcm_leaky(&q);
-
-    (n, lambda)
+    (n, p, q)
 }
 
 #[cfg(test)]

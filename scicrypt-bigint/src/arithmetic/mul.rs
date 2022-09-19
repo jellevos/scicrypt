@@ -12,6 +12,9 @@ impl Mul for &UnsignedInteger {
             return rhs * self;
         }
 
+        debug_assert!(self.value.size != 0);
+        debug_assert!(rhs.value.size != 0);
+
         debug_assert_eq!(
             self.size_in_bits.div_ceil(GMP_NUMB_BITS) as i32,
             self.value.size,
