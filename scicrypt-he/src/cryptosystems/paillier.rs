@@ -122,6 +122,7 @@ impl EncryptionKey for PaillierPK {
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
         PaillierCiphertext {
             c: ((&self.n * &(self.n.clone() + plaintext)) + 1) % &self.n_squared,
+            //c: (self.n.clone() + 1).pow_mod(plaintext, &self.n_squared),
         }
     }
 

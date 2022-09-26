@@ -13,6 +13,8 @@ Almost all function should run in constant-time, and only leak information about
 - `set_bit_leaky` and `clear_bit_leaky`
 - `is_probably_prime_leaky`
 
+**Warning: Additions currently leak the carry. We are working on overcoming this limitation.**
+
 To make code easier to read, one can call `leak()` on an `UnsignedInteger` to get a `LeakyUnsignedInteger` that supports overloaded operators for leaky operations.
 
 We are unsure about random number generation.
