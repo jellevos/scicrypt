@@ -12,24 +12,44 @@ impl AddAssign<&UnsignedInteger> for UnsignedInteger {
         debug_assert!(self.size_in_bits >= rhs.size_in_bits);
         debug_assert!(self.value.size >= rhs.value.size);
 
-        let n = rhs.value.size;
-
-        if n == 0 {
+        if rhs.value.size == 0 {
             return;
         }
 
         unsafe {
-            let carry = gmp::mpn_add_n(
+            // LHS has more limbs than RHS, so add all RHS limbs to the corresponding limbs on the LHS.
+            let mut carry = gmp::mpn_add_n(
                 self.value.d.as_mut(),
                 self.value.d.as_ptr(),
                 rhs.value.d.as_ptr(),
-                n as i64,
+                rhs.value.size as i64,
             );
 
-            let largest_size = self.value.size as i32;
+            let remaining_size = (self.value.size - rhs.value.size) as i64;
+            if remaining_size != 0 {
+                // Propagate the carry over the remaining (more significant) limbs on the LHS.
+                let scratch_size = gmp::mpn_sec_add_1_itch(remaining_size) as usize * GMP_NUMB_BITS as usize;
+                let mut scratch = Scratch::new(scratch_size);
 
-            self.value.size = largest_size + carry as i32;
-            self.size_in_bits = self.size_in_bits + carry as u32;
+                carry = gmp::mpn_sec_add_1(
+                    self.value.d.as_ptr().offset(rhs.value.size as isize),
+                    self.value.d.as_ptr().offset(rhs.value.size as isize),
+                    remaining_size,
+                    carry,
+                    scratch.as_mut(),
+                );
+            }
+
+            // Save the carry in a new limb if the number of bits requires it
+            if (self.size_in_bits % GMP_NUMB_BITS) == 0 {
+                gmp::mpz_realloc2(&mut self.value, self.value.size as u64 + 1);
+                *self.value.d.as_ptr().offset(self.value.size as isize) = carry;
+                self.value.size += 1;
+            } else {
+                debug_assert!(carry == 0, "The carry can never be 1 when the most significant limb still has empty bits remaining. I.e., `self.size_in_bits` is incorrect.");
+            }
+            
+            self.size_in_bits += 1;
         }
     }
 }
@@ -59,8 +79,16 @@ impl AddAssign<u64> for UnsignedInteger {
                 scratch.as_mut(),
             );
 
-            self.value.size += carry as i32;
-            self.size_in_bits += carry as u32;
+            // Save the carry in a new limb if the number of bits requires it
+            if (self.size_in_bits % GMP_NUMB_BITS) == 0 {
+                gmp::mpz_realloc2(&mut self.value, self.value.size as u64 + 1);
+                *self.value.d.as_ptr().offset(self.value.size as isize) = carry;
+                self.value.size += 1;
+            } else {
+                debug_assert!(carry == 0, "The carry can never be 1 when the most significant limb still has empty bits remaining. I.e., `self.size_in_bits` is incorrect.");
+            }
+
+            self.size_in_bits += 1;
         }
     }
 }
@@ -105,7 +133,48 @@ mod tests {
             ),
             x
         );
-        assert_eq!(x.size_in_bits, 103);
+        assert_eq!(x.size_in_bits, 104);
+    }
+
+    #[test]
+    fn test_addition_overflow() {
+        let mut x = UnsignedInteger::from(u64::MAX);
+        let y = UnsignedInteger::from_string_leaky("3".to_string(), 10, 2);
+
+        x += &y;
+
+        assert_eq!(
+            UnsignedInteger::from_string_leaky(
+                "18446744073709551618".to_string(),
+                10,
+                65
+            ),
+            x
+        );
+        assert_eq!(x.size_in_bits, 65);
+    }
+
+    #[test]
+    fn test_addition_different_sizes() {
+        let mut x = UnsignedInteger::from_string_leaky(
+            "5378239758327583290580573280735".to_string(),
+            10,
+            103,
+        );
+        let y =
+            UnsignedInteger::from_string_leaky("12".to_string(), 10, 4);
+
+        x += &y;
+
+        assert_eq!(
+            UnsignedInteger::from_string_leaky(
+                "5378239758327583290580573280747".to_string(),
+                10,
+                103
+            ),
+            x
+        );
+        assert_eq!(x.size_in_bits, 104);
     }
 
     #[test]
@@ -127,6 +196,6 @@ mod tests {
             ),
             x
         );
-        assert_eq!(x.size_in_bits, 103);
+        assert_eq!(x.size_in_bits, 104);
     }
 }

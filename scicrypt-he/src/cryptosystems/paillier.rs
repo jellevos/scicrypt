@@ -120,8 +120,17 @@ impl EncryptionKey for PaillierPK {
     type Randomness = UnsignedInteger;
 
     fn encrypt_without_randomness(&self, plaintext: &Self::Plaintext) -> Self::Ciphertext {
+        println!("plaintext: {:?}", plaintext);
+        println!("n: {:?}", self.n);
+        println!("n^2: {:?}", self.n_squared);
+        dbg!(self.n.clone() + plaintext);
+        dbg!(&self.n * &(self.n.clone() + plaintext));
+        dbg!((&self.n * &(self.n.clone() + plaintext)) + 1);
+        dbg!(((&self.n * &(self.n.clone() + plaintext)) + 1) % &self.n_squared);
+
         PaillierCiphertext {
             c: ((&self.n * &(self.n.clone() + plaintext)) + 1) % &self.n_squared,
+            //c: (self.n.clone() + 1).pow_mod(plaintext, &self.n_squared),
         }
     }
 
