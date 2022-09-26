@@ -28,7 +28,8 @@ impl AddAssign<&UnsignedInteger> for UnsignedInteger {
             let remaining_size = (self.value.size - rhs.value.size) as i64;
             if remaining_size != 0 {
                 // Propagate the carry over the remaining (more significant) limbs on the LHS.
-                let scratch_size = gmp::mpn_sec_add_1_itch(remaining_size) as usize * GMP_NUMB_BITS as usize;
+                let scratch_size =
+                    gmp::mpn_sec_add_1_itch(remaining_size) as usize * GMP_NUMB_BITS as usize;
                 let mut scratch = Scratch::new(scratch_size);
 
                 carry = gmp::mpn_sec_add_1(
@@ -138,11 +139,7 @@ mod tests {
         x += &y;
 
         assert_eq!(
-            UnsignedInteger::from_string_leaky(
-                "18446744073709551618".to_string(),
-                10,
-                65
-            ),
+            UnsignedInteger::from_string_leaky("18446744073709551618".to_string(), 10, 65),
             x
         );
         assert_eq!(x.size_in_bits, 65);
@@ -155,8 +152,7 @@ mod tests {
             10,
             103,
         );
-        let y =
-            UnsignedInteger::from_string_leaky("12".to_string(), 10, 4);
+        let y = UnsignedInteger::from_string_leaky("12".to_string(), 10, 4);
 
         x += &y;
 
