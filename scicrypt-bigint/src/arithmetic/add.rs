@@ -40,16 +40,13 @@ impl AddAssign<&UnsignedInteger> for UnsignedInteger {
                 );
             }
 
-            // Save the carry in a new limb if the number of bits requires it
-            if (self.size_in_bits % GMP_NUMB_BITS) == 0 {
+            // Save the carry in a new limb
+            if carry == 1u64 {
                 gmp::mpz_realloc2(&mut self.value, self.value.size as u64 + 1);
                 *self.value.d.as_ptr().offset(self.value.size as isize) = carry;
                 self.value.size += 1;
-            } else {
-                debug_assert!(carry == 0, "The carry can never be 1 when the most significant limb still has empty bits remaining. I.e., `self.size_in_bits` is incorrect.");
+                self.size_in_bits += 1;
             }
-            
-            self.size_in_bits += 1;
         }
     }
 }
@@ -79,16 +76,13 @@ impl AddAssign<u64> for UnsignedInteger {
                 scratch.as_mut(),
             );
 
-            // Save the carry in a new limb if the number of bits requires it
-            if (self.size_in_bits % GMP_NUMB_BITS) == 0 {
+            // Save the carry in a new limb
+            if carry == 1u64 {
                 gmp::mpz_realloc2(&mut self.value, self.value.size as u64 + 1);
                 *self.value.d.as_ptr().offset(self.value.size as isize) = carry;
                 self.value.size += 1;
-            } else {
-                debug_assert!(carry == 0, "The carry can never be 1 when the most significant limb still has empty bits remaining. I.e., `self.size_in_bits` is incorrect.");
+                self.size_in_bits += 1;
             }
-
-            self.size_in_bits += 1;
         }
     }
 }
@@ -133,7 +127,7 @@ mod tests {
             ),
             x
         );
-        assert_eq!(x.size_in_bits, 104);
+        assert_eq!(x.size_in_bits, 103);
     }
 
     #[test]
@@ -174,7 +168,7 @@ mod tests {
             ),
             x
         );
-        assert_eq!(x.size_in_bits, 104);
+        assert_eq!(x.size_in_bits, 103);
     }
 
     #[test]
@@ -196,6 +190,6 @@ mod tests {
             ),
             x
         );
-        assert_eq!(x.size_in_bits, 104);
+        assert_eq!(x.size_in_bits, 103);
     }
 }

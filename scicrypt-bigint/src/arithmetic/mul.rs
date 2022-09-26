@@ -25,7 +25,6 @@ impl Mul for &UnsignedInteger {
             rhs.value.size,
             "the operands' size in bits must match their actual size"
         );
-        We moeten leading 0 limbs kunnen supporten anders moet je echt de carry meenemen bij additions
 
         let mut result = UnsignedInteger::init(self.value.size + rhs.value.size);
 
