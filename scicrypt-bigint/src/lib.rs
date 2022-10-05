@@ -2,7 +2,7 @@
 #![feature(test)]
 #![warn(missing_docs, unused_imports)]
 #![feature(array_zip)]
-#![feature(generic_const_exprs)]
+//#![feature(generic_const_exprs)]
 
 //! _This is a part of **scicrypt**. For more information, head to the
 //! [scicrypt](https://crates.io/crates/scicrypt) crate homepage._
@@ -48,6 +48,26 @@ pub struct UnsignedInteger<const LIMB_COUNT: usize> {
 type U1024 = UnsignedInteger<16>;
 type U2048 = UnsignedInteger<32>;
 type U3072 = UnsignedInteger<48>;
+type U4096 = UnsignedInteger<64>;
+type U6144 = UnsignedInteger<96>;
+
+impl U2048 {
+    pub fn chain(lower_upper: (U1024, U1024)) -> Self {
+        let (lower, upper) = lower_upper;
+
+        let mut limbs = [0; 32];
+        for i in 0..16 {
+            limbs[i] = lower.limbs[i];
+        }
+        for i in 0..16 {
+            limbs[i + 16] = upper.limbs[i];
+        }
+
+        U2048 {
+            limbs,
+        }
+    }
+}
 
 unsafe impl<const LIMB_COUNT: usize> Send for UnsignedInteger<LIMB_COUNT> {}
 
