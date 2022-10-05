@@ -27,6 +27,7 @@ use scicrypt_traits::randomness::{GeneralRng, SecureRng};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use subtle::{ConditionallySelectable, Choice};
 use rug::Integer;
+use rug::integer::Order::Lsf;
 
 impl<const LIMB_COUNT: usize> From<u64> for UnsignedInteger<LIMB_COUNT> {
     fn from(integer: u64) -> Self {
@@ -88,6 +89,12 @@ impl<const LIMB_COUNT: usize> From<Integer> for UnsignedInteger<LIMB_COUNT> {
     }
 }
 
+impl<const LIMB_COUNT: usize> Display for UnsignedInteger<LIMB_COUNT> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.to_rug(), f)
+    }
+}
+
 // TODO: Make serde optional, but always enable rug along with it.
 // impl Serialize for UnsignedInteger {
 //     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
@@ -131,6 +138,10 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
 
     pub fn is_even(&self) -> Choice {
         Choice::from((1 - (self.limbs[0] & 1)) as u8)
+    }
+
+    pub fn to_rug(&self) -> Integer {
+        unsafe { Integer::from_digits(&self.limbs, Lsf) }
     }
 
     // /// Generates a random unsigned number with `bits` bits. `bits` should be a multiple of 8.

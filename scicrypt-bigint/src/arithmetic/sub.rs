@@ -29,7 +29,7 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
 impl<const LIMB_COUNT: usize> SubAssign<&UnsignedInteger<LIMB_COUNT>> for UnsignedInteger<LIMB_COUNT> {
     fn sub_assign(&mut self, rhs: &UnsignedInteger<LIMB_COUNT>) {
         let borrow = self.subtract_and_carry(rhs);
-        debug_assert_eq!(borrow.unwrap_u8(), 0);
+        //debug_assert_eq!(borrow.unwrap_u8(), 0);
     }
 }
 

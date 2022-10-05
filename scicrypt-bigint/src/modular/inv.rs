@@ -11,9 +11,11 @@ use crate::UnsignedInteger;
 
 /// Negates
 pub fn negate_conditionally<const LIMB_COUNT: usize>(integer: UnsignedInteger<LIMB_COUNT>, choice: Choice) -> UnsignedInteger<LIMB_COUNT> {
+    let mut shifted = integer.clone();
+    shifted.shift_left_1();
+
     let mut integer_copy = integer.clone();
-    integer_copy.shift_left_1();
-    integer_copy -= &integer;
+    integer_copy -= &shifted;
 
     UnsignedInteger::conditional_select(&integer, &integer_copy, choice)
 }
@@ -143,8 +145,9 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{UnsignedInteger, U1024};
+    use subtle::Choice;
 
+    use crate::{UnsignedInteger, U1024, modular::inv::negate_conditionally};
 
     #[test]
     fn test_invert() {

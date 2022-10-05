@@ -43,7 +43,7 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
 impl<const LIMB_COUNT: usize> AddAssign<&UnsignedInteger<LIMB_COUNT>> for UnsignedInteger<LIMB_COUNT> {
     fn add_assign(&mut self, rhs: &Self) {
         let carry = self.add_and_carry(&rhs);
-        debug_assert_eq!(carry.unwrap_u8(), 0);
+        //debug_assert_eq!(carry.unwrap_u8(), 0);
     }
 }
 
