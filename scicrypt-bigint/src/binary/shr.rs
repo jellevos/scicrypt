@@ -1,6 +1,20 @@
 use std::ops::{Shr, ShrAssign};
 
+use subtle::Choice;
+
 use crate::UnsignedInteger;
+
+
+impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
+    pub fn shift_right_1(&mut self) -> Choice {
+        todo!()
+    }
+
+    // TODO: Move to separate file
+    pub fn shift_left_1(&mut self) -> Choice {
+        todo!()
+    }
+}
 
 // impl ShrAssign<u32> for UnsignedInteger {
 //     fn shr_assign(&mut self, rhs: u32) {

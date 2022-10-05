@@ -31,6 +31,13 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
 
         carry
     }
+
+    /// Returns the carry/borrow, or zero if choice was 0.
+    pub fn add_and_carry_conditionally(&mut self, other: &Self, choice: Choice) -> Choice {
+        let rhs = UnsignedInteger::conditional_select(&UnsignedInteger::zero(), other, choice);
+        let borrow = self.add_and_carry(&rhs);
+        borrow
+    }
 }
 
 impl<const LIMB_COUNT: usize> AddAssign<&UnsignedInteger<LIMB_COUNT>> for UnsignedInteger<LIMB_COUNT> {

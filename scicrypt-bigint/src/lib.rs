@@ -39,7 +39,7 @@ impl<const LIMB_COUNT: usize> From<u64> for UnsignedInteger<LIMB_COUNT> {
 }
 
 // TODO: Rename to CtInteger (constant-time integer)
-/// An unsigned big integer. The integer can only grow up to size `LIMB_COUNT`. Unless specified with the `leaky` keyword, all functions are designed to be constant-time.
+/// An unsigned big integer. The integer can only grow up to size `LIMB_COUNT`. Unless specified with the `leaky` keyword, all functions are designed to be constant-time. **All operations that can overflow or underflow cause the integer to wrap around.**
 #[derive(Debug, Eq, Clone, Copy, Ord, Hash)]
 pub struct UnsignedInteger<const LIMB_COUNT: usize> {
     limbs: [u64; LIMB_COUNT],
@@ -123,6 +123,14 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
     /// Creates an UnsignedInteger from a value given as a `string` in a certain `base`. Panics if an error occurs.
     pub fn from_str_leaky(string: &str, base: i32) -> UnsignedInteger<LIMB_COUNT> {
         Integer::from_str_radix(string, base).unwrap().into()
+    }
+
+    pub fn is_odd(&self) -> Choice {
+        Choice::from((self.limbs[0] & 1) as u8)
+    }
+
+    pub fn is_even(&self) -> Choice {
+        Choice::from((1 - (self.limbs[0] & 1)) as u8)
     }
 
     // /// Generates a random unsigned number with `bits` bits. `bits` should be a multiple of 8.
@@ -273,6 +281,18 @@ impl<const LIMB_COUNT: usize> ConditionallySelectable for UnsignedInteger<LIMB_C
     }
 }
 
+impl<const LIMB_COUNT: usize> PartialEq<u64> for UnsignedInteger<LIMB_COUNT> {
+    fn eq(&self, other: &u64) -> bool {
+        let mut result = self.limbs[0] ^ other;
+
+        for i in 1..LIMB_COUNT {
+            result |= self.limbs[i];
+        }
+
+        result == 0
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{
@@ -409,36 +429,5 @@ mod tests {
     //     let b = UnsignedInteger::from_string_leaky("51090942171709440000".to_string(), 10, 66);
 
     //     assert_eq!(a, b);
-    // }
-
-    // #[test]
-    // fn test_invert() {
-    //     let a = UnsignedInteger::from_string_leaky("5892358416859326896589748197812740739507917092740973905700591759793209771117197329023975932757523759072735959723097537209079532975039297099714397901428947253853027537265853823285397084380934928703270590758520818187287349487329243789243783249743289423789918417987091287932757258397104397295856325791091077".to_string(), 10, 1024);
-    //     let m = UnsignedInteger::from_string_leaky("149600854933825512159828331527177109689118555212385170831387365804008437367913613643959968668965614270559113472851544758183282789643129469226548555150464780229538086590498853718102052468519876788192865092229749643546710793464305243815836267024770081889047200172952438000587807986096107675012284269101785114471".to_string(), 10, 1024);
-
-    //     let res = a.invert(&m);
-
-    //     let expected = UnsignedInteger::from_string_leaky("123739905086158212270843051527441649600807330749471895683394889028867514801710371562360352272055594352035190616471030275978939424413601977497555131069474726813170115491482106601865630839838144362329125370518957163898801175903502017426241817312333816497160685389024867847545777202327273987093691380956370608950".to_string(), 10, 1024);
-    //     assert_eq!(res.unwrap(), expected);
-    // }
-
-    // #[test]
-    // fn test_invert_small() {
-    //     let a = UnsignedInteger::from(3u64);
-    //     let m = UnsignedInteger::from(13u64);
-
-    //     let res = a.invert(&m);
-
-    //     assert_eq!(UnsignedInteger::from(9u64), res.unwrap());
-    // }
-
-    // #[test]
-    // fn test_no_inverse_small() {
-    //     let a = UnsignedInteger::from(14u64);
-    //     let m = UnsignedInteger::from(49u64);
-
-    //     let res = a.invert(&m);
-
-    //     assert!(res.is_none());
     // }
 }
