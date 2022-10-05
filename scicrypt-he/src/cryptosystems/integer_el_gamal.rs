@@ -82,7 +82,7 @@ impl AsymmetricCryptosystem for IntegerElGamal {
     fn setup(security_param: &BitsOfSecurity) -> Self {
         let public_key_len = security_param.to_public_key_bit_length();
         IntegerElGamal {
-            modulus: UnsignedInteger::from_string_leaky(
+            modulus: UnsignedInteger::from_str_leaky(
                 match public_key_len {
                     1024 => SAFE_PRIME_1024.to_string(),
                     2048 => SAFE_PRIME_2048.to_string(),

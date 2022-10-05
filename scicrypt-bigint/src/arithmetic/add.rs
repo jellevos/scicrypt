@@ -3,57 +3,54 @@ use std::{
     ops::{Add, AddAssign},
 };
 
-use gmp_mpfr_sys::gmp;
+use subtle::Choice;
+use subtle::ConditionallySelectable;
 
-use crate::{scratch::Scratch, UnsignedInteger, GMP_NUMB_BITS};
+use crate::UnsignedInteger;
 
-impl AddAssign<&UnsignedInteger> for UnsignedInteger {
-    fn add_assign(&mut self, rhs: &Self) {
-        debug_assert!(self.size_in_bits >= rhs.size_in_bits);
-        debug_assert!(self.value.size >= rhs.value.size);
+impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
+    pub fn add(&mut self, other: &Self) -> Choice {
+        debug_assert_eq!(self.occupied_limbs, other.occupied_limbs);
+        let mut carry = Choice::from(0);
 
-        if rhs.value.size == 0 {
-            return;
+        for i in 0..self.limbs.len() {
+            self.limbs[i] = self.limbs[i].wrapping_add(other.limbs[i]).wrapping_add(carry.unwrap_u8() as u64);
+            carry = Choice::from(u8::conditional_select(&((self.limbs[i] < other.limbs[i]) as u8), &((self.limbs[i] <= other.limbs[i]) as u8), carry));
         }
 
-        unsafe {
-            // LHS has more limbs than RHS, so add all RHS limbs to the corresponding limbs on the LHS.
-            let mut carry = gmp::mpn_add_n(
-                self.value.d.as_mut(),
-                self.value.d.as_ptr(),
-                rhs.value.d.as_ptr(),
-                rhs.value.size as i64,
-            );
-
-            let remaining_size = (self.value.size - rhs.value.size) as i64;
-            if remaining_size != 0 {
-                // Propagate the carry over the remaining (more significant) limbs on the LHS.
-                let scratch_size =
-                    gmp::mpn_sec_add_1_itch(remaining_size) as usize * GMP_NUMB_BITS as usize;
-                let mut scratch = Scratch::new(scratch_size);
-
-                carry = gmp::mpn_sec_add_1(
-                    self.value.d.as_ptr().offset(rhs.value.size as isize),
-                    self.value.d.as_ptr().offset(rhs.value.size as isize),
-                    remaining_size,
-                    carry,
-                    scratch.as_mut(),
-                );
-            }
-
-            // Save the carry in a new limb
-            if carry == 1u64 {
-                gmp::mpz_realloc2(&mut self.value, self.value.size as u64 + 1);
-                *self.value.d.as_ptr().offset(self.value.size as isize) = carry;
-                self.value.size += 1;
-                self.size_in_bits += 1;
-            }
-        }
+        carry
     }
 }
 
-impl Add<&UnsignedInteger> for UnsignedInteger {
-    type Output = UnsignedInteger;
+impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
+    pub fn add2(&mut self, other: &UnsignedInteger<LIMB_COUNT>) -> Choice {
+        debug_assert!(self.occupied_limbs >= other.occupied_limbs);
+
+        let mut carry = Choice::from(0);
+
+        for i in 0..other.occupied_limbs {
+            self.limbs[i] = self.limbs[i].wrapping_add(other.limbs[i]).wrapping_add(carry.unwrap_u8() as u64);
+            carry = Choice::from(u8::conditional_select(&((self.limbs[i] < other.limbs[i]) as u8), &((self.limbs[i] <= other.limbs[i]) as u8), carry));
+        }
+
+        for i in other.occupied_limbs..self.occupied_limbs {
+            self.limbs[i] = self.limbs[i].wrapping_add(carry.unwrap_u8() as u64);
+            carry = Choice::from(u8::conditional_select(&((self.limbs[i] < other.limbs[i]) as u8), &((self.limbs[i] <= other.limbs[i]) as u8), carry));
+        }
+
+        carry
+    }
+}
+
+impl<const LIMB_COUNT: usize> AddAssign<&UnsignedInteger<LIMB_COUNT>> for UnsignedInteger<LIMB_COUNT> {
+    fn add_assign(&mut self, rhs: &Self) {
+        let carry = self.add(&rhs);
+        debug_assert_eq!(carry.unwrap_u8(), 0);
+    }
+}
+
+impl<const LIMB_COUNT: usize> Add<&UnsignedInteger<LIMB_COUNT>> for UnsignedInteger<LIMB_COUNT> {
+    type Output = UnsignedInteger<LIMB_COUNT>;
 
     fn add(mut self, rhs: &Self) -> Self::Output {
         self += rhs;
@@ -61,35 +58,15 @@ impl Add<&UnsignedInteger> for UnsignedInteger {
     }
 }
 
-impl AddAssign<u64> for UnsignedInteger {
+impl<const LIMB_COUNT: usize> AddAssign<u64> for UnsignedInteger<LIMB_COUNT> {
     fn add_assign(&mut self, rhs: u64) {
-        unsafe {
-            let scratch_size =
-                gmp::mpn_sec_add_1_itch(self.value.size as i64) as usize * GMP_NUMB_BITS as usize;
-
-            let mut scratch = Scratch::new(scratch_size);
-
-            let carry = gmp::mpn_sec_add_1(
-                self.value.d.as_mut(),
-                self.value.d.as_ptr(),
-                self.value.size as i64,
-                rhs,
-                scratch.as_mut(),
-            );
-
-            // Save the carry in a new limb
-            if carry == 1u64 {
-                gmp::mpz_realloc2(&mut self.value, self.value.size as u64 + 1);
-                *self.value.d.as_ptr().offset(self.value.size as isize) = carry;
-                self.value.size += 1;
-                self.size_in_bits += 1;
-            }
-        }
+        let carry = self.add2(&UnsignedInteger::from(rhs));
+        debug_assert_eq!(carry.unwrap_u8(), 0);
     }
 }
 
-impl Add<u64> for UnsignedInteger {
-    type Output = UnsignedInteger;
+impl<const LIMB_COUNT: usize> Add<u64> for UnsignedInteger<LIMB_COUNT> {
+    type Output = UnsignedInteger<LIMB_COUNT>;
 
     fn add(mut self, rhs: u64) -> Self::Output {
         self += rhs;
@@ -97,12 +74,12 @@ impl Add<u64> for UnsignedInteger {
     }
 }
 
-impl<'a> Sum<&'a UnsignedInteger> for UnsignedInteger {
-    fn sum<I: Iterator<Item = &'a UnsignedInteger>>(mut iter: I) -> Self {
-        let initial = iter.next().unwrap().clone();
-        iter.fold(initial, |x, y| x + y)
-    }
-}
+// impl<'a> Sum<&'a UnsignedInteger> for UnsignedInteger {
+//     fn sum<I: Iterator<Item = &'a UnsignedInteger>>(mut iter: I) -> Self {
+//         let initial = iter.next().unwrap().clone();
+//         iter.fold(initial, |x, y| x + y)
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
@@ -110,82 +87,65 @@ mod tests {
 
     #[test]
     fn test_addition() {
-        let mut x = UnsignedInteger::from_string_leaky(
-            "5378239758327583290580573280735".to_string(),
-            10,
-            103,
-        );
-        let y =
-            UnsignedInteger::from_string_leaky("49127277414859531000011129".to_string(), 10, 86);
+        let mut x = UnsignedInteger::<2>::from_str_leaky("5378239758327583290580573280735", 10);
+        let y = UnsignedInteger::<2>::from_str_leaky("49127277414859531000011129", 10);
 
         x += &y;
 
         assert_eq!(
-            UnsignedInteger::from_string_leaky(
-                "5378288885604998150111573291864".to_string(),
-                10,
-                103
-            ),
+            UnsignedInteger::<2>::from_str_leaky("5378288885604998150111573291864", 10),
             x
         );
-        assert_eq!(x.size_in_bits, 103);
     }
 
     #[test]
     fn test_addition_overflow() {
-        let mut x = UnsignedInteger::from(u64::MAX);
-        let y = UnsignedInteger::from_string_leaky("3".to_string(), 10, 2);
+        let mut x = UnsignedInteger::<2>::from(u64::MAX);
+        let y = UnsignedInteger::from_str_leaky("3", 10);
 
         x += &y;
 
         assert_eq!(
-            UnsignedInteger::from_string_leaky("18446744073709551618".to_string(), 10, 65),
+            UnsignedInteger::from_str_leaky("18446744073709551618", 10),
             x
         );
-        assert_eq!(x.size_in_bits, 65);
     }
 
     #[test]
     fn test_addition_different_sizes() {
-        let mut x = UnsignedInteger::from_string_leaky(
-            "5378239758327583290580573280735".to_string(),
+        let mut x = UnsignedInteger::<2>::from_str_leaky(
+            "5378239758327583290580573280735",
             10,
-            103,
         );
-        let y = UnsignedInteger::from_string_leaky("12".to_string(), 10, 4);
+        let y = UnsignedInteger::from_str_leaky("12", 10);
 
         x += &y;
 
         assert_eq!(
-            UnsignedInteger::from_string_leaky(
-                "5378239758327583290580573280747".to_string(),
+            UnsignedInteger::from_str_leaky(
+                "5378239758327583290580573280747",
                 10,
-                103
             ),
             x
         );
-        assert_eq!(x.size_in_bits, 103);
     }
 
     #[test]
     fn test_addition_u64() {
-        let mut x = UnsignedInteger::from_string_leaky(
-            "5378239758327583290580573280735".to_string(),
+        let mut x = UnsignedInteger::<2>::from_str_leaky(
+            "5378239758327583290580573280735",
             10,
-            103,
         );
         let y = 14;
 
         x += y;
 
         assert_eq!(
-            UnsignedInteger::from_string_leaky(
-                "5378239758327583290580573280749".to_string(),
+            UnsignedInteger::from_str_leaky(
+                "5378239758327583290580573280749",
                 10,
-                103
             ),
             x
         );
-        assert_eq!(x.size_in_bits, 103);
     }
 }
