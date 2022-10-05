@@ -2,7 +2,7 @@
 #![feature(test)]
 #![warn(missing_docs, unused_imports)]
 #![feature(array_zip)]
-//#![feature(generic_const_exprs)]
+#![feature(generic_const_exprs)]
 
 //! _This is a part of **scicrypt**. For more information, head to the
 //! [scicrypt](https://crates.io/crates/scicrypt) crate homepage._
@@ -34,7 +34,6 @@ impl<const LIMB_COUNT: usize> From<u64> for UnsignedInteger<LIMB_COUNT> {
         limbs[0] = integer;
         UnsignedInteger {
             limbs,
-            occupied_limbs: 1
         }
     }
 }
@@ -44,7 +43,6 @@ impl<const LIMB_COUNT: usize> From<u64> for UnsignedInteger<LIMB_COUNT> {
 #[derive(Debug, Eq, Clone, Copy, Ord, Hash)]
 pub struct UnsignedInteger<const LIMB_COUNT: usize> {
     limbs: [u64; LIMB_COUNT],
-    occupied_limbs: usize,
 }
 
 type U1024 = UnsignedInteger<16>;
@@ -66,7 +64,6 @@ impl<const LIMB_COUNT: usize> From<Integer> for UnsignedInteger<LIMB_COUNT> {
 
         UnsignedInteger {
             limbs,
-            occupied_limbs: leaky_limbs.len(),
         }
     }
 }
@@ -100,7 +97,6 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
     pub fn zero() -> UnsignedInteger<LIMB_COUNT> {
         UnsignedInteger {
             limbs: [0; LIMB_COUNT],
-            occupied_limbs: 0
         }
     }
 
@@ -222,10 +218,9 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
 
 impl<const LIMB_COUNT: usize> PartialEq for UnsignedInteger<LIMB_COUNT> {
     fn eq(&self, other: &Self) -> bool {
-        let occupied_limbs = max(self.occupied_limbs, other.occupied_limbs);
         let mut result = 0;
 
-        for i in 0..occupied_limbs {
+        for i in 0..LIMB_COUNT {
             result |= self.limbs[i] ^ other.limbs[i];
         }
 
@@ -235,10 +230,9 @@ impl<const LIMB_COUNT: usize> PartialEq for UnsignedInteger<LIMB_COUNT> {
 
 impl<const LIMB_COUNT: usize> PartialOrd for UnsignedInteger<LIMB_COUNT> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let occupied_limbs = max(self.occupied_limbs, other.occupied_limbs);
         let mut result = Ordering::Equal;
 
-        for i in 0..occupied_limbs {
+        for i in 0..LIMB_COUNT {
             if self.limbs[i] < other.limbs[i] {
                 result = Ordering::Less;
             }
@@ -255,7 +249,6 @@ impl<const LIMB_COUNT: usize> ConditionallySelectable for UnsignedInteger<LIMB_C
     fn conditional_select(a: &Self, b: &Self, choice: Choice) -> Self {
         UnsignedInteger {
             limbs: a.limbs.zip(b.limbs).map(|(al, bl)| u64::conditional_select(&al, &bl, choice.clone())),
-            occupied_limbs: u64::conditional_select(&(a.occupied_limbs as u64), &(b.occupied_limbs as u64), choice) as usize
         }
     }
 }

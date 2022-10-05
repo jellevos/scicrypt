@@ -3,36 +3,30 @@ use std::{iter::Product, ops::{Mul, MulAssign}};
 use crate::UnsignedInteger;
 
 impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
-    pub fn multiply(&self, other: &UnsignedInteger<LIMB_COUNT>) -> UnsignedInteger<LIMB_COUNT> {
-        let mut result = [0; LIMB_COUNT];
+    pub fn multiply(&self, other: &UnsignedInteger<LIMB_COUNT>) -> UnsignedInteger<{2 * LIMB_COUNT}> where [(); 2 * LIMB_COUNT]: Sized {
+        let mut result = [0; {2 * LIMB_COUNT}];
         
-        for i in 0..self.occupied_limbs {
+        for i in 0..LIMB_COUNT {
             let mut carry = 0;
 
-            for j in 0..other.occupied_limbs {
+            for j in 0..LIMB_COUNT {
                 let new_limb = (self.limbs[i] as u128 * other.limbs[j] as u128).wrapping_add(result[i + j] as u128).wrapping_add(carry);
                 carry = new_limb >> 64;
                 result[i + j] = new_limb as u64;
             }
 
-            result[i + other.occupied_limbs] = carry as u64;
+            result[i + LIMB_COUNT] = carry as u64;
         }
 
-        UnsignedInteger { limbs: result, occupied_limbs: self.occupied_limbs + other.occupied_limbs }
+        UnsignedInteger { limbs: result }
     }
 }
 
-impl<const LIMB_COUNT: usize> Mul for &UnsignedInteger<LIMB_COUNT> {
-    type Output = UnsignedInteger<LIMB_COUNT>;
+impl<const LIMB_COUNT: usize> Mul for &UnsignedInteger<LIMB_COUNT> where [(); 2 * LIMB_COUNT]: Sized {
+    type Output = UnsignedInteger<{2 * LIMB_COUNT}>;
 
     fn mul(self, rhs: Self) -> Self::Output {
         self.multiply(rhs)
-    }
-}
-
-impl<const LIMB_COUNT: usize> MulAssign<&Self> for UnsignedInteger<LIMB_COUNT> {
-    fn mul_assign(&mut self, rhs: &Self) {
-        *self = &*self * rhs;
     }
 }
 

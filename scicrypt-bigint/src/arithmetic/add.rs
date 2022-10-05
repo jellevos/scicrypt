@@ -9,33 +9,24 @@ use subtle::ConditionallySelectable;
 use crate::UnsignedInteger;
 
 impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
-    pub fn add(&mut self, other: &Self) -> Choice {
-        debug_assert_eq!(self.occupied_limbs, other.occupied_limbs);
+    pub fn add_and_carry(&mut self, other: &Self) -> Choice {
         let mut carry = Choice::from(0);
 
-        for i in 0..self.limbs.len() {
+        for i in 0..LIMB_COUNT {
             self.limbs[i] = self.limbs[i].wrapping_add(other.limbs[i]).wrapping_add(carry.unwrap_u8() as u64);
             carry = Choice::from(u8::conditional_select(&((self.limbs[i] < other.limbs[i]) as u8), &((self.limbs[i] <= other.limbs[i]) as u8), carry));
         }
 
         carry
     }
-}
 
-impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
-    pub fn add2(&mut self, other: &UnsignedInteger<LIMB_COUNT>) -> Choice {
-        debug_assert!(self.occupied_limbs >= other.occupied_limbs);
+    pub fn add_u64_and_carry(&mut self, other: u64) -> Choice {
+        self.limbs[0] = self.limbs[0].wrapping_add(other);
+        let mut carry = Choice::from((self.limbs[0] < other) as u8);
 
-        let mut carry = Choice::from(0);
-
-        for i in 0..other.occupied_limbs {
-            self.limbs[i] = self.limbs[i].wrapping_add(other.limbs[i]).wrapping_add(carry.unwrap_u8() as u64);
-            carry = Choice::from(u8::conditional_select(&((self.limbs[i] < other.limbs[i]) as u8), &((self.limbs[i] <= other.limbs[i]) as u8), carry));
-        }
-
-        for i in other.occupied_limbs..self.occupied_limbs {
+        for i in 1..LIMB_COUNT {
             self.limbs[i] = self.limbs[i].wrapping_add(carry.unwrap_u8() as u64);
-            carry = Choice::from(u8::conditional_select(&((self.limbs[i] < other.limbs[i]) as u8), &((self.limbs[i] <= other.limbs[i]) as u8), carry));
+            carry = Choice::from(u8::conditional_select(&0u8, &((self.limbs[i] == 0) as u8), carry));
         }
 
         carry
@@ -44,7 +35,7 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
 
 impl<const LIMB_COUNT: usize> AddAssign<&UnsignedInteger<LIMB_COUNT>> for UnsignedInteger<LIMB_COUNT> {
     fn add_assign(&mut self, rhs: &Self) {
-        let carry = self.add(&rhs);
+        let carry = self.add_and_carry(&rhs);
         debug_assert_eq!(carry.unwrap_u8(), 0);
     }
 }
@@ -60,7 +51,7 @@ impl<const LIMB_COUNT: usize> Add<&UnsignedInteger<LIMB_COUNT>> for UnsignedInte
 
 impl<const LIMB_COUNT: usize> AddAssign<u64> for UnsignedInteger<LIMB_COUNT> {
     fn add_assign(&mut self, rhs: u64) {
-        let carry = self.add2(&UnsignedInteger::from(rhs));
+        let carry = self.add_u64_and_carry(rhs);
         debug_assert_eq!(carry.unwrap_u8(), 0);
     }
 }
