@@ -2,6 +2,30 @@ use std::ops::Div;
 
 use crate::UnsignedInteger;
 
+impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
+    pub fn div_rem_u64(&self, rhs: u64) -> (UnsignedInteger<LIMB_COUNT>, u64) {
+        let mut quotient = [0; LIMB_COUNT];
+        let mut remainder: u128 = 0;
+
+        for i in (0..LIMB_COUNT).rev() {
+            let dividend: u128 = (remainder << 64) | self.limbs[i] as u128;
+            quotient[i] = (dividend / rhs as u128) as u64;
+            remainder = dividend % rhs as u128;
+        }
+
+        (UnsignedInteger { limbs: quotient }, remainder as u64)
+    }
+}
+
+impl<const LIMB_COUNT: usize> Div<u64> for &UnsignedInteger<LIMB_COUNT> {
+    type Output = UnsignedInteger<LIMB_COUNT>;
+
+    fn div(self, rhs: u64) -> Self::Output {
+        let (quotient, _) = self.div_rem_u64(rhs);
+        quotient
+    }
+}
+
 // impl UnsignedInteger {
 //     /// Divides `self` by `rhs` and returns the quotient and remainder (in that order).
 //     pub fn div_rem(mut self, rhs: &UnsignedInteger) -> (UnsignedInteger, UnsignedInteger) {

@@ -17,24 +17,52 @@ struct MontgomeryParams<const LIMB_COUNT: usize> {
     modulus_neg_inv: u64,
 }
 
-// impl<const LIMB_COUNT: usize> MontgomeryParams<LIMB_COUNT> {
-//     pub fn new(modulus: UnsignedInteger<LIMB_COUNT>) -> Self {
-//         let montgomery_r = ();
-//         let montgomery_r2 = montgomery_r.square();
-//         let modulus_neg_inv = montgomery_r - modulus.invert(&montgomery_r);
+impl<const LIMB_COUNT: usize> MontgomeryParams<LIMB_COUNT> {
+    /// Note that the modulus must be tight (i.e. it should be at least somewhat close in size to `LIMB_COUNT`).
+    pub fn new(modulus: UnsignedInteger<LIMB_COUNT>) -> Self {
+        let montgomery_r = -modulus;
+        let montgomery_r2 = montgomery_r.square();  // FIXME: This must still be reduced
+        let modulus_neg_inv = (montgomery_r - &modulus.invert(&montgomery_r).unwrap()).limbs[0];
 
-//         MontgomeryParams {
-//             modulus,
-//             montgomery_r,
-//             montgomery_r2,
-//             modulus_neg_inv: todo!(),
-//         }
-//     }
-// }
+        MontgomeryParams {
+            modulus,
+            montgomery_r,
+            montgomery_r2, Implement reduction using 14.20 or https://github.com/elliott-wen/luatex/blob/a482902f2d09a7373854c954554e8786aa89ac47/source/libs/gmp/gmp-src/mpn/generic/sec_div.c
+            modulus_neg_inv,
+        }
+    }
+}
 
 struct ModularInteger<const LIMB_COUNT: usize> {
     value: UnsignedInteger<LIMB_COUNT>,
     modulus_params: MontgomeryParams<LIMB_COUNT>,
+}
+
+impl<const LIMB_COUNT: usize> ModularInteger<LIMB_COUNT> {
+    pub fn new(integer: UnsignedInteger<LIMB_COUNT>, modulus_params: MontgomeryParams<LIMB_COUNT>) -> Self {
+        // BigInt<2*bits> tmp;
+        // tmp.copy(this->val);
+
+        // Fp<bits, p, r, r2, inv>* target;
+        // target = reinterpret_cast<Fp<bits, p, r, r2, inv>*>(&integer);
+
+        // const FpBase<bits>* b = reinterpret_cast<const FpBase<bits>*>(&r2);
+        // this->FpBase<bits>::multiply(*this, *b, p, inv.words[0]);
+
+        let mut modular_integer = ModularInteger {
+            value: integer,
+            modulus_params,
+        };
+
+        modular_integer *= &modulus_params.montgomery_r2;
+
+        modular_integer
+    }
+
+    pub fn retrieve(&self) -> UnsignedInteger<LIMB_COUNT> {
+        let product = self.value.multiply(&self.modulus_params.montgomery_r);
+        montgomery_reduction(product, &self.modulus_params)
+    }
 }
 
 /// Algorithm 14.32 in Handbook of Applied Cryptography (https://cacr.uwaterloo.ca/hac/about/chap14.pdf)

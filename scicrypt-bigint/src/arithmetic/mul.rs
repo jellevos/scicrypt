@@ -32,6 +32,12 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
     pub fn multiply_u64(&self, other: u64) -> (UnsignedInteger<LIMB_COUNT>, u64) {
         todo!()
     }
+
+    /// Squares `self`, returning in the same fashion as `multiply`. However, this function can be faster than calling `self.multiply(&self)`.
+    pub fn square(&self) -> (UnsignedInteger<LIMB_COUNT>, UnsignedInteger<LIMB_COUNT>) {
+        // TODO: Optimize
+        self.multiply(&self)
+    }
 }
 
 impl<const LIMB_COUNT: usize> Mul for &UnsignedInteger<LIMB_COUNT> {
@@ -100,14 +106,14 @@ impl<const LIMB_COUNT: usize> Mul<u64> for &UnsignedInteger<LIMB_COUNT> {
 mod tests {
     use crate::{UnsignedInteger, U1024, U2048};
 
-    // #[test]
-    // fn test_square() {
-    //     let x = UnsignedInteger::new(23, 64);
+    #[test]
+    fn test_square() {
+        let x = U1024::from(23);
 
-    //     let res = x.square();
+        let res = x.square();
 
-    //     assert_eq!(UnsignedInteger::from(23u64 * 23), res);
-    // }
+        assert_eq!(UnsignedInteger::from(23u64 * 23), U2048::chain(res));
+    }
 
     #[test]
     fn test_mul_equal_size() {

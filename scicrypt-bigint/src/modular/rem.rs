@@ -2,6 +2,21 @@ use std::ops::{Rem, RemAssign};
 
 use crate::UnsignedInteger;
 
+impl<const LIMB_COUNT: usize> Rem<u64> for UnsignedInteger<LIMB_COUNT> {
+    type Output = u64;
+
+    fn rem(self, rhs: u64) -> Self::Output {
+        let mut remainder: u128 = 0;
+
+        for i in (0..LIMB_COUNT).rev() {
+            let dividend: u128 = (remainder << 64) | self.limbs[i] as u128;
+            remainder = dividend % rhs as u128;
+        }
+
+        remainder as u64
+    }
+}
+
 // impl RemAssign<&UnsignedInteger> for UnsignedInteger {
 //     fn rem_assign(&mut self, rhs: &Self) {
 //         debug_assert!(rhs.value.size.is_positive());

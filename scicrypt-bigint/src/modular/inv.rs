@@ -2,24 +2,6 @@ use subtle::{ConditionallySelectable, Choice};
 
 use crate::UnsignedInteger;
 
-// pub fn greatest_common_divisor<const LIMB_COUNT: usize>(x: UnsignedInteger<LIMB_COUNT>, y: UnsignedInteger<LIMB_COUNT>) -> (UnsignedInteger, UnsignedInteger, UnsignedInteger) {
-//     let mut g = 1;
-
-//     for 
-//     while x.is_even() &&
-// }
-
-/// Negates
-pub fn negate_conditionally<const LIMB_COUNT: usize>(integer: UnsignedInteger<LIMB_COUNT>, choice: Choice) -> UnsignedInteger<LIMB_COUNT> {
-    let mut shifted = integer.clone();
-    shifted.shift_left_1();
-
-    let mut integer_copy = integer.clone();
-    integer_copy -= &shifted;
-
-    UnsignedInteger::conditional_select(&integer, &integer_copy, choice)
-}
-
 impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
     pub fn invert(mut self, modulus: &UnsignedInteger<LIMB_COUNT>) -> Option<UnsignedInteger<LIMB_COUNT>> {
         let mut u = UnsignedInteger::from(1);
@@ -46,7 +28,7 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
             // Set `b += self` if `swap` is true.
             b = UnsignedInteger::conditional_select(&b, &(b + &self), swap);
             // Negate `self` if `swap` is true.
-            self = negate_conditionally(self, swap);
+            self = self.negate_conditionally(swap);
 
             UnsignedInteger::conditional_swap(&mut u, &mut v, swap);
             let cy = u.subtract_and_carry_conditionally(&v, self_odd);
@@ -147,7 +129,7 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
 mod tests {
     use subtle::Choice;
 
-    use crate::{UnsignedInteger, U1024, modular::inv::negate_conditionally};
+    use crate::{UnsignedInteger, U1024};
 
     #[test]
     fn test_invert() {
