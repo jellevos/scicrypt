@@ -2,6 +2,8 @@ use subtle::{Choice, ConditionallySelectable};
 
 use crate::UnsignedInteger;
 
+use self::rem::reduce;
+
 mod inv;
 mod pow;
 mod rem;
@@ -21,13 +23,13 @@ impl<const LIMB_COUNT: usize> MontgomeryParams<LIMB_COUNT> {
     /// Note that the modulus must be tight (i.e. it should be at least somewhat close in size to `LIMB_COUNT`).
     pub fn new(modulus: UnsignedInteger<LIMB_COUNT>) -> Self {
         let montgomery_r = -modulus;
-        let montgomery_r2 = montgomery_r.square();  // FIXME: This must still be reduced
+        let mut montgomery_r2 = reduce(montgomery_r.square(), &modulus);
         let modulus_neg_inv = (montgomery_r - &modulus.invert(&montgomery_r).unwrap()).limbs[0];
 
         MontgomeryParams {
             modulus,
             montgomery_r,
-            montgomery_r2, Implement reduction using 14.20 or https://github.com/elliott-wen/luatex/blob/a482902f2d09a7373854c954554e8786aa89ac47/source/libs/gmp/gmp-src/mpn/generic/sec_div.c
+            montgomery_r2,
             modulus_neg_inv,
         }
     }

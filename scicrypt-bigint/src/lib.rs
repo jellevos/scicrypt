@@ -144,6 +144,23 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
         unsafe { Integer::from_digits(&self.limbs, Lsf) }
     }
 
+    pub fn bit_length(&self) -> usize {
+        let mut i = LIMB_COUNT - 1;
+        while i > 0 && self.limbs[i] == 0 {
+            i -= 1;
+        }
+
+        let limb = self.limbs[i];
+        let bits = (64 * (i + 1)) - limb.leading_zeros() as usize;
+
+        // Limb::ct_select(
+        //     Limb(bits),
+        //     Limb::ZERO,
+        //     !self.limbs[0].is_nonzero() & !Limb(i as Word).is_nonzero(),
+        // )
+        bits
+    }
+
     // /// Generates a random unsigned number with `bits` bits. `bits` should be a multiple of 8.
     // pub fn random<R: SecureRng>(bits: u32, rng: &mut GeneralRng<R>) -> Self {
     //     // TODO: Change bits to bytes to make this API safer

@@ -2,6 +2,42 @@ use std::ops::{Rem, RemAssign};
 
 use crate::UnsignedInteger;
 
+// TODO: We can do better here than `div_rem`
+pub fn reduce<const LIMB_COUNT: usize>(mut value: (UnsignedInteger<LIMB_COUNT>, UnsignedInteger<LIMB_COUNT>), modulus: &UnsignedInteger<LIMB_COUNT>) -> UnsignedInteger<LIMB_COUNT> {
+    let (lower, upper) = value;
+    
+    let mut bit_difference = LIMB_COUNT * 64 + upper.bit_length() - modulus.bit_length();
+    let mut quotient = UnsignedInteger::<LIMB_COUNT>::zero();
+
+    let mut c = modulus.shift_left_leaky(bit_difference);
+    let mut e = UnsignedInteger::<LIMB_COUNT>::from(1).shift_left_leaky(bit_difference);
+
+    loop {
+        let mut r: UnsignedInteger<LIMB_COUNT> = remainder.clone(); // lower_r and upper_r?
+        r -= &c;
+
+        let d = -(((r.limbs[LIMB_COUNT - 1] >> 63) & 1) as i64);
+        let d = d as u64;
+        let choice = Choice::from((d as u8) & 1);
+
+        remainder = UnsignedInteger::conditional_select(&remainder, &r, choice);
+        r = quotient;
+        r += &e;
+
+        quotient = UnsignedInteger::conditional_select(&quotient, &r, choice);
+
+        if bit_difference == 0 {
+            break;
+        }
+        bit_difference -= 1;
+
+        c.shift_right_1();
+        e.shift_right_1();
+    }
+
+    (quotient, remainder)
+}
+
 impl<const LIMB_COUNT: usize> Rem<u64> for UnsignedInteger<LIMB_COUNT> {
     type Output = u64;
 
@@ -16,6 +52,7 @@ impl<const LIMB_COUNT: usize> Rem<u64> for UnsignedInteger<LIMB_COUNT> {
         remainder as u64
     }
 }
+
 
 // impl RemAssign<&UnsignedInteger> for UnsignedInteger {
 //     fn rem_assign(&mut self, rhs: &Self) {

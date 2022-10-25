@@ -1,6 +1,7 @@
 use std::ops::{Shr, ShrAssign};
 
 use subtle::Choice;
+use subtle::ConditionallySelectable;
 
 use crate::UnsignedInteger;
 
@@ -29,6 +30,33 @@ impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
         }
 
         Choice::from(carry_bits[LIMB_COUNT - 1] as u8)
+    }
+
+    /// https://github.com/RustCrypto/crypto-bigint/blob/fea5f50c3f73c8b7f95f0ce12a8f78f70316646a/src/uint/shl.rs
+    pub fn shift_left_leaky(&self, amount: usize) -> UnsignedInteger<LIMB_COUNT> {
+        let mut limbs = [0; LIMB_COUNT];
+
+        if amount >= 64 * LIMB_COUNT {
+            return Self { limbs };
+        }
+
+        let shift_num = amount / 64;
+        let rem = amount % 64;
+        let nz = (rem as u64) != 0; // FIXME: This comparison is probably variable-time
+        let lshift_rem = rem as u64;
+        let rshift_rem = u64::conditional_select(&0, &((64 - rem) as u64), Choice::from(nz as u8));
+
+        let mut i = LIMB_COUNT - 1;
+        while i > shift_num {
+            let mut limb = self.limbs[i - shift_num] << lshift_rem;
+            let hi = self.limbs[i - shift_num - 1] >> rshift_rem;
+            limb |= hi & nz as u64;
+            limbs[i] = limb;
+            i -= 1
+        }
+        limbs[shift_num] = self.limbs[0] << lshift_rem;
+
+        Self { limbs }
     }
 }
 

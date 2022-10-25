@@ -1,19 +1,59 @@
-use std::ops::Div;
+use std::ops::{Div, DivAssign};
 
-use crate::UnsignedInteger;
+use subtle::{ConditionallySelectable, Choice};
+
+use crate::{UnsignedInteger, arithmetic::div};
 
 impl<const LIMB_COUNT: usize> UnsignedInteger<LIMB_COUNT> {
-    pub fn div_rem_u64(&self, rhs: u64) -> (UnsignedInteger<LIMB_COUNT>, u64) {
+    pub fn div_rem_u64(&self, divisor: u64) -> (UnsignedInteger<LIMB_COUNT>, u64) {
         let mut quotient = [0; LIMB_COUNT];
         let mut remainder: u128 = 0;
 
         for i in (0..LIMB_COUNT).rev() {
             let dividend: u128 = (remainder << 64) | self.limbs[i] as u128;
-            quotient[i] = (dividend / rhs as u128) as u64;
-            remainder = dividend % rhs as u128;
+            quotient[i] = (dividend / divisor as u128) as u64;
+            remainder = dividend % divisor as u128;
         }
 
         (UnsignedInteger { limbs: quotient }, remainder as u64)
+    }
+    
+    // From: https://docs.rs/crypto-bigint/0.4.8/src/crypto_bigint/uint/div.rs.html#169-178
+    pub fn div_rem(&self, divisor: &UnsignedInteger<LIMB_COUNT>) -> (UnsignedInteger<LIMB_COUNT>, UnsignedInteger<LIMB_COUNT>) {
+        debug_assert_ne!(divisor, &0u64);
+        debug_assert!(&*self >= divisor);
+
+        let mut bit_difference = self.bit_length() - divisor.bit_length();
+        let mut remainder = self.clone();
+        let mut quotient = UnsignedInteger::<LIMB_COUNT>::zero();
+
+        let mut c = divisor.shift_left_leaky(bit_difference);
+        let mut e = UnsignedInteger::<LIMB_COUNT>::from(1).shift_left_leaky(bit_difference);
+
+        loop {
+            let mut r: UnsignedInteger<LIMB_COUNT> = remainder.clone();
+            r -= &c;
+
+            let d = -(((r.limbs[LIMB_COUNT - 1] >> 63) & 1) as i64);
+            let d = d as u64;
+            let choice = Choice::from((d as u8) & 1);
+
+            remainder = UnsignedInteger::conditional_select(&remainder, &r, choice);
+            r = quotient;
+            r += &e;
+
+            quotient = UnsignedInteger::conditional_select(&quotient, &r, choice);
+
+            if bit_difference == 0 {
+                break;
+            }
+            bit_difference -= 1;
+
+            c.shift_right_1();
+            e.shift_right_1();
+        }
+
+        (quotient, remainder)
     }
 }
 
@@ -23,6 +63,14 @@ impl<const LIMB_COUNT: usize> Div<u64> for &UnsignedInteger<LIMB_COUNT> {
     fn div(self, rhs: u64) -> Self::Output {
         let (quotient, _) = self.div_rem_u64(rhs);
         quotient
+    }
+}
+
+impl<const LIMB_COUNT: usize> DivAssign<&Self> for UnsignedInteger<LIMB_COUNT> {
+    fn div_assign(&mut self, rhs: &Self) {
+        
+
+
     }
 }
 
