@@ -66,6 +66,7 @@ impl PaillierPK {
 }
 
 /// Decryption key for the Paillier cryptosystem.
+#[derive(Debug, Clone)]
 pub struct PaillierSK {
     lambda: UnsignedInteger,
     mu: UnsignedInteger,
